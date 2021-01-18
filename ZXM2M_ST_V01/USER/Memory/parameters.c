@@ -407,25 +407,48 @@ void Parm_ResetM2mAssetDataToFactory(void)
 /******************************************************************************
 * 远程固件更新
 ******************************************************************************/
-void rfu_EraseFlashHexFile(void)
+void rfu_EraseFlashHexFile(uint8_t fileType)
 {
-  sfud_erase(&sfud_mx25l3206e,EMAP_HEX_FILE_ADDRESS,EMAP_HEX_FILE_SIZE); // 擦除
-}
-
-/* ================================================================== */
-void rfu_SaveFlashHexFile(rfu_context_t* pThis, uint8_t *buf, uint16_t length)
-{
-  if ((pThis->cumulated_address+length) < EMAP_HEX_FILE_SIZE)
+  if(fileType==0x03) // 协处理器
   {
-    sfud_write(&sfud_mx25l3206e, (EMAP_HEX_FILE_ADDRESS + pThis->cumulated_address), length, buf);
-    pThis->cumulated_address += length;
+    sfud_erase(&sfud_mx25l3206e, EMAP_HEX_FILE_ADDRESS, EMAP_HEX_FILE_SIZE); // 擦除
+  }
+  else // ECU or LCD
+  {
+    sfud_erase(&sfud_mx25l3206e, EMAP_ECU_HEX_FILE_ADDRESS, EMAP_ECU_HEX_FILE_SIZE); // 擦除
   }
 }
 
 /* ================================================================== */
-void rfu_ReadFlashHexFile(uint32_t address, uint8_t *buf, uint32_t cnt)
+void rfu_SaveFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t length)
 {
-  sfud_read(&sfud_mx25l3206e, (EMAP_HEX_FILE_ADDRESS + address), cnt, buf);
+  if(fileType==0x03) // 协处理器
+  {
+    if ((address + length) < EMAP_HEX_FILE_SIZE)
+    {
+      sfud_write(&sfud_mx25l3206e, (EMAP_HEX_FILE_ADDRESS + address), length, buf);
+    }
+  }
+  else // ECU or LCD
+  {
+    if ((address + length) < EMAP_ECU_HEX_FILE_SIZE)
+    {
+      sfud_write(&sfud_mx25l3206e, (EMAP_ECU_HEX_FILE_ADDRESS + address), length, buf);
+    }
+  }
+}
+
+/* ================================================================== */
+void rfu_ReadFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t bufferSize)
+{
+  if(fileType==0x03) // 协处理器
+  {
+    sfud_read(&sfud_mx25l3206e, (EMAP_HEX_FILE_ADDRESS + address), bufferSize, buf);
+  }
+  else // ECU or LCD
+  {
+    sfud_read(&sfud_mx25l3206e, (EMAP_ECU_HEX_FILE_ADDRESS + address), bufferSize, buf);
+  }
 }
 
 /* ================================================================== */
@@ -445,10 +468,9 @@ uint8_t rfu_CheckNewFirmware(rfu_context_t* pThis,uint8_t* buffer, uint16_t buff
     {
       size = pThis->ending_address - pThis->cumulated_address;
     }
-
-    rfu_ReadFlashHexFile(pThis->cumulated_address,buffer,size);
-    pThis->crc32val = GetCrc32_Stream_Update(pThis->crc32val,buffer,size);
-
+    rfu_ReadFlashHexFile(pThis->dev, pThis->cumulated_address, buffer, size);
+    pThis->crc32val = GetCrc32_Stream_Update(pThis->crc32val, buffer, size);
+    
     pThis->cumulated_address += size;
     pThis->block++;
     pThis->percent = pThis->block * 100L / pThis->total_block_count;

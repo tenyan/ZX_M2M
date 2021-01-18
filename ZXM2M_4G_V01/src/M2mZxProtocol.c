@@ -2,7 +2,7 @@
 * @FileName: M2mZxProtocol.c
 * @Engineer: TenYan
 * @version   V1.0
-* @Date:     2020-12-18
+* @Date:     2020-1-8
 * @brief     重型专用TLV创建
 ******************************************************************************/
 //-----头文件调用------------------------------------------------------------
@@ -12,20 +12,34 @@
 /******************************************************************************
  * Typedef
  ******************************************************************************/
-typedef uint16_t (*Zxm2m_BuildTlvMsgFun)(uint8_t *pbuf);
-//typedef uint16_t (*Zxm2m_AnalyzeTlvMsgFun)(uint8_t* pValue, uint16_t len);
+typedef uint16_t (*iZxm2m_BuildTlvMsgFun)(uint8_t *pbuf);
+//typedef uint16_t (*iZxm2m_AnalyzeTlvMsgFun)(uint8_t* pValue, uint16_t len);
 typedef struct
 {
   uint16_t type;
-  Zxm2m_BuildTlvMsgFun pfun_build;
-  //Zxm2m_AnalyzeTlvMsgFun pfun_analyze;
-}Zxm2m_CmdTlv_t;
+  iZxm2m_BuildTlvMsgFun pfun_build;
+  //iZxm2m_AnalyzeTlvMsgFun pfun_analyze;
+}iZxm2m_CmdTlv_t;
 
 
 /******************************************************************************
- *   Macros
+ * 外部函数
  ******************************************************************************/
-
+extern uint16_t im2m_BuildTlvMsg_0111(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_100D(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_2101(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3000(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3004(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3005(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3007(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3008(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3016(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3017(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3018(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_3019(uint8_t *pbuf);
+extern uint16_t im2m_BuildTlvMsg_301A(uint8_t *pbuf);
+extern uint8_t im2m_BuildMsgHead(uint8_t *pbuf, im2m_msg_type_t msgType, uint16_t msgBodyLen, uint8_t flag, uint16_t SerialNumber);
+extern uint8_t im2m_CalcSumCheck(uint8_t* pbuf,uint16_t len);
 
 /******************************************************************************
  * Data Types and Globals
@@ -48,6 +62,56 @@ uint8_t zxengine_buffer[SIZE_OF_ZXENGINE_BUFFER]; /// 下车发动机数据缓存
 uint8_t zxstatistics_buffer[SIZE_OF_ZXSTATISTICS_BUFFER]; ///统计数据缓存
 uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 
+zxtcw_context_t zxtcw_context;
+
+/******************************************************************************
+ * TLV组包策略
+ ******************************************************************************/
+// 上车作业TLV--机械/液控
+uint16_t zxup_jxyk_tlv_table[] = {0xA5A0, 0xA5C8};
+#define NUM_OF_ZXUP_JXYK_TLV  (sizeof(zxup_jxyk_tlv_table)/sizeof(zxup_jxyk_tlv_table[0]))
+
+//============================================================================================
+// 上车作业TLV--电控绳排
+uint16_t zxup_dksp_tlv_table[] = {
+  0xA5A0, 0xA5A3, 0xA5C8, 0xA5A6, 0xA5A7, 0xA5A9, 0xA5AB, 0xA5AC,
+  0xA5AD, 0xA5AE, 0xA5AF, 0xA5B0, 0xA5B3, 0xA5B4, 0xA5B5, 0xA5BF,
+  0xA5C0, 0xA5C1 };
+#define NUM_OF_ZXUP_DKSP_TLV  (sizeof(zxup_dksp_tlv_table)/sizeof(zxup_dksp_tlv_table[0]))
+
+// 上车作业TLV--开式单缸
+uint16_t zxup_ksdg_tlv_table[] = {
+  0xA5A0, 0xA5A3, 0xA5C8, 0xA5A6, 0xA5A7, 0xA5A9, 0xA5AB, 0xA5AC,
+  0xA5AD, 0xA5AE, 0xA5AF, 0xA5B0, 0xA5B3, 0xA5B4, 0xA5B5, 0xA5B7,
+  0xA5B8, 0xA5B9, 0xA5BA, 0xA5BC, 0xA5BF, 0xA5C0, 0xA5C1, 0xA5A5,
+  0xA5A1, 0xA5A8, 0xA5B1, 0xA5C3, 0xA5C4, 0xA5A2, 0xA5B2, 0xA5BD,
+  0xA5BE,0xA5AA };
+#define NUM_OF_ZXUP_KSDG_TLV  (sizeof(zxup_ksdg_tlv_table)/sizeof(zxup_ksdg_tlv_table[0]))
+
+// 上车作业TLV--闭式单缸
+uint16_t zxup_bsdg_tlv_table[] = {
+  0xA5A0, 0xA5A3, 0xA5A4, 0xA5C8, 0xA5A6, 0xA5A7, 0xA5A9, 0xA5AB,
+  0xA5AC, 0xA5AD, 0xA5AE, 0xA5AF, 0xA5B3, 0xA5B4, 0xA5B6, 0xA5B7,
+  0xA5B8, 0xA5B9, 0xA5BA, 0xA5BB, 0xA5BC, 0xA5BF, 0xA5C0, 0xA5C2,
+  0xA5A5, 0xA5A1, 0xA5A8, 0xA5B1, 0xA5C3, 0xA5C4, 0xA5A2, 0xA5B2,
+  0xA5BD, 0xA5BE, 0xA5AA };
+#define NUM_OF_ZXUP_BSDG_TLV  (sizeof(zxup_bsdg_tlv_table)/sizeof(zxup_bsdg_tlv_table[0]))
+
+//============================================================================================
+// 下车作业TLV--全地面底盘
+uint16_t zxdown_ag_tlv_table[] = {
+  0xA5EF, 0xA5F0, 0xA5F1, 0xA5F2, 0xA5E0, 0xA5E1, 0xA5E4, 0xA5E6,
+  0xA5E7, 0xA5E9, 0xA5E8, 0xA5E2, 0xA5E3, 0xA5EC, 0xA5ED, 0xA5EE,
+  0xA5EA, 0xA5EB, 0xA502 };
+#define NUM_OF_ZXDOWN_AG_TLV  (sizeof(zxdown_ag_tlv_table)/sizeof(zxdown_ag_tlv_table[0]))
+
+// 下车作业TLV--汽车底盘
+uint16_t zxdown_ac_tlv_table[] = {
+  0xA5EF, 0xA5F0, 0xA5F1, 0xA5F2, 0xA5E0, 0xA5E1, 0xA5E5, 0xA5E6,
+  0xA5E7, 0xA5E9, 0xA5EB, 0xA502 };
+#define NUM_OF_ZXDOWN_AC_TLV  (sizeof(zxdown_ac_tlv_table)/sizeof(zxdown_ac_tlv_table[0]))
+
+
 /******************************************************************************
 * 创建TLV, 返回信息长度
 ******************************************************************************/
@@ -67,6 +131,7 @@ uint16_t iZxM2m_BuildTlvMsg(uint8_t *pbuf, uint8_t tlv_valid_flag, uint16_t tag,
   return len;
 }
 
+#if (PART("ZxM2m车型配置TLV信息"))
 /******************************************************************************
 * 创建车型配置信息TLV
 ******************************************************************************/
@@ -135,7 +200,8 @@ uint16_t iZxM2m_BuildTlvMsg_3005(uint8_t *pbuf)
 
   return len;
 }
-
+#endif
+#if (PART("ZxM2m上车TLV信息"))
 /******************************************************************************
 * 创建上车通信TLV
 ******************************************************************************/
@@ -803,7 +869,8 @@ uint16_t iZxM2m_BuildTlvMsg_A5C9(uint8_t *pbuf)
 
   return len;
 }
-
+#endif
+#if (PART("ZxM2m下车TLV信息"))
 /******************************************************************************
 * 创建下车通信TLV
 ******************************************************************************/
@@ -1112,7 +1179,8 @@ uint16_t iZxM2m_BuildTlvMsg_A5A4(uint8_t *pbuf)
 
   return len;
 }
-
+#endif
+#if (PART("ZxM2m底盘发动机TLV信息"))
 /******************************************************************************
 * 创建底盘发动机TLV
 ******************************************************************************/
@@ -1205,7 +1273,8 @@ uint16_t iZxM2m_BuildTlvMsg_A5F2(uint8_t *pbuf)
 
   return len;
 }
-
+#endif
+#if (PART("ZxM2m版本TLV信息"))
 /******************************************************************************
 * 版本信息
 ******************************************************************************/
@@ -1244,7 +1313,8 @@ uint16_t iZxM2m_BuildTlvMsg_A506(uint8_t *pbuf)
 
   return len;
 }
-
+#endif
+#if (PART("ZxM2m频次统计TLV信息"))
 /******************************************************************************
 * 频次统计信息
 ******************************************************************************/
@@ -1301,12 +1371,13 @@ uint16_t iZxM2m_BuildTlvMsg_A5C7(uint8_t *pbuf)
 
   return len;
 }
+#endif
 
 /******************************************************************************
  * Data Types and Globals
  ******************************************************************************/
 //==type按照递增顺序填写=================================================
-Zxm2m_CmdTlv_t Zxm2m_CmdDealTbl[]=
+iZxm2m_CmdTlv_t iZxm2m_CmdDealTbl[]=
 {
   /*TLV type ,build hdl ,analyze hdl*/
 
@@ -1390,7 +1461,627 @@ Zxm2m_CmdTlv_t Zxm2m_CmdDealTbl[]=
   {0xA5C6, iZxM2m_BuildTlvMsg_A5C6},// TLV-A5C6 动作频次统计2
   {0xA5C7, iZxM2m_BuildTlvMsg_A5C7},// TLV-A5C7 安全统计
 };
-//#define NUM_OF_ZXM2M_CMD_DEAL   (sizeof(Zxm2m_CmdDealTbl)/sizeof(Zxm2m_CmdDealTbl))
+#define NUM_OF_ZXM2M_CMD_DEAL   (sizeof(iZxm2m_CmdDealTbl)/sizeof(iZxm2m_CmdDealTbl))
 
+#if (PART("ZxM2m解析RC控制命令"))
+//==重型专用:绑定与解绑======================================================
+uint16_t iZxM2m_AnalyzeTlvMsg_A510(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  //uint8_t tempVal;
+
+  if (0==len)
+  {
+    retVal = 1;
+
+  }
+
+  return retVal;
+}
+
+//==重型专用:锁车与解锁======================================================
+uint16_t iZxM2m_AnalyzeTlvMsg_A511(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  //uint8_t tempVal;
+
+  if (0==len)
+  {
+    retVal = 1;
+
+  }
+
+  return retVal;
+}
+
+//==重型专用:环保协议类型======================================================
+uint16_t iZxM2m_AnalyzeTlvMsg_A512(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  //uint8_t tempVal;
+
+  if (0==len)
+  {
+    retVal = 1;
+
+  }
+
+  return retVal;
+}
+
+//==重型专用:VIN码设置=======================================================
+uint16_t iZxM2m_AnalyzeTlvMsg_A513(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  //uint8_t tempVal;
+
+  if (0==len)
+  {
+    retVal = 1;
+
+  }
+
+  return retVal;
+}
+#endif
+
+//==TLV-0x100F 协处理器版本===================================================
+uint16_t im2m_BuildTlvMsg_100F(uint8_t *pbuf)
+{
+  uint16_t len =0;
+  uint16_t st_version;
+
+  st_version = COLT_GetStVersion();
+  pbuf[len++] = 0x10;  // TAG
+  pbuf[len++] = 0x0F;
+  pbuf[len++] = 0x00;  // LENGTH
+  pbuf[len++] = 0x02;
+  pbuf[len++] = (uint8_t)(st_version>>8);  // VALUE
+  pbuf[len++] = (uint8_t)st_version;
+
+  return len;
+}
+
+//==TLV-终端休眠时间(0x301E)===================================================
+uint16_t im2m_BuildTlvMsg_301E(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint32_t temp_val = 0;
+
+  pbuf[len++] = 0x30; // TAG
+  pbuf[len++] = 0x1E;
+  pbuf[len++] = 0x00; // LENGTH
+  pbuf[len++] = 0x08;
+  //temp_val = Cellura_GetLacID();
+  pbuf[len++] = (temp_val>>24) & 0xFF;  // 总休眠时间
+  pbuf[len++] = (temp_val>>16) & 0xFF;
+  pbuf[len++] = (temp_val>>8) & 0xFF;
+  pbuf[len++] = temp_val & 0xFF;
+  //temp_val = Cellura_GetCellID();
+  pbuf[len++] = (temp_val>>24) & 0xFF;  // 本次休眠时间
+  pbuf[len++] = (temp_val>>16) & 0xFF;
+  pbuf[len++] = (temp_val>>8) & 0xFF;
+  pbuf[len++] = temp_val & 0xFF;
+
+  return len;
+}
+
+
+//==TLV-4G模块小区信息及位置码(0x301F)==========================================
+uint16_t im2m_BuildTlvMsg_301F(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint32_t temp_val = 0;
+
+  pbuf[len++] = 0x30; // TAG
+  pbuf[len++] = 0x1F;
+  pbuf[len++] = 0x00; // LENGTH
+  pbuf[len++] = 0x08;
+  temp_val = Cellura_GetLacID();
+  pbuf[len++] = (temp_val>>24) & 0xFF;  // VALUE
+  pbuf[len++] = (temp_val>>16) & 0xFF;
+  pbuf[len++] = (temp_val>>8) & 0xFF;
+  pbuf[len++] = temp_val & 0xFF;
+  temp_val = Cellura_GetCellID();
+  pbuf[len++] = (temp_val>>24) & 0xFF;  // VALUE
+  pbuf[len++] = (temp_val>>16) & 0xFF;
+  pbuf[len++] = (temp_val>>8) & 0xFF;
+  pbuf[len++] = temp_val & 0xFF;
+
+  return len;
+}
+
+//=============================================================================
+uint16_t iZxM2m_BuildTcwData(uint8_t *pbuf, uint16_t tag)
+{
+  uint16_t len = 0;
+  uint16_t it = 0;
+  iZxm2m_CmdTlv_t* p_CmdTlvDeal = NULL;
+
+  for (it = 0; it<NUM_OF_ZXM2M_CMD_DEAL; it++)
+  {
+    p_CmdTlvDeal = &iZxm2m_CmdDealTbl[it];
+    if (p_CmdTlvDeal->type != tag)
+    {
+      continue;
+    }
+
+    if (p_CmdTlvDeal->pfun_build != NULL)
+    {
+      len = p_CmdTlvDeal->pfun_build(pbuf);
+    }
+    break;
+  }
+
+  return len;
+}
+
+//==TLV-创建重型TCW工况TLV信息===================================================
+uint16_t iZxM2m_BuildTlvMsg_TCW(uint8_t *pbuf, zxtcw_context_t* pZxtcw_ctx)
+{
+  uint8_t tlvNum;
+  uint16_t it = 0;
+  uint16_t tag = 0;
+  uint16_t tlvLen = 0;
+  uint16_t len = 0; // TLV消息累计长度
+
+  pZxtcw_ctx->valid_tlv_num = 0;
+  len = 0;
+
+  //==上车TLV===============================================================
+  it = 0;
+  tlvNum = pZxtcw_ctx->zxup_tlv_num;  // 上车TLV数量
+  while (tlvNum)
+  {
+    tag = pZxtcw_ctx->zxup_tlv_table[it++];  // 获取TLV的TAG
+    tlvLen = iZxM2m_BuildTcwData(&pbuf[len], tag);  // 根据TAG查找TLV信息组建函数并创建信息
+    if (tlvLen>0)
+    {
+      pZxtcw_ctx->valid_tlv_num++;
+      len += tlvLen;
+    }
+    tlvNum--;
+  }
+
+  //==下车(底盘+发动机)TLV===============================================================
+  it = 0;
+  tlvNum = pZxtcw_ctx->zxdown_tlv_num;  // 下车TLV数量
+  while (tlvNum)
+  {
+    tag = pZxtcw_ctx->zxdown_tlv_table[it++];  // 获取TLV的TAG
+    tlvLen = iZxM2m_BuildTcwData(&pbuf[len], tag);  // 根据TAG查找TLV信息组建函数并创建信息
+    if (tlvLen>0)
+    {
+      pZxtcw_ctx->valid_tlv_num++;
+      len += tlvLen;
+    }
+    tlvNum--;
+  }
+
+  return len;
+}
+
+#if (PART("ZxM2m消息组建函数"))
+/*************************************************************************
+ *
+*************************************************************************/
+//==构建TCS消息体========================================================
+uint16_t iZxM2m_BuildTcsBody(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint8_t tlv_num = 0;
+  uint16_t temp_val;
+
+  //==数据类型=========================================
+  pbuf[len++] = 0x00; // 数据类型长度
+  pbuf[len++] = 0x03;
+  pbuf[len++] = 'T';  // 数据类型
+  pbuf[len++] = 'C';
+  pbuf[len++] = 'S';
+
+  //==数据内容=========================================
+  len++;  // 数据内容长度
+  len++;
+  len++;  // 状态同步TLV个数
+
+  //==必要TLV==========================================
+  /// TLV1-状态位(0x3000)
+  temp_val = im2m_BuildTlvMsg_3000(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 位置信息单包(0x2101)
+  temp_val = im2m_BuildTlvMsg_2101(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 主电源电压值(0x3004)
+  temp_val = im2m_BuildTlvMsg_3004(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 终端内置电池电压(0x3005)
+  temp_val = im2m_BuildTlvMsg_3005(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// GSM信号强度
+  temp_val = im2m_BuildTlvMsg_3007(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// GPS卫星颗数
+  temp_val = im2m_BuildTlvMsg_3008(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// ACC ON累计时间(0x3016)
+  temp_val = im2m_BuildTlvMsg_3016(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// PPP(端对端协议)状态(0x3017)
+  temp_val = im2m_BuildTlvMsg_3017(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// GCS域注册状态(0x3018)
+  temp_val = im2m_BuildTlvMsg_3018(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// PS域注册状态(0x3019)
+  temp_val = im2m_BuildTlvMsg_3019(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 与平台连接状态(0x301A)
+  temp_val = im2m_BuildTlvMsg_301A(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 休眠时间统计数据
+  temp_val = im2m_BuildTlvMsg_301E(&pbuf[len]);
+  len += temp_val;
+  tlv_num += ((temp_val == 0)? 0: 1);
+
+  /// Cellular ID,终端设备所在的小区标识
+  temp_val = im2m_BuildTlvMsg_301F(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 重型通用状态字2
+  temp_val = iZxM2m_BuildTlvMsg_A501(&pbuf[len]);
+  len += temp_val;
+  tlv_num += ((temp_val == 0)? 0: 1);
+  
+  /// 填充TCS数据内容长度及tlv计数
+  temp_val = len - 6;
+  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[5] = temp_val & 0xFF;
+  pbuf[6] = tlv_num; // TLV个数
+
+  return len;
+}
+
+//==构建TCW消息体=========================================================
+uint16_t iZxM2m_BuildTcwBody(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint8_t tlv_num = 0;
+  uint16_t temp_val;
+
+  //==数据类型=========================================
+  pbuf[len++] = 0x00; // 数据类型长度
+  pbuf[len++] = 0x03;
+  pbuf[len++] = 'T';  // 数据类型
+  pbuf[len++] = 'C';
+  pbuf[len++] = 'W';
+
+  //==数据内容=========================================
+  len++;  // 数据内容长度
+  len++;
+  len++;  // 状态同步TLV个数
+
+  //==必要TLV==========================================
+  /// TLV1-状态位(0x3000)
+  temp_val = im2m_BuildTlvMsg_3000(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 位置信息单包(0x2101)
+  temp_val = im2m_BuildTlvMsg_2101(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 重型工况数据
+  temp_val = iZxM2m_BuildTlvMsg_TCW(&pbuf[len], &zxtcw_context);
+  len += temp_val;
+  tlv_num += zxtcw_context.valid_tlv_num;
+
+  /// 填充TCB数据内容长度及tlv计数
+  temp_val = len - 6;
+  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[5] = temp_val & 0xFF;
+  pbuf[6] = tlv_num; // TLV个数
+
+  return len;
+}
+
+//==构建TCB(版本)消息体=========================================================
+uint16_t iZxM2m_BuildTcbBody(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint8_t tlv_num = 0;
+  uint16_t temp_val;
+
+  //==数据类型=========================================
+  pbuf[len++] = 0x00; // 数据类型长度
+  pbuf[len++] = 0x03;
+  pbuf[len++] = 'T';  // 数据类型
+  pbuf[len++] = 'C';
+  pbuf[len++] = 'B';
+
+  //==数据内容=========================================
+  len++;  // 数据内容长度
+  len++;
+  len++;  // 状态同步TLV个数
+
+  //==必要TLV==========================================
+  /// TLV1-状态位(0x3000)
+  temp_val = im2m_BuildTlvMsg_3000(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 位置信息单包(0x2101)
+  temp_val = im2m_BuildTlvMsg_2101(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 采集协议信息(0xA504)
+  temp_val = iZxM2m_BuildTlvMsg_A504(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 上车系统版本(0xA505)
+  temp_val = iZxM2m_BuildTlvMsg_A505(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 下车系统版本(0xA506)
+  temp_val = iZxM2m_BuildTlvMsg_A5C6(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 填充TCB数据内容长度及tlv计数
+  temp_val = len - 6;
+  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[5] = temp_val & 0xFF;
+  pbuf[6] = tlv_num; // TLV个数
+
+  return len;
+}
+
+//==构建TCT(统计)消息体=========================================================
+uint16_t iZxM2m_BuildTctBody(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint8_t tlv_num = 0;
+  uint16_t temp_val;
+
+  //==数据类型=========================================
+  pbuf[len++] = 0x00; // 数据类型长度
+  pbuf[len++] = 0x03;
+  pbuf[len++] = 'T';  // 数据类型
+  pbuf[len++] = 'C';
+  pbuf[len++] = 'B';
+
+  //==数据内容=========================================
+  len++;  // 数据内容长度
+  len++;
+  len++;  // 状态同步TLV个数
+
+  //==必要TLV==========================================
+  /// TLV1-状态位(0x3000)
+  temp_val = im2m_BuildTlvMsg_3000(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 位置信息单包(0x2101)
+  temp_val = im2m_BuildTlvMsg_2101(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 动作频次统计1(0xA5C5)
+  temp_val = iZxM2m_BuildTlvMsg_A5C5(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 动作频次统计2(0xA5C6)
+  temp_val = iZxM2m_BuildTlvMsg_A5C6(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 安全统计(0xA5C7)
+  temp_val = iZxM2m_BuildTlvMsg_A5C7(&pbuf[len]);
+  if(temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 填充TCT数据内容长度及tlv计数
+  temp_val = len - 6;
+  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[5] = temp_val & 0xFF;
+  pbuf[6] = tlv_num; // TLV个数
+
+  return len;
+}
+
+//==构建TCD消息体=========================================================
+uint16_t iZxM2m_BuildTcdBody(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+  uint8_t tlv_num = 0;
+  uint16_t temp_val;
+
+  //==数据类型=========================================
+  pbuf[len++] = 0x00; // 数据类型长度
+  pbuf[len++] = 0x03;
+  pbuf[len++] = 'T';  // 数据类型
+  pbuf[len++] = 'C';
+  pbuf[len++] = 'D';
+
+  //==数据内容=========================================
+  len++;  // 数据内容长度
+  len++;
+  len++;  // 状态同步TLV个数
+
+  //==必要TLV==========================================
+  /// TLV1-状态位(0x3000)
+  temp_val = im2m_BuildTlvMsg_3000(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 位置信息单包(0x2101)
+  temp_val = im2m_BuildTlvMsg_2101(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
+  /// 填充TCD数据内容长度及tlv计数
+  temp_val = len - 6;
+  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[5] = temp_val & 0xFF;
+  pbuf[6] = tlv_num; // TLV个数
+
+  return len;
+}
+
+#endif
+
+#if (PART("发送ZxM2m网络数据"))
+/******************************************************************************
+ *
+*******************************************************************************/
+//==发送重型ConnectRequest消息=================================================
+void iZxM2m_SendConnenctMsg(m2m_context_t* pThis)
+{
+  uint16_t len = 0;
+  uint16_t msg_body_len = 0;
+  uint16_t msg_header_len = 0;
+  uint8_t check_sum;
+  uint8_t* pbuf = pThis->tx_data;
+
+  //==创建报文体==========================================
+  len = M2M_MSG_HEAD_LEN; // 从消息体开始填充
+
+  /// 协议名
+  pbuf[len++] = 0x00; // 协议名长度
+  pbuf[len++] = 0x04;
+  memcpy(&pbuf[len], "XM2M", 4);
+  len += 4;
+
+  /// 协议版本
+  pbuf[len++] = 1;
+
+  /// TLV100D-当前软件版本号
+  len += im2m_BuildTlvMsg_100D(&pbuf[len]);
+
+  /// TLV-0x0111 ICCID
+  len += im2m_BuildTlvMsg_0111(&pbuf[len]);
+
+  /// TLV-0x100F 协处理器版本
+  len += im2m_BuildTlvMsg_100F(&pbuf[len]);
+
+  /// 连接标识
+  pbuf[len++] = 0; // 报文体无鉴权信息
+  msg_body_len = len - M2M_MSG_HEAD_LEN;
+
+  //==创建报文头==========================================
+  pThis->upload_sn++;
+  pThis->conn_req.sn = pThis->upload_sn;
+  msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_CONN_REQ, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
+
+  //==计算校验字==========================================
+  len = msg_header_len + msg_body_len;
+  check_sum = im2m_CalcSumCheck(pbuf, len);
+  pbuf[len++] = check_sum;
+  pThis->tx_size = len;
+
+  im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
+  //return msg_len;
+}
+
+//==发送重型数据消息============================================================
+void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type)
+{
+  uint16_t msg_len, msg_body_len, msg_header_len;
+  uint8_t check_sum;
+  uint8_t* pbuf = pThis->tx_data;
+
+  //==创建报文体==========================================
+  if(msg_type==ZXTC_MSG_TYPE_TCW)
+  {
+    msg_body_len = iZxM2m_BuildTcwBody(&pbuf[M2M_MSG_HEAD_LEN]);
+  }
+  else if(msg_type==ZXTC_MSG_TYPE_TCS)
+  {
+    msg_body_len = iZxM2m_BuildTcsBody(&pbuf[M2M_MSG_HEAD_LEN]);
+  }
+  else if(msg_type==ZXTC_MSG_TYPE_TCB)
+  {
+    msg_body_len = iZxM2m_BuildTcbBody(&pbuf[M2M_MSG_HEAD_LEN]);
+  }
+  else if(msg_type==ZXTC_MSG_TYPE_TCT)
+  {
+    msg_body_len = iZxM2m_BuildTctBody(&pbuf[M2M_MSG_HEAD_LEN]);
+  }
+
+  else if(msg_type==ZXTC_MSG_TYPE_TCD)
+  {
+    msg_body_len = iZxM2m_BuildTcdBody(&pbuf[M2M_MSG_HEAD_LEN]);
+  }
+  else
+  {
+    msg_body_len = 0;
+  }
+
+  if(msg_body_len==0)  // 空消息
+  {
+    return;
+  }
+
+  //==创建报文头==========================================
+  pThis->upload_sn++;
+  pThis->ss_req.sn = pThis->upload_sn;
+  msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_PUSH_DATA, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
+
+  //==计算校验字==========================================
+  msg_len = msg_body_len + msg_header_len;
+  check_sum = im2m_CalcSumCheck(pbuf, msg_len);
+  pbuf[msg_len++] = check_sum;
+  pThis->tx_size = msg_len;
+
+  im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
+  //return msg_len;
+}
+
+#endif
 
 

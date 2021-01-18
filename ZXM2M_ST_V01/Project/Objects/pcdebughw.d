@@ -74,6 +74,7 @@
 .\project\objects\pcdebughw.o: .\USER\Collect\CollectHW.h
 .\project\objects\pcdebughw.o: .\USER\Collect\Collect.h
 .\project\objects\pcdebughw.o: .\USER\Memory\parameters.h
+.\project\objects\pcdebughw.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\pcdebughw.o: .\USER\System\tbox_machine.h
 .\project\objects\pcdebughw.o: .\USER\System\icloud_machine.h
 .\project\objects\pcdebughw.o: .\USER\Misc\crc32.h

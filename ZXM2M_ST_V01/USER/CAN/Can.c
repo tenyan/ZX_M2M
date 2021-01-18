@@ -13,7 +13,7 @@
 /******************************************************************************
  * RTOS
  ******************************************************************************/
-#define AppThreadPriority_Can1Recv   osPriorityHigh2
+#define AppThreadPriority_Can1Recv   osPriorityHigh4
 osThreadId_t tid_Can1Recv;
 
 const osThreadAttr_t AppThreadAttr_Can1Recv =
@@ -23,7 +23,7 @@ const osThreadAttr_t AppThreadAttr_Can1Recv =
   .stack_size = 512, // ×Ö½Ú
 };
 
-#define AppThreadPriority_Can2Recv   osPriorityHigh1
+#define AppThreadPriority_Can2Recv   osPriorityHigh3
 osThreadId_t tid_Can2Recv;
 
 const osThreadAttr_t AppThreadAttr_Can2Recv =
@@ -675,6 +675,7 @@ void Can_ServiceInit(void)
 {
   can_msg_queue_reset(&can1_msg_queue);
   can_msg_queue_reset(&can1_msg_queue);
+  zxsts_Initialize();
   CAN_GpioInitialize(); 
   CAN_Initialize();
 }
@@ -694,7 +695,7 @@ void Can_ServiceStart(void)
 void Can_Do100msTasks(void)
 {
   iCan_DebounceRecvState();
-
+  zxsts_StateMachine();
 }
 
 /**********************************************************************************

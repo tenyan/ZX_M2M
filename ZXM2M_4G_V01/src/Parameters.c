@@ -672,6 +672,8 @@ void Parm_ResetM2mAssetDataToFactory(void)
 ******************************************************************************/
 void rfu_EraseFlashHexFile(rfu_context_t* pThis)
 {
+  pThis->cumulated_address = 0x00;
+
   if(pThis->dev==0x00)  // 目标设备: 0x00=终端,0x01=控制器,0x02=显示器,0x03=协处理器
   {
     system("rm -f /data/helloworld_bak");  // 删除原有升级文件
@@ -705,20 +707,22 @@ void rfu_SaveFlashHexFile(rfu_context_t* pThis, uint8_t *buf, uint16_t length)
   {
     FileIO_RandomWrite(FILE_ST_FIRMWARE, pThis->cumulated_address, buf, length);
   }
+
+  pThis->cumulated_address += length;
 }
 
 /* ================================================================== */
-void rfu_ReadFlashHexFile(rfu_context_t* pThis, uint32_t address, uint8_t *buf, uint16_t length)
+void rfu_ReadFlashHexFile(uint8_t file_dev, uint32_t address, uint8_t *buf, uint16_t length)
 {
-  if(pThis->dev==0x00) // 0x00=终端
+  if(file_dev==0x00) // 0x00=终端
   {
     FileIO_RandomRead(FILE_4G_APP_FIRMWARE, address, buf, length);
   }
-  else if(pThis->dev==0x01) // 0x01=控制器
+  else if(file_dev==0x01) // 0x01=控制器
   {
     FileIO_RandomRead(FILE_ECU_FIRMWARE, address, buf, length);
   }
-  else if(pThis->dev==0x03) // 0x03=协处理器
+  else if(file_dev==0x03) // 0x03=协处理器
   {
     FileIO_RandomRead(FILE_ST_FIRMWARE, address, buf, length);
   }
@@ -742,7 +746,7 @@ uint8_t rfu_CheckNewFirmware(rfu_context_t* pThis,uint8_t* buffer, uint16_t buff
       size = pThis->ending_address - pThis->cumulated_address;
     }
 
-    rfu_ReadFlashHexFile(pThis, pThis->cumulated_address, buffer, size);
+    rfu_ReadFlashHexFile(pThis->dev, pThis->cumulated_address, buffer, size);
     pThis->crc32val = GetCrc32_Stream_Update(pThis->crc32val,buffer,size);
 
     pThis->cumulated_address += size;

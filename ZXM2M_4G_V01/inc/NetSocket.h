@@ -90,5 +90,8 @@ int32_t NetSocket_Send(skt_context_t* pThis, uint8_t *pData, uint16_t len);
 uint8_t NetSocket_GetLinkState(skt_context_t* pThis);
 void NetSocket_SetLinkState(skt_context_t* pThis,uint8_t link_state);
 
+void NetSocket_Enable(skt_context_t* pThis);
+void NetSocket_Disable(skt_context_t* pThis);
+
 #endif  /* _NET_SOCKET_H_ */
 

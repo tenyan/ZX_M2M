@@ -38,6 +38,7 @@ uint8_t COLT_GetSwitch3Status(void);
 uint8_t COLT_GetBoxOpenStatus(void);
 uint8_t COLT_GetVehicleTowingStatus(void);
 void COLT_ReadInternalWdtState(void);
+uint16_t COLT_GetStVersion(void);
 
 // ÓÃ»§APIº¯Êý
 uint8_t CAN_GetCommState(uint8_t channel);

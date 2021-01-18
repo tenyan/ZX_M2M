@@ -14,8 +14,8 @@
  *   Macros
  ******************************************************************************/
 #define MICRO_FLASH_BASE                  0x08000000  // FLASHÆðÊ¼µØÖ·
-#define MICRO_FLASH_SECTORS               (0x08)
-#define MICRO_FLASH_SIZE                  (0x80000)  // 512KB
+#define MICRO_FLASH_SECTORS               (0x06)
+#define MICRO_FLASH_SIZE                  (0x40000)  // 512KB
 
 #define MICRO_FLASH_APPLICATION_SECTORS   (MICRO_FLASH_SECTORS)
 #define MICRO_FLASH_APPLICATION_MAX_SIZE  (MICRO_FLASH_SIZE) // 512KB

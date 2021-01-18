@@ -24,13 +24,13 @@ typedef struct
 /******************************************************************************
  *   Macros
  ******************************************************************************/
-#define MOMI_ReceiveData      USART3_ReceiveData
-#define MOMI_TransmitData     USART3_TransmitData
+#define MOMI_ReceiveData     USART3_ReceiveData
+#define MOMI_TransmitData    USART3_TransmitData
 
 #define MOMI_MAX_TXBUF_SIZE  USART3_TX_BUFFER_SIZE
 #define MOMI_MAX_RXBUF_SIZE  USART3_RX_BUFFER_SIZE
 #define momi_rx_buffer       usart3_rx_buffer
-#define momi_rx_size          usart3_rx_size
+#define momi_rx_size         usart3_rx_size
 
 #define MODEM_DELAY_MS(ms)   do { osDelay(ms); } while(0)
 

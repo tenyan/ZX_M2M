@@ -74,6 +74,7 @@
 .\project\objects\m2mprotocol.o: .\USER\Collect\CollectHW.h
 .\project\objects\m2mprotocol.o: .\USER\Collect\Collect.h
 .\project\objects\m2mprotocol.o: .\USER\Memory\parameters.h
+.\project\objects\m2mprotocol.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\m2mprotocol.o: .\USER\System\tbox_machine.h
 .\project\objects\m2mprotocol.o: .\USER\System\icloud_machine.h
 .\project\objects\m2mprotocol.o: .\USER\Misc\crc32.h

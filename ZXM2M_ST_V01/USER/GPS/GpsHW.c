@@ -102,7 +102,7 @@ void USART2_Initialize(uint32_t baudrate)
   NVIC_Init(&NVIC_InitStructure);
 
   NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream6_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x04; // 中断占先等级
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x07; // 中断占先等级
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;       // 中断响应优先级
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);

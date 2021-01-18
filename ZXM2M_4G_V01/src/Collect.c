@@ -276,46 +276,23 @@ void COLT_CheckAccStatus(void)
 *********************************************************************************/
 void COLT_ManageLedStatus(void)
 {
+  //==进程运行状态指示灯====================================
   led_control[LED_USER].blink = SLOW_CONTINUOUS;
-  led_control[LED_NET].blink = FAST_CONTINUOUS;
-#if 0
-  if(tbox_state==TBOX_STATE_POWERON)
-  {
-    led_control[LED_GSM].blink = STEADY_ON;
-    led_control[LED_GPS].blink = STEADY_OFF;
-  }
-  else if(tbox_state==TBOX_STATE_WORKING)
-  {
-    //==红灯(电源、运行、GSM上线)=================================
-    if(M2M_GetConnStatus() == M2M_TRUE)
-    {
-      led_control[LED_GSM].blink = FAST_CONTINUOUS;
-    }
-    else
-    {
-      led_control[LED_GSM].blink = SLOW_CONTINUOUS;
-    }
 
-    //==绿灯(GPS)=================================================
-    if (GPS_GetPositioningStatus()==NMEA_TRUE) // 模块已定位
-    {
-      led_control[LED_GPS].blink = SLOW_CONTINUOUS;
-    }
-    else // 未定位
-    {
-      if(GPS_GetAntennaStatus()==GPS_NOK) // 天线故障
-      {
-        led_control[LED_GPS].blink = STEADY_ON;
-      }
-      else
-      {
-        led_control[LED_GPS].blink = STEADY_OFF;
-      }
-    }
+  //==网络状态指示灯========================================
+  if(M2M_GetConnStatus() == M2M_TRUE)
+  {
+    led_control[LED_NET].blink = SLOW_CONTINUOUS;
   }
-#endif
+  else if(Modem_GetState()==MODEM_STATE_INIT)
+  {
+    led_control[LED_NET].blink = STEADY_ON;
+  }
+  else
+  {
+    led_control[LED_NET].blink = STEADY_OFF;
+  }
 }
-
 
 /**********************************************************************************
 * 获取GPS终端与MCU的通信状态
@@ -467,6 +444,12 @@ uint8_t COLT_GetSwitch3Status(void)
 uint8_t COLT_GetVehicleTowingStatus(void)
 {
   return 0;
+}
+
+//==获取协处理器版本===========================================================
+uint16_t COLT_GetStVersion(void)
+{
+  return colt_info.st_version;
 }
 
 //==获取总工作时间=============================================================
@@ -749,6 +732,7 @@ void Do100msTasks(void)
   COLT_Do100msTasks();
   Momi_AnalyzeAdSwitch();
   //Can_Do100msTasks();
+  Net_CheckIsModemError();
 }
 
 /* ========================================================== */
@@ -774,6 +758,13 @@ void Do5sTasks(void)
 void Do1minuteTasks(void)
 {
   // PcDebug_Printf("Vraw=%d, Vbat=%d, Tmcu=%d\n",colt_info.vraw,colt_info.vbat,colt_info.int_temp);
+
+#if 0  // 测试代码
+  //if(FSRV_GetState()==FSRV_STATE_IDLE)
+  //{
+  //  FSRV_SetState(FSRV_STATE_START);  // 启动外部程序升级
+  //}
+#endif
 }
 
 /* ========================================================== */

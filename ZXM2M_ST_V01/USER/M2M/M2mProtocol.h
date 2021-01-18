@@ -11,8 +11,7 @@
 /******************************************************************************
  *   Pre-Processor Defines
  ******************************************************************************/
-#define RFU_BUFFER_SIZE  1024
-extern uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
+
 
 /******************************************************************************
  *   Macros
@@ -337,68 +336,6 @@ __packed typedef struct
 extern m2m_asset_data_t m2m_asset_data;
 #define SIZEOF_M2M_ASSET_DATA  (sizeof(m2m_asset_data_t))
 
-#define DEFAULT_RFU_FILE_NAME_SIZE     50
-#define DEFAULT_RFU_FILE_VERSION_SIZE  16
-#define DEFAULT_MD5_VAL_SIZE           32
-// 远程固件升级rfu = remote firmware update
-__packed typedef struct
-{
-  uint8_t type;     // 方式: 0=询问升级,1=强制升级
-  uint8_t dev;      // 目标设备: 0x00=终端,0x01=控制器,0x02=显示器,0x03:其他
-
-  uint8_t srv_ip[4];  // 服务器IP地址
-  uint16_t srv_port;  // 服务器端口号
-  uint8_t srv_protocol;   // 通信协议类型:0=UDP, 1=TCP
-
-  uint8_t file_name[DEFAULT_RFU_FILE_NAME_SIZE]; // 文件名
-  uint8_t file_name_length; // 文件名长度
-
-  uint8_t file_version[DEFAULT_RFU_FILE_VERSION_SIZE]; // 版本号
-  uint8_t file_version_length; // 版本号长度
-
-  //uint8_t file_md5val[DEFAULT_MD5_VAL_SIZE];
-  //uint8_t md5val[DEFAULT_MD5_VAL_SIZE];
-
-  uint32_t file_length;        // 明文文件大小
-  uint32_t plain_crc32val;    // 明文CRC32校验
-  //uint32_t cipher_file_length; // 密文文件大小
-  //uint32_t cipher_crc32val; // 密文CRC32校验
-  uint32_t crc32val;          // 计算出CRC32校验
-
-  uint32_t cumulated_address;  // 已接收长度
-  uint32_t ending_address;     // 总长度
-
-  uint16_t block;              // 当前下来块序号
-  uint16_t total_block_count;  // 程序总块数
-  uint8_t percent;             // 升级进度
-
-  uint8_t status;
-}rfu_context_t;
-extern rfu_context_t rfu_context;
-
-#if 0
-typedef enum 
-{
-  RFU_DOWNLOAD_STATUS_INIT = 0,
-  RFU_DOWNLOAD_STATUS_HEADER,
-  RFU_DOWNLOAD_STATUS_BODY,
-  RFU_DOWNLOAD_STATUS_SUCCESS,
-  RFU_DOWNLOAD_STATUS_FAIL
-}rfu_download_status_t;
-
-/* ================================================================== */
-void rfu_SetDownloadStatus(rfu_context_t* pThis,uint8_t status)
-{
-  pThis->status = status;
-}
-
-/* ================================================================== */
-uint8_t rfu_GetDownloadStatus(rfu_context_t* pThis)
-{
-  return pThis->status;
-}
-#endif
-
 /******************************************************************************
  *   Function prototypes
  ******************************************************************************/
@@ -408,9 +345,6 @@ uint16_t M2M_ProcessRecvMsg(m2m_context_t* pThis);
 void M2M_Do1sTasks(void);
 void M2M_AddNewAlarmToList(uint8_t type, uint8_t flag);
 uint8_t M2M_GetConnStatus(void);
-
-
-void M2M_NetSocketInit(void);
 
 #endif  /* _M2M_PROTOCOL_H_ */
 

@@ -40,12 +40,37 @@ uint8_t hjep_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
 int16_t hjep_conn_rx_len = 0;
 //uint8_t hjep_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
 
-//uint8_t net_public_data_buffer[1460];
-
 /******************************************************************************
- *
+ * 将byte数组转换成字符串,用于打印输出
 *******************************************************************************/
+void ConvertBinToAcsii(uint8_t* pstr, uint8_t byte)
+{
+  uint8_t lowHalfByte;
+  uint8_t highHalfByte;
 
+  lowHalfByte = byte & 0x0F;  // 获取第四位
+  highHalfByte = (byte>>4) & 0x0F; // 获取高四位
+
+  if (highHalfByte > 9)
+    pstr[0] = (highHalfByte-0x0A) + 'A';
+  else
+    pstr[0] = highHalfByte + '0';
+
+  if (lowHalfByte > 9)
+    pstr[1] = (lowHalfByte - 0x0A) + 'A';
+  else
+    pstr[1] = lowHalfByte + '0';
+}
+
+void ConvertBytesToString(uint8_t* pstr, uint8_t* pbyte, uint16_t byte_num)
+{
+  while(byte_num--)
+  {
+    ConvertBinToAcsii(pstr, *pbyte);
+    pbyte++;
+    pstr += 2;
+  }
+}
 
 /******************************************************************************
 * 下面函数由用户编写,用于底层网络连接
@@ -130,7 +155,9 @@ void* pthread_ZxM2mProcess(void *argument)
       {
         if(zxm2m_conn_rx_len < SOCKET_CONN_MAX_DATA_LEN)
         {
-          PcDebug_SendData(zxm2m_conn_rx_buffer, zxm2m_conn_rx_len, DBG_MSG_TYPE_SYS);
+          //ConvertBytesToString(zxm2m_conn_buffer, zxm2m_conn_rx_buffer, zxm2m_conn_rx_len);
+          //PcDebug_SendData(zxm2m_conn_buffer, zxm2m_conn_rx_len*2, DBG_MSG_TYPE_NET);
+          PcDebug_SendData(zxm2m_conn_rx_buffer, zxm2m_conn_rx_len, DBG_MSG_TYPE_NET);
           
           m2m_context.rx_size = zxm2m_conn_rx_len;
           m2m_context.rx_data = zxm2m_conn_rx_buffer;
@@ -300,7 +327,7 @@ void* pthread_HjepProcess(void *argument)
 //===========================================================================
 void HJEP_ServiceInit(void)
 {
-  //HJEP_Initialize();
+  HJEP_Initialize();
   HJEP_NetSocketInit();
 }
 
@@ -318,26 +345,24 @@ void HJEP_ServiceStart(void)
 /***************************************************************************
 * 100ms调用一次(此函数属于应用层,用户根据实际情况实现)
 ****************************************************************************/
-void NetSocket_CheckIsModemError(void)
+void Net_CheckIsModemError(void)
 {
-#if 0
-  if (zxep_socket.enable_flag == SOCKET_FALSE)
+  if (hjep_socket.enable_flag == SOCKET_FALSE)
   {
-    if (zx_socket.error_flag==TRUE) // 平台都连接不上,重启模块
+    if (zxm2m_socket.error_flag==TRUE) // 平台都连接不上,重启模块
     {
-      zx_socket.error_flag = FALSE;
-      gsm_socket_ResetModem();
+      zxm2m_socket.error_flag = FALSE;
+      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
     }
   }
   else
   {
-    if ((zx_socket.error_flag==TRUE) && (zxep_socket.error_flag==TRUE)) // 所有平台都连接不上,重启模块
+    if ((zxm2m_socket.error_flag==TRUE) && (hjep_socket.error_flag==TRUE)) // 所有平台都连接不上,重启模块
     {
-      zx_socket.error_flag = FALSE;
-      zxep_socket.error_flag = FALSE;
-      gsm_socket_ResetModem();
+      zxm2m_socket.error_flag = FALSE;
+      hjep_socket.error_flag = FALSE;
+      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
     }
   }
-#endif
 }
 

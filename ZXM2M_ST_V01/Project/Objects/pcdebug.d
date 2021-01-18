@@ -75,6 +75,7 @@
 .\project\objects\pcdebug.o: .\USER\Collect\CollectHW.h
 .\project\objects\pcdebug.o: .\USER\Collect\Collect.h
 .\project\objects\pcdebug.o: .\USER\Memory\parameters.h
+.\project\objects\pcdebug.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\pcdebug.o: .\USER\System\tbox_machine.h
 .\project\objects\pcdebug.o: .\USER\System\icloud_machine.h
 .\project\objects\pcdebug.o: .\USER\Misc\crc32.h

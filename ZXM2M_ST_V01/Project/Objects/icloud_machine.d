@@ -74,6 +74,7 @@
 .\project\objects\icloud_machine.o: .\USER\Collect\CollectHW.h
 .\project\objects\icloud_machine.o: .\USER\Collect\Collect.h
 .\project\objects\icloud_machine.o: .\USER\Memory\parameters.h
+.\project\objects\icloud_machine.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\icloud_machine.o: .\USER\System\tbox_machine.h
 .\project\objects\icloud_machine.o: .\USER\System\icloud_machine.h
 .\project\objects\icloud_machine.o: .\USER\Misc\crc32.h

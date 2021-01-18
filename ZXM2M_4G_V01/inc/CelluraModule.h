@@ -41,6 +41,8 @@ void Cellura_ServiceStart(void);
 uint8_t *Cellura_GetIccid(void);
 uint8_t Cellura_GetCsq(void);
 uint32_t Cellura_GetLacCellID(void);
+uint32_t Cellura_GetLacID(void);
+uint32_t Cellura_GetCellID(void);
 uint8_t Cellura_GetModemStatus(void);
 uint8_t Cellura_GetSimCardState(void);
 uint8_t Cellura_GetCsRegistState(void);

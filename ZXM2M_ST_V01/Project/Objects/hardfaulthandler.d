@@ -74,6 +74,7 @@
 .\project\objects\hardfaulthandler.o: .\USER\Collect\CollectHW.h
 .\project\objects\hardfaulthandler.o: .\USER\Collect\Collect.h
 .\project\objects\hardfaulthandler.o: .\USER\Memory\parameters.h
+.\project\objects\hardfaulthandler.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\hardfaulthandler.o: .\USER\System\tbox_machine.h
 .\project\objects\hardfaulthandler.o: .\USER\System\icloud_machine.h
 .\project\objects\hardfaulthandler.o: .\USER\Misc\crc32.h

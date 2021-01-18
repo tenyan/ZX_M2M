@@ -931,10 +931,10 @@ void Do1minuteTasks(void)
   //COLT_GetMicroTemperature();
   //PcDebug_Printf("Vraw=%d, Vbat=%d, Tmcu=%d\n",colt_info.vraw,colt_info.vbat,colt_info.int_temp);
   
-  rtc_date_t time;
-  time = RTC_GetBjTime();
-  PcDebug_Printf("Tam:%d-%d-%d %d:%d:%d\n\r", time.year,time.month,time.day,time.hour,time.minute,time.second);
-  PcDebug_Printf("T4g:%d-%d-%d %d:%d:%d\n\r", st_soft_time.year,st_soft_time.month,st_soft_time.day,st_soft_time.hour,st_soft_time.minute,st_soft_time.second);
+  //rtc_date_t time;
+  //time = RTC_GetBjTime();
+  //PcDebug_Printf("Tam:%d-%d-%d %d:%d:%d\n\r", time.year,time.month,time.day,time.hour,time.minute,time.second);
+  //PcDebug_Printf("T4g:%d-%d-%d %d:%d:%d\n\r", st_soft_time.year,st_soft_time.month,st_soft_time.day,st_soft_time.hour,st_soft_time.minute,st_soft_time.second);
 }
 
 /* ========================================================== */

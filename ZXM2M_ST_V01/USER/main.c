@@ -60,7 +60,7 @@ void AppThread_Start(void *argument)
 {
   osDelay(50); // 上电延时50MS
 
-  /* 初始化外设bsp_init() */
+  //==初始化外设======================
   PcDebug_ServiceInit();
   rtc_Initialize();
   sfud_init();
@@ -70,14 +70,16 @@ void AppThread_Start(void *argument)
   Momi_ServiceInit();
   Collect_ServiceInit();
   tbox_initialize();
+  AuxCom_ServiceInit();
   
-  /* 创建任务AppTaskCreate() */
+  //==创建任务AppTaskCreate()=========
   iCloud_ServiceStart();
   Collect_ServiceStart();
   PcDebug_ServiceStart();
   Can_ServiceStart();
   //GPS_ServiceStart();
   Momi_ServiceStart();
+  AuxCom_ServiceStart();
   
   while (1)
   {

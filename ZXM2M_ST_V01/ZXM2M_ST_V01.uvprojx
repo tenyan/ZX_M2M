@@ -335,7 +335,7 @@
               <MiscControls>--diag_suppress=870</MiscControls>
               <Define>USE_STDPERIPH_DRIVER, STM32F2XX</Define>
               <Undefine></Undefine>
-              <IncludePath>.\USER;.\USER\BlindZone;.\USER\CAN;.\USER\Cellura;.\USER\Collect;.\USER\GB17691;.\USER\GPS;.\USER\HJ;.\USER\Memory;.\USER\Misc;.\USER\PcDebug;.\USER\System;.\Lib\STM32F2xx_StdPeriph_Driver\inc;.\RTE\Device\STM32F2xx;.\USER\M2M;.\USER\RTC;.\USER\Momi</IncludePath>
+              <IncludePath>.\USER;.\USER\BlindZone;.\USER\CAN;.\USER\Cellura;.\USER\Collect;.\USER\GB17691;.\USER\GPS;.\USER\HJ;.\USER\Memory;.\USER\Misc;.\USER\PcDebug;.\USER\System;.\Lib\STM32F2xx_StdPeriph_Driver\inc;.\RTE\Device\STM32F2xx;.\USER\M2M;.\USER\RTC;.\USER\Momi;.\USER\AuxCom</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -771,6 +771,31 @@
               <FileName>stm32f2xx_rtc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Lib\STM32F2xx_StdPeriph_Driver\src\stm32f2xx_rtc.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>AuxCom</GroupName>
+          <Files>
+            <File>
+              <FileName>AuxCom.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\AuxCom\AuxCom.c</FilePath>
+            </File>
+            <File>
+              <FileName>AuxCom.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\AuxCom\AuxCom.h</FilePath>
+            </File>
+            <File>
+              <FileName>AuxComHW.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\AuxCom\AuxComHW.c</FilePath>
+            </File>
+            <File>
+              <FileName>AuxComHW.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\AuxCom\AuxComHW.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -91,7 +91,7 @@ void ZxM2m_ServiceStart(void);
 void HJEP_ServiceInit(void);
 void HJEP_ServiceStart(void);
 
-void NetSocket_CheckIsModemError(void);
+void Net_CheckIsModemError(void);
 
 #endif /* _ICLOUD_MACHINE_H_ */
 

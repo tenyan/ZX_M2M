@@ -74,6 +74,7 @@
 .\project\objects\tcw.o: .\USER\Collect\CollectHW.h
 .\project\objects\tcw.o: .\USER\Collect\Collect.h
 .\project\objects\tcw.o: .\USER\Memory\parameters.h
+.\project\objects\tcw.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\tcw.o: .\USER\System\tbox_machine.h
 .\project\objects\tcw.o: .\USER\System\icloud_machine.h
 .\project\objects\tcw.o: .\USER\Misc\crc32.h

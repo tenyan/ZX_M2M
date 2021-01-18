@@ -30,6 +30,8 @@
 ******************************************************************************/
 // 总线信息
 sysbus_msg_t SbusMsg_PcDebug={SYSBUS_DEVICE_TYPE_PC_DEBUG,1,0,0,0,0};
+sysbus_msg_t SbusMsg_AuxCom={SYSBUS_DEVICE_TYPE_AUXCOM,1,0,0,0,0};;
+
 uint8_t net_public_data_buffer[1460];
 
 /******************************************************************************
@@ -68,6 +70,7 @@ void SysBus_ProcessMsg(sysbus_msg_t* pThis)
   switch (pThis->device)
   {
   case SYSBUS_DEVICE_TYPE_PC_DEBUG: // 配置工具
+  case SYSBUS_DEVICE_TYPE_AUXCOM: // 辅助通信口
     SysBus_ProcessPcDebugMsg(pThis);
     break;
 

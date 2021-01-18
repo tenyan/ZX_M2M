@@ -90,7 +90,7 @@ void Parm_ReadWorkTimeInfo(void);
 uint8_t rfu_CheckNewFirmware(rfu_context_t* pThis,uint8_t* buffer, uint16_t bufferSize);
 void rfu_EraseFlashHexFile(rfu_context_t* pThis);
 void rfu_SaveFlashHexFile(rfu_context_t* pThis, uint8_t *buf, uint16_t length);
-void rfu_ReadFlashHexFile(rfu_context_t* pThis, uint32_t address, uint8_t *buf, uint16_t length);
+void rfu_ReadFlashHexFile(uint8_t file_dev, uint32_t address, uint8_t *buf, uint16_t length);
 
 #endif /* _PARAMETERS_H_ */
 

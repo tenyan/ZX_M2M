@@ -19,6 +19,8 @@
 #define hjep_send_buffer              hjep_data_buffer
 #define HJEP_SendNetData(pData, len)  NetSocket_Send(&hjep_socket, pData, len)
 #define HJEP_GetLinkState()           NetSocket_GetLinkState(&hjep_socket)
+#define HJEP_DisableLink()            NetSocket_Disable(&hjep_socket)
+#define HJEP_EnableLink()             NetSocket_Enable(&hjep_socket)
 
 #define HJEP_SEND_DATA_TIME_SP        100   //发送周期10秒
 #define HJEP_SEND_HB_TIME_SP          1800  //发送周期3分钟
@@ -34,9 +36,6 @@ hjep_state_t hjep_state = HJEP_STATE_SEND_INIT;
 
 uint16_t hjep_login_sn;
 uint16_t hjep_send_data_sn;
-
-uint16_t hjep_hb_100ms_time_sp;
-uint16_t hjep_recv_hb_time;
 
 /******************************************************************************
  * 获取时间,用于环保上传
@@ -651,7 +650,6 @@ void HJEP_ProcessRecvData(uint8_t* pdata, uint16_t len)
   {
     hjep_socket.error_cnt = 0x00; // 清除错误计数
     hjep_socket.error_flag = FALSE;
-    hjep_recv_hb_time = hjep_hb_100ms_time_sp; // 重置心跳计数器
   }
 #endif
 }
@@ -668,6 +666,7 @@ void HJEP_StateMachine(void)
   uint8_t ep_data_valid_flag;
   uint8_t acc_state;
   uint16_t engine_speed;
+  static uint8_t hjep_socket_enable_flag = FALSE;
 
   if (CAN_GetEpType()==EP_TYPE_HJ) // 环保功能开启
   {
@@ -679,11 +678,13 @@ void HJEP_StateMachine(void)
     // ACC开、有下车数据和VIN码有效
     if (acc_state==1 && (ep_data_valid_flag==1) && (vin_valid_flag==1))
     {
-      hjep_socket.enable_flag = SOCKET_TRUE; // 使能hjep连接
+      HJEP_EnableLink(); // 使能hjep连接
+      hjep_socket_enable_flag = TRUE;
     }
     else // ACC关
     {
-      hjep_socket.enable_flag = SOCKET_FALSE; // 禁止hjep连接
+      HJEP_DisableLink(); // 禁止hjep连接
+      hjep_socket_enable_flag = FALSE;
     }
 
     if (HJEP_GetLinkState() != SOCKET_LINK_STATE_READY) // 等待网络空闲
@@ -758,20 +759,18 @@ void HJEP_StateMachine(void)
   {
     hjep_state = HJEP_STATE_SEND_INIT;
     hjep_flags1.byte = 0x00;
-    hjep_socket.enable_flag = SOCKET_FALSE; // 禁止bjep套接字连接
+    HJEP_DisableLink(); // 禁止bjep套接字连接
+    hjep_socket_enable_flag = FALSE;
   }
 
   // 数据发送时间和心跳时间倒计
-  if (hjep_socket.enable_flag == SOCKET_TRUE)
+  if (hjep_socket_enable_flag == TRUE)
   {
     if (hjep_send_data_time) // 数据发送定时器
       hjep_send_data_time--;
 
     if (hjep_send_hb_time) // 心跳发送定时器
       hjep_send_hb_time--;
-
-    if(hjep_recv_hb_time) // 心跳响应超时
-      hjep_recv_hb_time--;
 
     if(hjep_send_bz_data_time) // 补发数据定时器
       hjep_send_bz_data_time--;
@@ -790,7 +789,7 @@ void HJEP_Initialize(void)
 {
   hjep_state = HJEP_STATE_SEND_INIT;
   hjep_flags1.byte = 0x00;
-  //hjep_socket.enable_flag = SOCKET_FALSE; // 禁止hjep套接字连接
+  //HJEP_DisableLink();  // 禁止hjep套接字连接
 }
 
 

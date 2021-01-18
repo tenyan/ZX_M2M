@@ -74,6 +74,7 @@
 .\project\objects\i2c1.o: .\USER\Collect\CollectHW.h
 .\project\objects\i2c1.o: .\USER\Collect\Collect.h
 .\project\objects\i2c1.o: .\USER\Memory\parameters.h
+.\project\objects\i2c1.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\i2c1.o: .\USER\System\tbox_machine.h
 .\project\objects\i2c1.o: .\USER\System\icloud_machine.h
 .\project\objects\i2c1.o: .\USER\Misc\crc32.h

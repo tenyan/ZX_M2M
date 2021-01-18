@@ -26,8 +26,6 @@ typedef struct
   im2m_AnalyzeTlvMsgFun pfun_analyze;
 }im2m_CmdTlv_t;
 
-uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
-
 /******************************************************************************
 * Define
 ******************************************************************************/
@@ -50,7 +48,6 @@ uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
 * Data Types and Globals
 ******************************************************************************/
 m2m_context_t m2m_context;
-rfu_context_t rfu_context;
 
 m2m_asset_data_t m2m_asset_data = {
   .header = 0x55AA5AA5, // 校验头
@@ -1875,188 +1872,6 @@ uint8_t im2m_BuildMsgHead(uint8_t *pbuf, im2m_msg_type_t msgType, uint16_t msgBo
 }
 #endif
 
-#if (PART("发送M2M固件升级数据"))
-/*************************************************************************
- * 固件升级相关消息
-*************************************************************************/
-//==向平台发送远程固件升级的请求(终端->平台)================================
-uint16_t im2m_SendUpdataReqUqMsg(m2m_context_t* pThis)
-{
-  uint16_t msg_len, msg_body_len, msg_header_len;
-  uint8_t check_sum;
-  uint8_t* pbuf = pThis->tx_data;
-  uint16_t len;
-
-  //==创建报文体==========================================
-  len = M2M_MSG_HEAD_LEN;
-
-  //==命令类型========
-  pbuf[len++] = 0x00;  // 命令类型长度
-  pbuf[len++] = 0x02;
-  pbuf[len++] = 'U';  // 命令
-  pbuf[len++] = 'Q';
-
-  //==命令内容========
-  len += 2; // 长度
-  pbuf[len++] = (M2M_FIRMWARE_PACKET_LEN>>8) & 0xFF;  // 每包数据的大小
-  pbuf[len++] = M2M_FIRMWARE_PACKET_LEN & 0xFF;
-  len +=im2m_BuildTlvMsg_100C(&pbuf[len]);
-  len +=im2m_BuildTlvMsg_1005(&pbuf[len]);
-  len +=im2m_BuildTlvMsg_100D(&pbuf[len]);
-  msg_len = len - 6;
-  pbuf[M2M_MSG_HEAD_LEN+4] = (msg_len >> 8) & 0xFF; // 命令内容长度
-  pbuf[M2M_MSG_HEAD_LEN+5] = msg_len & 0xFF;
-  msg_body_len = len - M2M_MSG_HEAD_LEN;
-
-  //==创建报文头==========================================
-  pThis->upload_sn++;
-  msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_UPDATE, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
-
-  //==计算校验字==========================================
-  msg_len = msg_body_len + msg_header_len;
-  check_sum = im2m_CalcSumCheck(pbuf, msg_len);
-  pbuf[msg_len++] = check_sum;
-  pThis->tx_size = msg_len;
-  //im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
-  
-  return msg_len;
-}
-
-//==终端固件升级请求(终端->平台)==============================================
-uint16_t im2m_SendUpdateReqUlMsg(m2m_context_t* pThis)
-{
-  uint16_t msg_len, msg_body_len, msg_header_len;
-  uint8_t check_sum;
-  uint8_t* pbuf = pThis->tx_data;
-  uint16_t len;
-
-  //==创建报文体==========================================
-  len = M2M_MSG_HEAD_LEN;
-  
-  //==命令类型========
-  pbuf[len++] = 0x00;  // 命令类型长度
-  pbuf[len++] = 0x02;
-  pbuf[len++] = 'U';  // 命令
-  pbuf[len++] = 'L';
-
-  //==命令内容========
-  len += 2; // 长度
-  pbuf[len++] = (rfu_context.block>>8) & 0xFF; // 请求包序列号
-  pbuf[len++] =  rfu_context.block & 0xFF;
-  pbuf[len++] = (rfu_context.total_block_count>>8) & 0xFF; // 文件总包数
-  pbuf[len++] =  rfu_context.total_block_count & 0xFF;
-  len +=im2m_BuildTlvMsg_100C(&pbuf[len]); // TLV-100C升级固件名称
-  len +=im2m_BuildTlvMsg_1005(&pbuf[len]); // TLV-1005升级固件版本号
-  msg_len = len - 6;
-  pbuf[M2M_MSG_HEAD_LEN+4] = (msg_len >> 8) & 0xFF; // 命令内容长度
-  pbuf[M2M_MSG_HEAD_LEN+5] = msg_len & 0xFF;
-  msg_body_len = len - M2M_MSG_HEAD_LEN;
-
-  //==创建报文头==========================================
-  pThis->upload_sn++;
-  msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_UPDATE, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
-
-  //==计算校验字==========================================
-  msg_len = msg_body_len + msg_header_len;
-  check_sum = im2m_CalcSumCheck(pbuf, msg_len);
-  pbuf[msg_len++] = check_sum;
-  pThis->tx_size = msg_len;
-  //im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
-
-  return msg_len;
-}
-
-//==向平台上报升级结果(终端->平台)==============================================
-uint16_t im2m_SendUpdateReqUrMsg(m2m_context_t* pThis)
-{
-  uint16_t msg_len, msg_body_len, msg_header_len;
-  uint8_t check_sum;
-  uint8_t* pbuf = pThis->tx_data;
-  uint16_t len;
-
-  //==创建报文体==========================================
-  len = M2M_MSG_HEAD_LEN;
-
-  //==命令类型========
-  pbuf[len++] = 0x00;  // 命令类型长度
-  pbuf[len++] = 0x02;
-  pbuf[len++] = 'U';  // 命令
-  pbuf[len++] = 'R';
-
-  //==命令内容========
-  pbuf[len++] = pThis->update.result; // 升级结果
-  msg_body_len = len - M2M_MSG_HEAD_LEN;
-
-  //==创建报文头==========================================
-  pThis->upload_sn++;
-  msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_UPDATE, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
-
-  //==计算校验字==========================================
-  msg_len = msg_body_len + msg_header_len;
-  check_sum = im2m_CalcSumCheck(pbuf, msg_len);
-  pbuf[msg_len++] = check_sum;
-  pThis->tx_size = msg_len;
-  //im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
-
-  return msg_len;
-}
-
-
-
-#endif
-
-#if (PART("发送M2M网络数据"))
-/*************************************************************************
- * 发送远程固件升级相关消息
-*************************************************************************/
-void im2m_SendUpdateMsg(m2m_context_t* pThis)
-{
-  if (M2M_UPDATE_STATE_IDLE == pThis->update.state)
-  {  return;}
-
-  switch (pThis->update.state)
-  {
-  case M2M_UPDATE_STATE_NOTIFIED:
-  case M2M_UPDATE_STATE_CONN:
-   // if (SOCKET_LINK_STATE_READY==im2m_GetLinkState())
-    {
-      pThis->update.state = M2M_UPDATE_STATE_SEND_REQ;
-    }
-    break;
-
-  case M2M_UPDATE_STATE_SEND_REQ:
-    im2m_SendUpdataReqUqMsg(pThis);
-    pThis->update.rsp_timeout_timer = 5;
-    pThis->update.retry_cnt++;
-    pThis->update.state = M2M_UPDATE_STATE_WAIT_RSP;
-    break;
-
-  case M2M_UPDATE_STATE_DOWNLOAD_REQ:
-    im2m_SendUpdateReqUlMsg(pThis);
-    pThis->update.rsp_timeout_timer = 10;
-    pThis->update.retry_cnt++;
-    pThis->update.state = M2M_UPDATE_STATE_DOWNLOAD_RSP;
-    break;
-
-  case M2M_UPDATE_STATE_REPORT_REQ:
-    im2m_SendUpdateReqUrMsg(pThis);
-    pThis->update.rsp_timeout_timer = 5;
-    pThis->update.retry_cnt++;
-    pThis->update.state = M2M_UPDATE_STATE_REPORT_RSP;
-    break;
-
-  case M2M_UPDATE_STATE_ERROR: // 升级失败
-    break;
-
-  case M2M_UPDATE_STATE_SUCESS: // 升级成功
-    break;
-
-  default:
-    break;
-  }
-}
-#endif
-
 #if (PART("平台下发的命令请求(CMD_REQ)"))
 /******************************************************************************
  *
@@ -2559,7 +2374,6 @@ uint16_t M2M_ProcessRecvMsg(m2m_context_t* pThis)
     //_m2m_disable_interrutps();
     frame_len = im2m_ProcessRecvMsg(pThis); // 处理
     //_m2m_enable_interrutps();
-    //Usart3DmaSendPacket(pThis->data,pThis->tx_size);
   }
 
   return frame_len;
@@ -2570,12 +2384,7 @@ uint16_t M2M_ProcessRecvMsg(m2m_context_t* pThis)
 *******************************************************************************/
 void M2M_ProduceSendMsg(m2m_context_t* pThis)
 {
-  //==远程升级=================================================================
-  if (pThis->update.state > M2M_UPDATE_STATE_IDLE)
-  {
-    im2m_SendUpdateMsg(pThis);
-    return;
-  }
+
 }
 
 /******************************************************************************

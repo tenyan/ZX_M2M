@@ -74,6 +74,7 @@
 .\project\objects\canhw.o: .\USER\Collect\CollectHW.h
 .\project\objects\canhw.o: .\USER\Collect\Collect.h
 .\project\objects\canhw.o: .\USER\Memory\parameters.h
+.\project\objects\canhw.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\canhw.o: .\USER\System\tbox_machine.h
 .\project\objects\canhw.o: .\USER\System\icloud_machine.h
 .\project\objects\canhw.o: .\USER\Misc\crc32.h

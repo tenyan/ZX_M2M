@@ -73,7 +73,7 @@ void NetSocket_Invalid(skt_context_t* pThis)
     close(pThis->socket_fd);
     pThis->socket_fd = -1;
 
-    pThis->socket_10ms_timer = 100; // 1Ãë
+    pThis->socket_10ms_timer = 200; // 1Ãë
   }
   else
   {
@@ -408,4 +408,18 @@ void NetSocket_SetLinkState(skt_context_t* pThis,uint8_t link_state)
 {
   pThis->link_state = link_state;
 }
+
+/***************************************************************************
+*
+****************************************************************************/
+void NetSocket_Enable(skt_context_t* pThis)
+{
+  pThis->enable_flag = SOCKET_TRUE;
+}
+
+void NetSocket_Disable(skt_context_t* pThis)
+{
+  pThis->enable_flag = SOCKET_FALSE;
+}
+
 

@@ -980,6 +980,108 @@ extern uint8_t zxstatistics_buffer[SIZE_OF_ZXSTATISTICS_BUFFER]; ///统计数据缓存
 extern uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 
 /******************************************************************************
+ * 作业时间和频次统计
+ ******************************************************************************/
+ #define ZXSTS_STEP_SP   1800  // 梯级:3分钟,基于100ms
+ #define ZXSTS_DEBOUNCE_TIME_SP  30 // 3秒,基于100ms
+
+ // BOOL定义
+enum
+{
+  ZXSTS_FALSE = 0x00,
+  ZXSTS_TRUE = 0x01
+};
+
+// 频次统计类型
+enum
+{
+  ZXSTS_TYPE_EJEX = 0,  // 二节伸
+  ZXSTS_TYPE_EJS,  // 二节缩
+  ZXSTS_TYPE_DJEX,  // 多节伸
+  ZXSTS_TYPE_DJS,  // 多节缩
+
+  ZXSTS_TYPE_KGEX,  // 空缸伸
+  ZXSTS_TYPE_KGS,  // 空缸缩
+  ZXSTS_TYPE_DBEX,  // 带臂伸
+  ZXSTS_TYPE_DBS,  // 带臂缩
+
+  ZXSTS_TYPE_BFUP,  // 变幅起
+  ZXSTS_TYPE_BFDW,  // 变幅落
+  ZXSTS_TYPE_ZJUP,  // 主卷起升
+  ZXSTS_TYPE_ZJDW,  // 主卷下落
+  ZXSTS_TYPE_FJUP,  // 副卷起升
+  ZXSTS_TYPE_FJDW,  // 副卷下落
+  ZXSTS_TYPE_ZHR,  // 左回转
+  ZXSTS_TYPE_YHR,  // 右回转
+  
+  ZXSTS_TYPE_LMI,  // 超载 16
+  ZXSTS_TYPE_ZJSQ,  // 主卷三圈保护
+  ZXSTS_TYPE_FJSQ,  // 副卷三圈 18
+  ZXSTS_TYPE_ZBGX,  // 主臂高限触发
+  ZXSTS_TYPE_FBGX,  // 副臂高限(备用) 20
+  ZXSTS_TYPE_ZQZ,  // 总强制 21
+  ZXSTS_TYPE_CZKG,  // 拆装开关 22
+  ZXSTS_TYPE_BFQQZ,  // 变幅起强制 23
+  ZXSTS_TYPE_GXQZ,  // 高限强制 24
+  ZXSTS_TYPE_SQQZ,  // 三圈强制 25
+  ZXSTS_TYPE_FSCX,  // 风速超限
+  NUMBER_OF_ZXSTS_TYPES
+};
+
+// 频次统计结构体
+typedef struct
+{
+  uint8_t previous_state;  // 上次状态
+  uint8_t current_state;  // 当前状态
+  uint8_t number_flag;  // 计数标志
+  uint8_t work_flag;  // 工作标志: 0x00=停止, 0x01=开始
+  
+  uint32_t total_work_number;  // 总工作次数
+  uint32_t total_work_time;  // 单位0.05H(3min)
+  
+  uint16_t timer_100ms;  // 基于100mS计时器
+  uint8_t debounce_timer;  // CAN消息去藕时间
+}zxsts_context_t;
+extern zxsts_context_t zxsts_context[NUMBER_OF_ZXSTS_TYPES];
+
+// TLV有效标志位
+extern bittype2 zxsts_flag1;
+#define zxsts_empty_cylinder_flag    zxsts_flag1.w.bit0  //空缸标志
+#define zxsts_cylinder_extend_flag    zxsts_flag1.w.bit1  //伸缩缸伸操作标志
+#define zxsts_cylinder_shrink_flag    zxsts_flag1.w.bit2  //伸缩缸缩操作标志
+#define zxsts_arm_work_flag    zxsts_flag1.w.bit3  // 带臂标志
+#define zxsts_luff_up_flag    zxsts_flag1.w.bit4  // 变幅起操作标志
+#define zxsts_luff_down_flag    zxsts_flag1.w.bit5  // 变幅缩操作标志
+#define zxsts_main_hoist_up_flag    zxsts_flag1.w.bit6  // 主卷起操作标志
+#define zxsts_main_hoist_down_flag    zxsts_flag1.w.bit7  // 主卷落操作标志
+#define zxsts_deputy_hoist_up_flag    zxsts_flag1.w.bit8  // 副卷起操作标志
+#define zxsts_deputy_hoist_down_flag    zxsts_flag1.w.bit9  // 副卷落操作标志
+#define zxsts_slew_left_flag    zxsts_flag1.w.bit10  // 左回转操作
+#define zxsts_slew_right_flag    zxsts_flag1.w.bit11  // 右回转操作
+//#define X    zxsts_flag1.w.bit12
+//#define X    zxsts_flag1.w.bit13
+//#define X    zxsts_flag1.w.bit14
+//#define X    zxsts_flag1.w.bit15
+
+extern bittype2 zxsts_flag2;
+#define zxsts_overload_flag    zxsts_flag2.w.bit0  // 超载标志
+#define zxsts_od_main_hoist_flag    zxsts_flag2.w.bit1  // 主卷三圈保护标志
+#define zxsts_od_deputy_hoist_flag    zxsts_flag2.w.bit2  // 副卷三圈保护标志
+#define zxsts_a2b_main_arm_flag    zxsts_flag2.w.bit3  // 主臂高限触发
+#define zxsts_a2b_deputy_arm_flag    zxsts_flag2.w.bit4  // 副臂高限触发
+#define zxsts_lmi_force_flag    zxsts_flag2.w.bit5  // 总强制
+#define zxsts_setup_flag    zxsts_flag2.w.bit6  // 拆装开关
+#define zxsts_luff_up_force_flag    zxsts_flag2.w.bit7  // 变幅起强制
+#define zxsts_a2b_force_flag    zxsts_flag2.w.bit8  // 高限强制
+#define zxsts_od_force_flag    zxsts_flag2.w.bit9  // 三圈强制
+#define zxsts_lmi_wind_speed_flag   zxsts_flag2.w.bit10  // 风速超限
+//#define X    zxsts_flag2.w.bit11
+//#define X    zxsts_flag2.w.bit12
+//#define X    zxsts_flag2.w.bit13
+//#define X    zxsts_flag2.w.bit14
+//#define X    zxsts_flag2.w.bit15
+
+/******************************************************************************
  * Function prototypes
  ******************************************************************************/
 uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size); // 上车
@@ -987,6 +1089,9 @@ uint8_t CAN_ProcessRecvDownMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size);
 uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size); // 全地面发动机
 uint8_t CAN_ProcessRecvDownMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size); // 汽车式底盘
 uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size); // 汽车式发动机
+
+void zxsts_StateMachine(void);
+void zxsts_Initialize(void);
 
 
 #endif /* TCW_H_ */

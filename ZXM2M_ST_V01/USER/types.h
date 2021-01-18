@@ -12,6 +12,7 @@
 *   Macros
 ******************************************************************************/
 #define BIT(x)    ((uint32_t)1 << (x))
+#define PART(x)     1
 
 #define OS_TICKS_PER_SEC  1000UL
 //#define osWaitForever     0xFFFF

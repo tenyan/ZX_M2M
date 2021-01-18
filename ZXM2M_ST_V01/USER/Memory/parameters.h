@@ -12,7 +12,7 @@
 * Includes
 ******************************************************************************/
 #include "types.h"
-#include "M2mProtocol.h"
+#include "AuxCom.h"
 
 /******************************************************************************
 * MEMORY MAP
@@ -25,7 +25,8 @@
 #define EMAP_M2M_ASSET_DATA1_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_LVC_INFO1_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_WORK_TIME_INFO1_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
-#define EMAP_HEX_FILE_SIZE              ((uint32_t)(FLASH_SECTOR_SIZE*1010UL)) // 4040KB
+#define EMAP_HEX_FILE_SIZE              ((uint32_t)(FLASH_SECTOR_SIZE*128UL)) // 512KB (²Á³ýÊ±¼ä5210ms)
+#define EMAP_ECU_HEX_FILE_SIZE          ((uint32_t)(FLASH_SECTOR_SIZE*882UL)) // 3528KB
 #define EMAP_WORK_TIME_INFO2_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_LVC_INFO2_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_M2M_ASSET_DATA2_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
@@ -37,7 +38,8 @@
 #define EMAP_LVC_INFO1_ADDRESS          (EMAP_M2M_ASSET_DATA1_ADDRESS + EMAP_M2M_ASSET_DATA1_SIZE)
 #define EMAP_WORK_TIME_INFO1_ADDRESS    (EMAP_LVC_INFO1_ADDRESS + EMAP_LVC_INFO1_SIZE)
 #define EMAP_HEX_FILE_ADDRESS           (EMAP_WORK_TIME_INFO1_ADDRESS + EMAP_WORK_TIME_INFO1_SIZE)
-#define EMAP_WORK_TIME_INFO2_ADDRESS    (EMAP_HEX_FILE_ADDRESS + EMAP_HEX_FILE_SIZE)
+#define EMAP_ECU_HEX_FILE_ADDRESS       (EMAP_HEX_FILE_ADDRESS + EMAP_HEX_FILE_SIZE)
+#define EMAP_WORK_TIME_INFO2_ADDRESS    (EMAP_ECU_HEX_FILE_ADDRESS + EMAP_ECU_HEX_FILE_SIZE)
 #define EMAP_LVC_INFO2_ADDRESS          (EMAP_WORK_TIME_INFO2_ADDRESS + EMAP_WORK_TIME_INFO2_SIZE)
 #define EMAP_M2M_ASSET_DATA2_ADDRESS    (EMAP_LVC_INFO2_ADDRESS + EMAP_LVC_INFO2_SIZE)
 #define EMAP_NO_USED_2_ADDRESS          (EMAP_M2M_ASSET_DATA2_ADDRESS + EMAP_M2M_ASSET_DATA2_SIZE)
@@ -73,10 +75,10 @@ void Parm_SaveTotalWorkTimeInfo(void);
 void Parm_ReadTotalWorkTimeInfo(void);
 void BKP_SaveTotalWorkTimeInfo(void);
 
-uint8_t rfu_CheckNewFirmware(rfu_context_t* pThis,uint8_t* buffer, uint16_t bufferSize);
-void rfu_EraseFlashHexFile(void);
-void rfu_SaveFlashHexFile(rfu_context_t* pThis, uint8_t *buf, uint16_t length);
-void rfu_ReadFlashHexFile(uint32_t address, uint8_t *buf, uint32_t cnt);
+uint8_t rfu_CheckNewFirmware(rfu_context_t* pThis, uint8_t* buffer, uint16_t bufferSize);
+void rfu_EraseFlashHexFile(uint8_t fileType);
+void rfu_SaveFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t length);
+void rfu_ReadFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t length);
 
 #endif /* _PARAMETERS_H_ */
 

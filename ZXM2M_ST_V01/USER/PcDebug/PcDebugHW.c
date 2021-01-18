@@ -73,7 +73,7 @@ void USART1_Initialize(uint32_t baudrate)
   NVIC_Init(&NVIC_InitStructure);
 
   NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream7_IRQn;   // 通道设置为串口1中断
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x06; // 中断占先等级
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x08; // 中断占先等级
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;       // 中断响应优先级
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;           // 使能中断
   NVIC_Init(&NVIC_InitStructure);

@@ -48,6 +48,13 @@ extern uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
 #define DEFAULT_DTC_DATA_RSP_TIMEOUT_SP  10
 #define DEFAULT_DTC_DATA_RETRY_SP        3
 
+///实际发送函数
+#define m2m_socket    zxm2m_socket
+#define im2m_GetLinkState()    NetSocket_GetLinkState(&m2m_socket)
+#define im2m_ReconnectLink()   do{NetSocket_SetLinkState(&m2m_socket, SOCKET_LINK_STATE_CLOSED);\
+                                  m2m_context.conn_success_flag = M2M_FALSE;}while(0)
+#define im2m_SendNetData(pData, len)  do{NetSocket_Send(&m2m_socket, pData, len);}while(0)
+
 /******************************************************************************
  *   Data Types
  ******************************************************************************/
@@ -192,7 +199,7 @@ typedef struct
   uint8_t rsp_timeout_timer; // 超时设定值
   uint8_t retry_cnt;         // 重试计数器
   uint16_t timeout_cnt;      // 升级超时计数器,如果10分钟内没有升级完成则放弃
-  uint8_t result;            // 下包结果0=成功,1=失败
+  uint8_t result;            // 下包结果0=成功,1=失败,2=控制器升级成功,3=控制器拒绝升级,4=控制器升级失败
 }im2m_update_t;
 
 // m2m结构体

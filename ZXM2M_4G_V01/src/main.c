@@ -214,6 +214,7 @@ int main(void)
   NetSocket_Init();
   ZxM2m_ServiceInit();
   HJEP_ServiceInit();
+  AuxCom_ServiceInit();
 
   //==启动线程任务========================================
   PcDebug_ServiceStart();
@@ -223,30 +224,7 @@ int main(void)
   Collect_ServiceStart();
   ZxM2m_ServiceStart();
   HJEP_ServiceStart();
-  
-#if 0
-  pthread_create(&pthreads[PTHREAD_GSM_SATRT_ID],NULL,pthread_gsm_start,NULL); // 初始化GSM模块线程
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_GSM_READ_AT_ID],NULL,pthread_gsm_read_AT,NULL); // 读取GSM模块返回的AT指令响应数据线程(阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_COLLECT_FUNCTION],NULL,pthread_Collect_Function,NULL); // 10ms时基(无阻塞)线程
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_GSM_RECV_ZX_DATA],NULL,pthread_gsm_RecvZxData,NULL); // 读取GSM模块重型服务器(10014)下行数据线程(阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_GSM_RECV_ZXEP_DATA],NULL,pthread_gsm_RecvZxepData,NULL); // 读取GSM模块重型环保服务器(10012)下行数据线程(阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_GSM_SOCKET_ZX_SERVICE],NULL,pthread_gsm_SocketZxService,NULL); // 维护Socket连接(10ms时基非阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_GSM_SOCKET_ZXEP_SERVICE],NULL,pthread_gsm_SocketZxepService,NULL); // 维护Socket连接(10ms时基非阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_MCU_FUNCTION],NULL,pthread_MCU_Function,NULL);  // 读取并处理协处理器ST发来的数据线程(阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_PC_DEBUG_FUNCTION],NULL,pthread_PcDebug_Function,NULL); // 读取并处理RS232发来的数据线程(阻塞方式)
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_SYS_TIMER],NULL,pthread_SYS_Timer,NULL); // 100ms时基(阻塞)线程
-  usleep(10);
-  pthread_create(&pthreads[PTHREAD_A5_UART0_FUNCTION],NULL,pthread_A5Uart0_Function,NULL);
-#endif
+  AuxCom_ServiceStart();
   
   usleep(100);
   for (i=0; i<NUMBER_OF_PTHREADS; i++)

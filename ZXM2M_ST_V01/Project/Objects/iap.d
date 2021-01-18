@@ -7,7 +7,7 @@
 .\project\objects\iap.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
 .\project\objects\iap.o: .\USER\types.h
 .\project\objects\iap.o: .\USER\Memory\parameters.h
-.\project\objects\iap.o: .\USER\M2M\M2mProtocol.h
+.\project\objects\iap.o: .\USER\AuxCom\AuxCom.h
 .\project\objects\iap.o: .\Lib\STM32F2xx_StdPeriph_Driver\inc\stm32f2xx_flash.h
 .\project\objects\iap.o: .\RTE\Device\STM32F2xx\stm32f2xx.h
 .\project\objects\iap.o: C:\Keil_v5\ARM\PACK\ARM\CMSIS\5.5.1\CMSIS\Core\Include\core_cm3.h

@@ -856,7 +856,7 @@ void Modem_StateManageService(void)               /// 阻塞
   case MODEM_STATE_SILENCE:  // 模块静默5分钟
     PcDebug_SendString("Modem Rest 10min\n");
     MODEM_DELAY_MS((600*OS_TICKS_PER_SEC));
-    Modem_SetState(MODEM_STATE_INIT); // 重新开机
+    Modem_SetState(MODEM_STATE_RESET); // 重新开机
     break;
 
   default:
@@ -1701,6 +1701,18 @@ uint8_t Cellura_GetCsq(void)
 
 //==获取小区ID==================================================================
 uint32_t Cellura_GetLacCellID(void)
+{
+  return modem_info.cell_id;
+}
+
+//==获取位置码==================================================================
+uint32_t Cellura_GetLacID(void)
+{
+  return modem_info.location_area_code;
+}
+
+//==获取小区ID==================================================================
+uint32_t Cellura_GetCellID(void)
 {
   return modem_info.cell_id;
 }

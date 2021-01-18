@@ -41,6 +41,8 @@
 ".\project\objects\stm32f2xx_wwdg.o"
 ".\project\objects\misc.o"
 ".\project\objects\stm32f2xx_rtc.o"
+".\project\objects\auxcom.o"
+".\project\objects\auxcomhw.o"
 ".\project\objects\clib_arm.o"
 ".\project\objects\cmsis_os2.o"
 ".\project\objects\os_systick.o"

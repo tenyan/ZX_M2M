@@ -13,7 +13,7 @@
 /******************************************************************************
 *   Macros
 ******************************************************************************/
-#define SW_VERSION        "ZXM2M_4G_V01-20201225"  //软件版本号
+#define SW_VERSION        "ZXM2M_4G_20201225_V001"  //软件版本号
 #define SW_VERSION_LEN    (sizeof(SW_VERSION)-1)
 
 #define HW_VERSION           0x0102  //硬件版本号V1.2
@@ -67,19 +67,8 @@
 #include "HJ.h"
 #include "iCloud.h"
 #include "Parameters.h"
-
-//#include  "BaseFun.h"
-//#include  "SystemModule.h"
-//#include  "SystemCommand.h"
-//#include  "GsmModule.h"
-//#include  "GpsModule.h"
-//#include  "CollectModule.h"
-//#include  "Can.h"
-//#include  "PcDebug.h"
-//#include  "rtc.h"
-//#include  "McuUpload.h"
-//#include  "A5UART0_MCU.h"
-//#include  "Canconfig.h"
+#include "AuxCom.h"
+#include "IAP.h"
 
 #endif /* _CONFIG_H_ */
 

@@ -218,7 +218,7 @@ uint8_t MOMI_UartReceiveData(void)
     {
       momi_msg_queue_push(momi_uart_rx_buffer[it]); // 将收到的数据放入队列
     }
-    PcDebug_SendData(momi_uart_rx_buffer, retVal, DBG_MSG_TYPE_CAN);
+    //PcDebug_SendData(momi_uart_rx_buffer, retVal, DBG_MSG_TYPE_CAN);
     return TRUE;
   }
 

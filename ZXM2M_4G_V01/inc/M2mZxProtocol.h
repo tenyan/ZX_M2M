@@ -7,9 +7,10 @@
 * @brief     徐工重型起重机can通信协议定义
 ******************************************************************************/
 #ifndef _ZX_M2M_PROTOCOL_H_
-#define	_ZX_M2M_PROTOCOL_H_
+#define _ZX_M2M_PROTOCOL_H_
 
 #include  "types.h"
+#include  "M2mProtocol.h"
 
 /******************************************************************************
 * Macros(车型配置信息): 序号和地址定义
@@ -1002,19 +1003,43 @@ extern uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 /******************************************************************************
  * Typedef
  ******************************************************************************/
+// 重型数据类型
+typedef enum 
+{
+  ZXTC_MSG_TYPE_TCW = 0, // 工况信息
+  ZXTC_MSG_TYPE_TCS, // 终端信息
+  ZXTC_MSG_TYPE_TCB, // 版本信息
+  ZXTC_MSG_TYPE_TCT, // 统计信息
+  ZXTC_MSG_TYPE_TCD, // 故障信息
+  NUMBER_OF_ZXTC_MSG_TYPES
+}zxtc_msg_type_t;
 
-#if 0
-typedef uint16_t (*Zxm2m_BuildTlvMsgFun)(uint8_t *pbuf);
-//typedef uint16_t (*Zxm2m_AnalyzeTlvMsgFun)(uint8_t* pValue, uint16_t len);
+// 重型工况TCW结构体
+#define MAX_NUM_OF_ZXUP_TLV     50
+#define MAX_NUM_OF_ZXDOWN_TLV   30
+#define MAX_NUM_OF_ZXENGINE_TLV 10
 typedef struct
 {
-  uint16_t type;
-  Zxm2m_BuildTlvMsgFun pfun_build;
-  //Zxm2m_AnalyzeTlvMsgFun pfun_analyze;
-}Zxm2m_CmdTlv_t;
-extern Zxm2m_CmdTlv_t Zxm2m_CmdDealTbl[];
-#define NUM_OF_ZXM2M_CMD_DEAL   (sizeof(Zxm2m_CmdDealTbl)/sizeof(Zxm2m_CmdDealTbl))
-#endif
+  uint8_t pid_vehicle;  // 车型配置
+  uint8_t pid_up;  // 上车CAN协议
+  uint8_t pid_down;  // 下车CAN协议
+  uint8_t valid_tlv_num;  // 有效的TLV总数量
+
+  uint8_t zxup_tlv_num;  // 上车TLV个数
+  uint16_t zxup_tlv_table[MAX_NUM_OF_ZXUP_TLV];  // 上车TLV表
+
+  uint8_t zxdown_tlv_num;  // 下车TLV个数
+  uint16_t zxdown_tlv_table[MAX_NUM_OF_ZXDOWN_TLV];  // 下车TLV表
+}zxtcw_context_t;
+extern zxtcw_context_t zxtcw_context;
+
+/******************************************************************************
+ *   Function prototypes
+ ******************************************************************************/
+uint16_t iZxM2m_AnalyzeTlvMsg_A510(uint8_t* pValue, uint16_t len); //==重型专用:绑定与解绑
+uint16_t iZxM2m_AnalyzeTlvMsg_A511(uint8_t* pValue, uint16_t len); //==重型专用:锁车与解锁
+uint16_t iZxM2m_AnalyzeTlvMsg_A512(uint8_t* pValue, uint16_t len); //==重型专用:环保协议类型
+uint16_t iZxM2m_AnalyzeTlvMsg_A513(uint8_t* pValue, uint16_t len); //==重型专用:VIN码设置
 
 #endif  /* _ZX_M2M_PROTOCOL_H_ */
 

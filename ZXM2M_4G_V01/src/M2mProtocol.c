@@ -12,6 +12,12 @@
 #include "config.h"
 
 /******************************************************************************
+* 外部函数
+******************************************************************************/
+extern void iZxM2m_SendConnenctMsg(m2m_context_t* pThis);  // 发送重型连接指令
+extern void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type);  // 发送重型数据
+
+/******************************************************************************
 * Typedef
 ******************************************************************************/
 uint8_t m2m_data_buffer[1460];
@@ -32,13 +38,6 @@ uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
 * Define
 ******************************************************************************/
 #define M2M_UNUSED_ARG(x)    (void)x
-#define m2m_socket    zxm2m_socket
-
-///实际发送函数
-#define im2m_GetLinkState()    NetSocket_GetLinkState(&m2m_socket)
-#define im2m_ReconnectLink()   do{NetSocket_SetLinkState(&m2m_socket, SOCKET_LINK_STATE_CLOSED);\
-                                  m2m_context.conn_success_flag = M2M_FALSE;}while(0)
-#define im2m_SendNetData(pData, len)  do{NetSocket_Send(&m2m_socket, pData, len);}while(0)
 
 /******************************************************************************
 * Macros
@@ -139,7 +138,7 @@ m2m_asset_data_t m2m_asset_data = {
 ******************************************************************************/
 #if (PART("M2M构建和解析TLV"))
 //==TLV-0x0111 ICCID=======================================================
-static uint16_t im2m_BuildTlvMsg_0111(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_0111(uint8_t *pbuf)
 {
   uint16_t len =0;
   uint8_t* p_iccid;
@@ -259,7 +258,7 @@ uint32_t im2m_BuildDeviceStatus(void)
 }
 
 //==TLV1-状态位(0x3000)====================================================
-static uint16_t im2m_BuildTlvMsg_3000(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3000(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint32_t temp_val = 0;
@@ -339,7 +338,7 @@ uint8_t im2m_BuildPositionInfo(uint8_t *pbuf)
 }
 
 //==TLV2-位置信息单包(0x2101)==============================================
-static uint16_t im2m_BuildTlvMsg_2101(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_2101(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t info_len = 0;
@@ -355,7 +354,7 @@ static uint16_t im2m_BuildTlvMsg_2101(uint8_t *pbuf)
 }
 
 //==TLV3-外部电源电压(0x3004)==============================================
-static uint16_t im2m_BuildTlvMsg_3004(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3004(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t temp_val = 0;
@@ -372,7 +371,7 @@ static uint16_t im2m_BuildTlvMsg_3004(uint8_t *pbuf)
 }
 
 //==TLV4-终端内置电池电压(0x3005)==========================================
-static uint16_t im2m_BuildTlvMsg_3005(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3005(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint16_t temp_val = 0;
@@ -390,7 +389,7 @@ static uint16_t im2m_BuildTlvMsg_3005(uint8_t *pbuf)
 }
 
 //==TLV5-本地信号场强(0x3007)==============================================
-static uint16_t im2m_BuildTlvMsg_3007(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3007(uint8_t *pbuf)
 {
   uint16_t len = 0;
 
@@ -404,7 +403,7 @@ static uint16_t im2m_BuildTlvMsg_3007(uint8_t *pbuf)
 }
 
 //==TLV6-当前GPS卫星颗数(0x3008)===========================================
-static uint16_t im2m_BuildTlvMsg_3008(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3008(uint8_t *pbuf)
 {
   uint16_t len = 0;
 
@@ -437,7 +436,7 @@ static uint16_t im2m_BuildTlvMsg_3006(uint8_t *pbuf)
 }
 
 //==TLV8- PPP(端对端协议)状态(0x3017)======================================
-static uint16_t im2m_BuildTlvMsg_3017(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3017(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t temp_val = 0;
@@ -466,7 +465,7 @@ static uint16_t im2m_BuildTlvMsg_3017(uint8_t *pbuf)
 }
 
 //==TLV9-GSM注册状态(0x3018)===============================================
-static uint16_t im2m_BuildTlvMsg_3018(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3018(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t temp_val = 0;
@@ -482,7 +481,7 @@ static uint16_t im2m_BuildTlvMsg_3018(uint8_t *pbuf)
 }
 
 //==TLV10-GPRS注册状态(0x3019)=============================================
-static uint16_t im2m_BuildTlvMsg_3019(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3019(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t temp_val = 0;
@@ -498,7 +497,7 @@ static uint16_t im2m_BuildTlvMsg_3019(uint8_t *pbuf)
 }
 
 //==TLV11-与平台连接状态(0x301A)===========================================
-static uint16_t im2m_BuildTlvMsg_301A(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_301A(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint8_t temp_val = 0;
@@ -1715,7 +1714,7 @@ static uint16_t im2m_AnalyzeTlvMsg_100C(uint8_t* pValue, uint16_t len)
 }
 
 //==TLV-100D-当前软件版本号================================================
-static uint16_t im2m_BuildTlvMsg_100D(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_100D(uint8_t *pbuf)
 {
   uint16_t len = 0;
 
@@ -1835,7 +1834,7 @@ static uint16_t im2m_AnalyzeTlvMsg_2002(uint8_t* pValue, uint16_t len)
 }
 
 //==终端ACC ON 累计时间===================================================
-static uint16_t im2m_BuildTlvMsg_3016(uint8_t *pbuf)
+uint16_t im2m_BuildTlvMsg_3016(uint8_t *pbuf)
 {
   uint16_t len = 0;
   uint32_t uiTemp = 0;
@@ -2085,7 +2084,7 @@ static uint16_t im2m_AnalyzeTlvMsg_A1FE(uint8_t* pValue, uint16_t len)
   return retVal;
 }
 
-//==更换终端==============================================================
+//==发动机类型============================================================
 static uint16_t im2m_BuildTlvMsg_A1FE(uint8_t *pbuf)
 {
   uint16_t len = 0;
@@ -2099,6 +2098,7 @@ static uint16_t im2m_BuildTlvMsg_A1FE(uint8_t *pbuf)
   return len;
 }
 
+//==更换终端==============================================================
 static uint16_t im2m_AnalyzeTlvMsg_A1FF(uint8_t* pValue, uint16_t len)
 {
   uint16_t retVal = 1;
@@ -2205,8 +2205,13 @@ im2m_CmdTlv_t m2m_CmdDealTbl[]=
   {0x4008,                  NULL, im2m_AnalyzeTlvMsg_4008},//终端立即关机
   {0x4FFF,                  NULL, im2m_AnalyzeTlvMsg_4FFF},//调试模式设置
 
-  {0xA1FE, im2m_BuildTlvMsg_A1FE, im2m_AnalyzeTlvMsg_A1FE},//发送机类型
+  {0xA1FE, im2m_BuildTlvMsg_A1FE, im2m_AnalyzeTlvMsg_A1FE},//发动机类型
   {0xA1FF,                   NULL, im2m_AnalyzeTlvMsg_A1FF},//更换终端
+
+  {0xA510,                   NULL, iZxM2m_AnalyzeTlvMsg_A510}, //重型专用:绑定与解绑
+  {0xA511,                   NULL, iZxM2m_AnalyzeTlvMsg_A511}, //重型专用:锁车与解锁
+  {0xA512,                   NULL, iZxM2m_AnalyzeTlvMsg_A512}, //重型专用:环保协议类型
+  {0xA513,                   NULL, iZxM2m_AnalyzeTlvMsg_A513}, //重型专用:VIN码设置
 };
 #define NUM_OF_M2M_CMD_DEAL   (sizeof(m2m_CmdDealTbl)/sizeof(im2m_CmdTlv_t))
 
@@ -2860,7 +2865,7 @@ void im2m_UpdateTimeOutManage(void)
       break;
 
      case M2M_UPDATE_STATE_REPORT_RSP:
-      if(m2m_context.update.retry_cnt > 5)
+      if(m2m_context.update.retry_cnt > 3)
       {
         m2m_context.update.retry_cnt = 0;
         m2m_context.update.state = M2M_UPDATE_STATE_IDLE;
@@ -2975,9 +2980,13 @@ uint16_t im2m_AnalyzeConnRespMsg(m2m_context_t* pThis)
     pThis->conn_req.sent_flag = 0x00;
 
     //pThis->ss_req.send_timer = pThis->ss_req.send_timer_sp; // 重置ss发送定时器
-    //pThis->ping_req.send_timer = pThis->ping_req.send_timer_sp;
     pThis->ss_req.send_timer = 5; // 重置ss发送定时器
-    pThis->ping_req.send_timer = 10;
+    pThis->ss_req.retry_cnt = 0;
+    pThis->ss_req.sent_flag = M2M_FALSE;
+    //pThis->ping_req.send_timer = pThis->ping_req.send_timer_sp;
+    pThis->ping_req.send_timer = 10; // 重置ping发送定时器
+    pThis->ping_req.retry_cnt = 0;
+    pThis->ping_req.sent_flag = M2M_FALSE;
     colt_info.m2m_online_flag = M2M_TRUE;
   }
 
@@ -3636,7 +3645,7 @@ uint16_t im2m_AnalyzeUpdateReqUnMsg(m2m_context_t* pThis)
   uint8_t it=0;
   uint8_t err_flag = 0;
   
-  if (pThis->update.state > M2M_UPDATE_STATE_IDLE)
+  if ((pThis->update.state>M2M_UPDATE_STATE_IDLE) && (FSRV_GetState()>FSRV_STATE_IDLE)) // 原有升级未完成,拒绝新升级请求
   {
     return 0;
   }
@@ -3678,15 +3687,40 @@ uint16_t im2m_AnalyzeUpdateReqUnMsg(m2m_context_t* pThis)
     pos += length;
   }
 
+  //==判断固件类型================================
+  if(memcmp(rfu_context.file_name, "ZXM2M_4G", 8)==0) // 4G程序(以文件名为准)
+  {
+    rfu_context.dev = 0x00;
+  }
+  else if(memcmp(rfu_context.file_name, "ZXM2M_ST", 8)==0)  // 协处理器程序(以文件名为准)
+  {
+    rfu_context.dev = 0x03;
+  }
+  else
+  {
+    if(rfu_context.dev==0x00)  // 固件类型错误
+    {
+      err_flag = 1;
+    }
+  }
+  //==============================================
+
   pThis->tx_size = im2m_BuildUpdateRspUnMsg(pThis, err_flag); // 构建响应消息
   im2m_SendNetData(pThis->tx_data, pThis->tx_size);
 
   M2M_DELAY(OS_TICKS_PER_SEC/10); // 延时100ms
-  im2m_ConnectUpdateServer();
-  //pThis->update.timeout_cnt = 60;  //1分钟没有连接上就算失败
-  pThis->update.rsp_timeout_timer = 60;  //1分钟没有连接上就算失败
-  pThis->update.state = M2M_UPDATE_STATE_NOTIFIED;
 
+  if(err_flag==0) // 无错误
+  {
+    im2m_ConnectUpdateServer();
+    pThis->update.rsp_timeout_timer = 60;  //1分钟没有连接上就算失败
+    pThis->update.state = M2M_UPDATE_STATE_NOTIFIED;
+  }
+  else
+  {
+    pThis->update.state = M2M_UPDATE_STATE_IDLE;
+  }
+  
   return 0;
 }
 
@@ -3786,7 +3820,28 @@ uint16_t im2m_AnalyzeUpdateRspUlMsg(m2m_context_t* pThis)
     if (RFU_OK==rfu_status)
     {
       pThis->update.result = 0;
-      PcDebug_SendString("RfuCrc:Ok!\n");
+      // 固件类型判断
+      if(rfu_context.dev==0x00)  //==终端
+      {
+        PcDebug_SendString("RfuCrc:4G-Ok!\n");
+      }
+      else
+      {
+        if(rfu_context.dev==0x01)  //==控制器
+        {
+          PcDebug_SendString("RfuCrc:CTL-Ok!\n");
+        }
+        else if(rfu_context.dev==0x02)  //==显示器
+        {
+          PcDebug_SendString("RfuCrc:LCD-Ok!\n");
+        }
+        else if(rfu_context.dev==0x03)  //==协处理器
+        {
+          PcDebug_SendString("RfuCrc:ST-Ok!\n");
+        }
+        
+        FSRV_SetState(FSRV_STATE_START);  // 启动外部程序升级
+      }
     }
     else
     {
@@ -3812,11 +3867,19 @@ uint16_t im2m_AnalyzeUpdateRspUrMsg(m2m_context_t* pThis)
 {
   uint8_t *pbuf = pThis->pCmdBody;
 
-  if ((0==pbuf[0]) && (0==pThis->update.result))
+  if ((0==pbuf[0]))  // 平台收到终端上报的升级结果
   {
     pThis->update.state = M2M_UPDATE_STATE_IDLE;
-    // Tbox_SetMachineState(TBOX_STATE_IAP); // T-BOX进入升级模式
+    
+    if(0==pThis->update.result)  // 下载BIN文件成功
+    {
+      if(rfu_context.dev==0x00)  // 终端程序
+      {
+        // Tbox_SetMachineState(TBOX_STATE_IAP); // T-BOX进入升级模式
+      }
+    }
   }
+
   return 0;
 }
 
@@ -4014,6 +4077,9 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
         pThis->conn_req.sent_flag = M2M_TRUE;
         pThis->conn_req.retry_cnt++;
         im2m_SendConnenctMsg(pThis);
+        //iZxM2m_SendConnenctMsg(pThis);  // 发送重型连接指令
+        //pThis->ss_req.retry_cnt = 0;
+        //pThis->ss_req.sent_flag = M2M_FALSE;
       }
     }
     return; // 未发送连接请求前,不可发送其他类型请求
@@ -4048,8 +4114,15 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
     }
 
     im2m_SendStatusSyncMsg(pThis);
+    //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCS);  // 发送重型终端数据
     return;
   }
+
+  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCW);  // 发送重型工况数据(AccOn 每30s发一次)
+  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCS);  // 发送重型终端数据
+  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCB);  // 发送重型版本数据(AccOn 30s后发一次)
+  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCT);  // 发送重型统计数据(AccOff 30s后发一次)
+  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCD);  // 发送重型故障数据(有故障立即发送)
 
 #if 0
   //向平台发送报警数据
@@ -4175,19 +4248,6 @@ void M2M_AddNewAlarmToList(uint8_t type, uint8_t flag)
 /******************************************************************************
  * 
 *******************************************************************************/
-uint8_t M2M_GetConnStatus(void)
-{
-  return m2m_context.conn_success_flag;
-}
-
-uint8_t M2M_GetRfuStatus(void)
-{
-  return m2m_context.update.state;
-}
-
-/******************************************************************************
- * 
-*******************************************************************************/
 void M2M_Initialize(void)
 {
   m2m_context.tx_data = m2m_data_buffer;
@@ -4230,4 +4290,18 @@ void M2M_Initialize(void)
   // 远程升级
   m2m_context.update.state = M2M_UPDATE_STATE_IDLE;
 }
+
+/******************************************************************************
+ * 
+*******************************************************************************/
+uint8_t M2M_GetConnStatus(void)
+{
+  return m2m_context.conn_success_flag;
+}
+
+uint8_t M2M_GetRfuStatus(void)
+{
+  return m2m_context.update.state;
+}
+
 

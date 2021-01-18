@@ -17,7 +17,7 @@
 #define HYCT02_VERSION_PATCH  (1)
 
 #define SW_VERSION_DATE   "20201222"
-#define SW_VERSION        "ZXM2M-ST-V01-20201220"  //软件版本号
+#define SW_VERSION        "ZXM2M-ST-20201220-V001"  //软件版本号
 #define SW_VERSION_LEN    (sizeof(SW_VERSION)-1)
 #define HW_VERSION        0x0108    //硬件版本号1.1
 
@@ -59,6 +59,7 @@
 #include "icloud_machine.h"
 #include "crc32.h"
 #include "iap.h"
+#include "AuxCom.h"
 
 #endif /* _CONFIG_H_ */
 

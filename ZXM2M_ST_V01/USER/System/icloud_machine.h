@@ -43,6 +43,7 @@ enum
   SYSBUS_DEVICE_TYPE_GPS,     // GPS模块
   SYSBUS_DEVICE_TYPE_COLLECT, // 采集模块
   SYSBUS_DEVICE_TYPE_PC_DEBUG,  // 配置工具
+  SYSBUS_DEVICE_TYPE_AUXCOM,  // 辅助通信接口
 };
 
 // 总线消息定义
@@ -57,6 +58,7 @@ typedef struct
   uint8_t* data;      // 数据地址
 }sysbus_msg_t;
 extern sysbus_msg_t SbusMsg_PcDebug;
+extern sysbus_msg_t SbusMsg_AuxCom;
 
 extern uint8_t public_data_buffer[1460];
 
