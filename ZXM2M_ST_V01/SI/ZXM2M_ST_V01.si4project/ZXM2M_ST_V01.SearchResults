@@ -1,4 +1,0 @@
----- rfu_SaveFlashHexFile Matches (3 in 3 files) ----
-iFCLIT_AnalyzeUdRspMsg in AuxCom.c (E:\ZXM2M_ST_V01\USER\AuxCom) :   rfu_SaveFlashHexFile(&rfu_context, &pdata[pos], packet_len);  // 将BIN文件写入SPI FLASH
-parameters.c (E:\ZXM2M_ST_V01\USER\Memory) line 423 : void rfu_SaveFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t length)
-parameters.h (E:\ZXM2M_ST_V01\USER\Memory) line 80 : void rfu_SaveFlashHexFile(uint8_t fileType, uint32_t address, uint8_t *buf, uint16_t length);

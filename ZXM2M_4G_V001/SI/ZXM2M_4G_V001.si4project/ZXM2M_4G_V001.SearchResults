@@ -1,0 +1,3 @@
+---- SOCKET_LINK_STATE_CONNECTING Matches (2 in 2 files) ----
+NetSocket_Connect in NetSocket.c (E:\ZXM2M_4G_V001\src) :     pThis->link_state = SOCKET_LINK_STATE_CONNECTING;
+NetSocket.h (E:\ZXM2M_4G_V001\inc) line 46 :   SOCKET_LINK_STATE_CONNECTING,
