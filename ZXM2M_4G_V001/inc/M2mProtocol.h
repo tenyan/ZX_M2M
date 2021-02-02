@@ -34,7 +34,11 @@ extern uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
 
 #define DEFAULT_SS_DATA_SEND_PERIOD_SP  30
 #define DEFAULT_SS_DATA_RSP_TIMEOUT_SP  10
-#define DEFAULT_SS_DATA_RETRY_SP        5
+#define DEFAULT_SS_DATA_RETRY_SP        3
+
+#define DEFAULT_BZ_DATA_SEND_PERIOD_SP  3
+#define DEFAULT_BZ_DATA_RSP_TIMEOUT_SP  10
+#define DEFAULT_BZ_DATA_RETRY_SP        1
 
 #define DEFAULT_PING_DATA_SEND_PERIOD_SP  120
 #define DEFAULT_PING_DATA_RSP_TIMEOUT_SP  8
@@ -217,6 +221,7 @@ typedef struct
   im2m_alarm_t alarm_table[NUM_OF_M2M_ALARM_TYPE];
   im2m_request_t conn_req;  // 连接请求
   im2m_request_t ss_req;    // 状态同步请求
+  im2m_request_t bz_req;    // 状态同步请求
   im2m_lt_report_t lt_report; // 位置追踪上报
   im2m_request_t ping_req;  // 心跳请求
   im2m_request_t alarm_req; // 告警请求

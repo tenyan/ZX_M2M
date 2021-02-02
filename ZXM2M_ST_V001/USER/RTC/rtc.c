@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: rtc.c
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version:  V1.0
  * @Date:     2020-9-17
  * @brief:
@@ -308,21 +309,21 @@ void rtcSoft_Update(void)
 {
   rtc_date_t rtc_time;
 
-  if(st_soft_time.ms_temp > 999) // 计时满1秒
+  if (st_soft_time.ms_temp > 999) // 计时满1秒
   {
     st_soft_time.ms_temp -= 1000;
     st_soft_time.ms = st_soft_time.ms_temp;
 
     st_soft_time.second++;
-    if(st_soft_time.second > 59) // 计时满1分钟
+    if (st_soft_time.second > 59) // 计时满1分钟
     {
       st_soft_time.second = 0;
       st_soft_time.minute++;
-      if(st_soft_time.minute > 59) // 计时满1小时
+      if (st_soft_time.minute > 59) // 计时满1小时
       {
         st_soft_time.minute = 0;
         st_soft_time.hour++;
-        if(st_soft_time.hour > 23) // 计时满1天
+        if (st_soft_time.hour > 23) // 计时满1天
         {
           st_soft_time.hour = 0;
           rtc_time = RTC_GetBjTime(); // 读取RTC时间

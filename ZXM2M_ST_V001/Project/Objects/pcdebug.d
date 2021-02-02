@@ -80,3 +80,5 @@
 .\project\objects\pcdebug.o: .\USER\System\icloud_machine.h
 .\project\objects\pcdebug.o: .\USER\Misc\crc32.h
 .\project\objects\pcdebug.o: .\USER\System\iap.h
+.\project\objects\pcdebug.o: .\USER\Memory\FlashDB.h
+.\project\objects\pcdebug.o: .\USER\Memory\fal.h

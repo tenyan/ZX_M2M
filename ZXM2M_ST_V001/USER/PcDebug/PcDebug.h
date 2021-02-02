@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: PcDebug.h
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version   V1.0
  * @Date:     2020-6-3
  * @brief     本文件为PcDebug功能模块协议层的头文件

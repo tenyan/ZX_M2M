@@ -21,7 +21,6 @@ typedef struct
   //iZxm2m_AnalyzeTlvMsgFun pfun_analyze;
 }iZxm2m_CmdTlv_t;
 
-
 /******************************************************************************
  * 外部函数
  ******************************************************************************/
@@ -40,6 +39,18 @@ extern uint16_t im2m_BuildTlvMsg_3019(uint8_t *pbuf);
 extern uint16_t im2m_BuildTlvMsg_301A(uint8_t *pbuf);
 extern uint8_t im2m_BuildMsgHead(uint8_t *pbuf, im2m_msg_type_t msgType, uint16_t msgBodyLen, uint8_t flag, uint16_t SerialNumber);
 extern uint8_t im2m_CalcSumCheck(uint8_t* pbuf,uint16_t len);
+
+void ZxM2mBlindZone_Save(void);
+
+/******************************************************************************
+ * Macros
+ ******************************************************************************/
+//==盲区补偿定义==
+#define ZXM2M_BZ_DEBUG    1  // 1-使能, 0-禁止
+#define ZXM2M_BZ_SAVE_PERIOD_SP  590 // 1分钟
+#define ZXM2M_BLIND_ZONE_PACKET_SIZE  1024
+#define ZXM2M_BDZE_WRITE_ERROR_SP  6
+#define ZXM2M_BDZE_READ_ERROR_SP   6
 
 /******************************************************************************
  * Data Types and Globals
@@ -63,6 +74,12 @@ uint8_t zxstatistics_buffer[SIZE_OF_ZXSTATISTICS_BUFFER]; ///统计数据缓存
 uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 
 zxtcw_context_t zxtcw_context;
+
+//==盲区补偿变量==
+blind_zone_t zxm2m_blind_zone;
+blind_zone_para_t zxm2m_blind_zone_para;
+static uint8_t zxm2m_blind_zone_buffer[ZXM2M_BLIND_ZONE_PACKET_SIZE];
+static uint16_t zxm2m_blind_zone_length;
 
 /******************************************************************************
  * TLV组包策略
@@ -1972,7 +1989,6 @@ uint16_t iZxM2m_BuildTcdBody(uint8_t *pbuf)
 
   return len;
 }
-
 #endif
 
 #if (PART("发送ZxM2m网络数据"))
@@ -2082,6 +2098,156 @@ void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type)
   //return msg_len;
 }
 
+//==上发盲区补偿数据==============================================================================
+void iZxM2m_SendBzData(m2m_context_t* pThis)
+{
+  uint16_t msg_len, msg_body_len, msg_header_len;
+  uint16_t stack_size = 0x00;
+  uint8_t check_sum;
+  uint8_t* pbuf = pThis->tx_data;
+
+  stack_size = BlindZone_GetStackSize(&zxm2m_blind_zone);
+  if (stack_size > 0)
+  {
+    //==读取报文体==========================================
+    BlindZone_PopData(&zxm2m_blind_zone, &pbuf[M2M_MSG_HEAD_LEN], &msg_body_len);
+    ZxM2mBlindZone_Save(); // 存入栈参数
+    if (msg_body_len == 0x00)
+    {
+#if ZXM2M_BZ_DEBUG
+      PcDebug_Printf("ZxM2mBzPop:Err\r\n");
+#endif
+      return;
+    }
+
+    //==创建报文头==========================================
+    pThis->upload_sn++;
+    pThis->ss_req.sn = pThis->upload_sn;
+    msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_PUSH_DATA, msg_body_len, 0x08, pThis->upload_sn); // 盲区补偿数据
+
+    //==计算校验字==========================================
+    msg_len = msg_body_len + msg_header_len;
+    check_sum = im2m_CalcSumCheck(pbuf, msg_len);
+    pbuf[msg_len++] = check_sum;
+    pThis->tx_size = msg_len;
+    
+    im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
+
+#if ZXM2M_BZ_DEBUG
+    PcDebug_Printf("ZxM2mBzPop:Ewr=%d,Erd=%d,Top=%d,Bot=%d\r\n",zxm2m_blind_zone.wr_error_cnt,zxm2m_blind_zone.rd_error_cnt,zxm2m_blind_zone.top,zxm2m_blind_zone.bottom);
+#endif
+  }
+}
+
 #endif
 
+#if (PART("ZxM2m盲区补偿"))
+/******************************************************************************
+* 补发重型M2M盲区数据
+******************************************************************************/
+void ZxM2mBlindZone_Init(void)
+{
+  uint16_t i;
+
+  BlindZone_ReadParameter(FILE_ZXM2M_BZ_PARA_ADDR, &zxm2m_blind_zone_para); // 读取FLASH中的参数
+  zxm2m_blind_zone.wr_error_cnt = zxm2m_blind_zone_para.wr_error_cnt;
+  zxm2m_blind_zone.rd_error_cnt = zxm2m_blind_zone_para.rd_error_cnt;
+  zxm2m_blind_zone.top = zxm2m_blind_zone_para.top;
+  zxm2m_blind_zone.bottom = zxm2m_blind_zone_para.bottom;
+  for (i=0; i<BLIND_ZONE_STACK_MAX_SIZE; i++)
+  {
+    zxm2m_blind_zone.data[i] = zxm2m_blind_zone_para.data[i];
+  }
+
+  zxm2m_blind_zone.timer_100ms = ZXM2M_BZ_SAVE_PERIOD_SP;
+  zxm2m_blind_zone.file_name = FILE_ZXM2M_BZ_DATA_ADDR; // 文件名
+  zxm2m_blind_zone.frame_size = ZXM2M_BLIND_ZONE_PACKET_SIZE; // 数据帧固定长度
+  pthread_mutex_init(&zxm2m_blind_zone.file_mutex, NULL);
+
+#if ZXM2M_BZ_DEBUG
+  PcDebug_Printf("ZxM2mBzInit:Ewr=%d,Erd=%d,Top=%d,Bot=%d\r\n",zxm2m_blind_zone.wr_error_cnt,zxm2m_blind_zone.rd_error_cnt,zxm2m_blind_zone.top,zxm2m_blind_zone.bottom);
+#endif
+}
+
+//=====================================================================================
+void ZxM2mBlindZone_Save(void)
+{
+  uint16_t i;
+
+  pthread_mutex_lock(&zxm2m_blind_zone.file_mutex);
+
+  zxm2m_blind_zone_para.wr_error_cnt = zxm2m_blind_zone.wr_error_cnt;
+  zxm2m_blind_zone_para.rd_error_cnt = zxm2m_blind_zone.rd_error_cnt;
+  zxm2m_blind_zone_para.top = zxm2m_blind_zone.top;
+  zxm2m_blind_zone_para.bottom = zxm2m_blind_zone.bottom;
+  for (i=0; i<BLIND_ZONE_STACK_MAX_SIZE; i++)
+  {
+    zxm2m_blind_zone_para.data[i] = zxm2m_blind_zone.data[i];
+  }
+
+  BlindZone_SaveParameter(FILE_ZXM2M_BZ_PARA_ADDR, &zxm2m_blind_zone_para);
+
+  pthread_mutex_unlock(&zxm2m_blind_zone.file_mutex);
+}
+
+//==GPS及采集数据(NB)===================================================================
+uint16_t ZxBlindZone_BuildTcwData(uint8_t* pdata)
+{
+  uint16_t msg_body_len;
+
+  msg_body_len = iZxM2m_BuildTcwBody(pdata); // 盲区只存储重型TCW数据
+  return msg_body_len;
+}
+
+//==1s调用一次============================================================================
+void ZxM2mBlindZone_Service(void)
+{
+  // 定位有效、有工况数据
+  if (COLT_GetAccStatus()==1) // ACC打开
+  {
+    if (zxm2m_blind_zone.timer_100ms)
+      zxm2m_blind_zone.timer_100ms--;
+    else
+    {
+      zxm2m_blind_zone.timer_100ms = ZXM2M_BZ_SAVE_PERIOD_SP; // x分钟一条
+      if (im2m_GetLinkState() != SOCKET_LINK_STATE_READY) // 未连接
+      {
+        if (GPS_GetPositioningStatus()==1) // 终端已定位
+        {
+          memset(zxm2m_blind_zone_buffer,0xFF,ZXM2M_BLIND_ZONE_PACKET_SIZE); // 清空缓存
+          zxm2m_blind_zone_length = ZxBlindZone_BuildTcwData(zxm2m_blind_zone_buffer); // 创建盲区数据包: GPS及ECU数据
+          if (zxm2m_blind_zone_length <= ZXM2M_BLIND_ZONE_PACKET_SIZE)
+          {
+            BlindZone_PushData(&zxm2m_blind_zone, zxm2m_blind_zone_buffer, zxm2m_blind_zone_length); // 存入数据帧
+            ZxM2mBlindZone_Save(); // 存入栈参数
+
+#if ZXM2M_BZ_DEBUG
+            PcDebug_Printf("ZxM2mBzPush:Ewr=%d,Erd=%d,Top=%d,Bot=%d\r\n",zxm2m_blind_zone.wr_error_cnt,zxm2m_blind_zone.rd_error_cnt,zxm2m_blind_zone.top,zxm2m_blind_zone.bottom);
+#endif
+          }
+        }
+      }
+    }
+  }
+  else // ACC关闭
+  {
+    zxm2m_blind_zone.timer_100ms = ZXM2M_BZ_SAVE_PERIOD_SP; // x分钟一条
+  }
+
+  // 出现读写错误,复位栈为0
+  if ((zxm2m_blind_zone.rd_error_cnt > ZXM2M_BDZE_READ_ERROR_SP) || (zxm2m_blind_zone.wr_error_cnt > ZXM2M_BDZE_WRITE_ERROR_SP))
+  {
+#if ZXM2M_BZ_DEBUG
+    PcDebug_Printf("ZxM2mBzErr:Ewr=%d,Erd=%d\r\n",zxm2m_blind_zone.wr_error_cnt,zxm2m_blind_zone.rd_error_cnt);
+#endif
+
+    zxm2m_blind_zone.wr_error_cnt = 0;
+    zxm2m_blind_zone.rd_error_cnt = 0;
+    zxm2m_blind_zone.top = 0;
+    zxm2m_blind_zone.bottom = 0;
+    memset(zxm2m_blind_zone.data, 0x00, BLIND_ZONE_STACK_MAX_SIZE);
+    ZxM2mBlindZone_Save(); // 存入栈参数
+  }
+}
+#endif
 

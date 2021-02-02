@@ -1,5 +1,5 @@
 /*****************************************************************************
-* @FileName: GB17691.h
+* @FileName: GB.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
 * @version   V1.1
@@ -18,8 +18,8 @@
 //#define BJEP_CLOUD_SERVER_DNS   "jc.bjmemc.com.cn"  // 北京环保平台
 //#define BJEP_CLOUD_SERVER_PORT  7740
 
-#define GBEP_DEBUG     1  // 1-使能, 0-禁止
-#define GBEP_BZ_DEBUG    0  // 1-使能, 0-禁止
+#define GBEP_DEBUG     0  // 1-使能, 0-禁止
+#define GBEP_BZ_DEBUG    1  // 1-使能, 0-禁止
 
 /******************************************************************************
 * Macros(GB环保数据定义)

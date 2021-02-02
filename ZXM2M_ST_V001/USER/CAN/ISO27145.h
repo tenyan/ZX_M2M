@@ -1,4 +1,5 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: ISO27145.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部

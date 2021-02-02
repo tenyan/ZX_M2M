@@ -79,3 +79,5 @@
 .\project\objects\tbox_machine.o: .\USER\System\icloud_machine.h
 .\project\objects\tbox_machine.o: .\USER\Misc\crc32.h
 .\project\objects\tbox_machine.o: .\USER\System\iap.h
+.\project\objects\tbox_machine.o: .\USER\Memory\FlashDB.h
+.\project\objects\tbox_machine.o: .\USER\Memory\fal.h

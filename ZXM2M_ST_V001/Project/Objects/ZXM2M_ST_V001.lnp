@@ -11,6 +11,8 @@
 ".\project\objects\tcw.o"
 ".\project\objects\sfud.o"
 ".\project\objects\parameters.o"
+".\project\objects\fal.o"
+".\project\objects\flashdb.o"
 ".\project\objects\pcdebughw.o"
 ".\project\objects\pcdebug.o"
 ".\project\objects\momihw.o"

@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: AuxCom.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2021-1-12
 * @brief     Modem模块和Micro辅助通信协议实现

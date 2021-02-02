@@ -35,15 +35,22 @@ uint8_t zxm2m_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
 int16_t zxm2m_conn_rx_len = 0;
 //uint8_t zxm2m_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
 
-uint8_t hjep_conn_tx_buffer[SOCKET_CONN_MAX_DATA_LEN];
-uint8_t hjep_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
-int16_t hjep_conn_rx_len = 0;
-//uint8_t hjep_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
+uint8_t mainep_conn_tx_buffer[SOCKET_CONN_MAX_DATA_LEN];
+uint8_t mainep_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
+int16_t mainep_conn_rx_len = 0;
+//uint8_t mainep_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
 
-uint8_t gbep_conn_tx_buffer[SOCKET_CONN_MAX_DATA_LEN];
-uint8_t gbep_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
-int16_t gbep_conn_rx_len = 0;
-//uint8_t gbep_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
+uint8_t subep_conn_tx_buffer[SOCKET_CONN_MAX_DATA_LEN];
+uint8_t subep_conn_rx_buffer[SOCKET_CONN_MAX_DATA_LEN];
+int16_t subep_conn_rx_len = 0;
+//uint8_t subep_conn_buffer[SOCKET_CONN_MAX_DATA_LEN*2];
+
+// HJ环保
+#define hjep_conn_tx_buffer  mainep_conn_tx_buffer
+
+// GB环保(直连北京环保平台)
+#define bjep_conn_tx_buffer  mainep_conn_tx_buffer
+#define gbep_conn_tx_buffer  subep_conn_tx_buffer
 
 /******************************************************************************
  * 将byte数组转换成字符串,用于打印输出
@@ -134,12 +141,13 @@ void* pthread_ZxM2mProcess(void *argument)
 {
   while (1)
   {
-    if((NetSocket_GetLinkState(&zxm2m_socket)==SOCKET_LINK_STATE_CLOSED) || (ZxM2mSocketFd<0))
+    if((NetSocket_GetLinkState(&zxm2m_socket)<SOCKET_LINK_STATE_READY) || (ZxM2mSocketFd<0))
     {
-      msleep(10);
+      msleep(100);
     }
     else
     {
+      // recv error : Transport endpoint is not connected
       zxm2m_conn_rx_len = recv(ZxM2mSocketFd, zxm2m_conn_rx_buffer, (SOCKET_CONN_MAX_DATA_LEN-1), 0);
       if(zxm2m_conn_rx_len < 0)
       {
@@ -211,11 +219,21 @@ void ZxM2m_ServiceInit(void)
 //============================================================================
 void ZxM2m_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_ZXM2M_PRODUCE_ID], NULL, pthread_ZxM2mProduce, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread堆栈设置为40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+
+  pthread_create(&pthreads[PTHREAD_ZXM2M_PRODUCE_ID], &thread_attr, pthread_ZxM2mProduce, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_ZXM2M_PROCESS_ID], NULL, pthread_ZxM2mProcess, NULL);
+  pthread_create(&pthreads[PTHREAD_ZXM2M_PROCESS_ID], &thread_attr, pthread_ZxM2mProcess, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_ZXM2M_SOCKET_SERVICE_ID], NULL, pthread_ZxM2mSocketService, NULL);
+  pthread_create(&pthreads[PTHREAD_ZXM2M_SOCKET_SERVICE_ID], &thread_attr, pthread_ZxM2mSocketService, NULL);
   usleep(10);
 }
 
@@ -249,46 +267,18 @@ void HJEP_NetSocketInit(void)
 
   hjep_socket.reinit_server_addr = &ReInitHjepServerAddr;
   //(*hjep_socket.reinit_server_addr)();
+
+  subep_socket.enable_flag = SOCKET_FALSE;
 }
 
-//=============================================================================================
-void ReInitGbepServerAddr(void)
+/******************************************************************************
+* 下面函数由用户编写,用于底层网络连接
+*******************************************************************************/
+void ReInitBjepServerAddr(void)
 {
-#if 0  // 要使能 __USE_POSIX
-  char* hostname = BJEP_CLOUD_SERVER_DNS;  // 北京环保平台的域名网址
-  addrinfo hints, *res;
-  in_addr addr;
-  int err = 0;
-
-  gbep_socket.srv_protocol = BJEP_CLOUD_SERVER_PROTOCOL;
-  gbep_socket.srv_port = BJEP_CLOUD_SERVER_PORT;
-  
-  memset(&hints, 0, sizeof(addrinfo));
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_family = AF_INET;
-  err = getaddrinfo(hostname, NULL, &hints, &res); // 通过域名获取IP,此函数是可重入的
-  if(err != 0)
-  {
-    //printf("error %d : %s\n", err, gai_strerror(err));
-#if GBEP_DEBUG
-    PcDebug_Printf("Bjep:DnsToIpFail!\n");
-#endif
-    strcpy(gbep_socket.srv_ip,"210.73.67.185"); // 默认ip
-    return;
-  }
-  addr.s_addr = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
-  sprintf(gbep_socket.srv_ip, "%s", inet_ntoa(addr)); // 实际IP地址
-  freeaddrinfo(res);
-  
-#if GBEP_DEBUG
-  PcDebug_Printf("BjepSrvIp:%s\n",gbep_socket.srv_ip);
-#endif
-
-#endif
-
-#if 1  // 将主机名转化为IP地址
-  gbep_socket.srv_protocol = BJEP_CLOUD_SERVER_PROTOCOL;
-  gbep_socket.srv_port = BJEP_CLOUD_SERVER_PORT;
+  //==将主机名转化为IP地址==================================================
+  bjep_socket.srv_protocol = BJEP_CLOUD_SERVER_PROTOCOL;
+  bjep_socket.srv_port = BJEP_CLOUD_SERVER_PORT;
 
   char* hostname = BJEP_CLOUD_SERVER_DNS;  // 北京环保平台的域名网址
   struct hostent* phost;
@@ -296,68 +286,95 @@ void ReInitGbepServerAddr(void)
   phost = gethostbyname(hostname); // gethostbyname()是不可重入函数
   if (phost == NULL)
   {
-#if GBEP_DEBUG
     PcDebug_Printf("Bjep:DnsToIpFail!\n");
-#endif
-    //strcpy((char * __restrict__)gbep_socket.srv_ip,"210.73.67.185"); // 默认ip
+    //strcpy((char * __restrict__)bjep_socket.srv_ip,"210.73.67.185"); // 默认ip
     return;
   }
 
   if (AF_INET != phost->h_addrtype)
   {
-#if GBEP_DEBUG
     PcDebug_Printf("Bjep:DnsToIpFail!\n");
-#endif
-    //strcpy((char * __restrict__)gbep_socket.srv_ip,"210.73.67.185"); // 默认ip
+    //strcpy((char * __restrict__)bjep_socket.srv_ip,"210.73.67.185"); // 默认ip
     return;
   }
 
   // 获取实际IP地址
-  sprintf((char * __restrict__)gbep_socket.srv_ip, "%s", inet_ntoa(*((struct in_addr*)phost->h_addr_list[0]))); 
-  
-#if GBEP_DEBUG
-    PcDebug_Printf("BjepSrvIp:%s\n",gbep_socket.srv_ip);
-#endif
-
-#endif
+  sprintf((char * __restrict__)bjep_socket.srv_ip, "%s", inet_ntoa(*((struct in_addr*)phost->h_addr_list[0]))); 
+  PcDebug_Printf("BjepSrvIp-%s:%d\n",bjep_socket.srv_ip, bjep_socket.srv_port);
 }
 
-//=============================================================================================
-void gbep_socket_init(void)
-{
-  pthread_mutex_init(&gbep_socket.send_mutex, NULL);
 
+//=============================================================================================
+void BJEP_NetSocketInit(void)
+{
+  pthread_mutex_init(&bjep_socket.send_mutex, NULL);
+
+  bjep_socket.socket_id = BJEP_SOCKET_ID;
+  bjep_socket.state = NET_SOCKET_STATE_INVALID;
+  bjep_socket.started_delay = SOCKET_FALSE;
+  bjep_socket.state_transition = SOCKET_TRUE;
+  bjep_socket.error_cnt = 0;
+  bjep_socket.error_flag = SOCKET_FALSE;
+  bjep_socket.socket_fd = -1;
+  bjep_socket.enable_flag = SOCKET_FALSE;
+  bjep_socket.link_state = SOCKET_LINK_STATE_CLOSED;
+  bjep_socket.hb_10ms_timer_sp = BJEP_HEART_BEAT_TIMEOUT_SP;
+
+  bjep_socket.tx_buff = bjep_conn_tx_buffer;
+  bjep_socket.tx_len = 0;
+  bjep_socket.new_tx_data_flag = 0;
+
+  bjep_socket.reinit_server_addr = &ReInitBjepServerAddr;
+  //(*bjep_socket.reinit_server_addr)();
+}
+
+/******************************************************************************
+* 下面函数由用户编写,用于底层网络连接
+*******************************************************************************/
+void ReInitGbepServerAddr(void)
+{
+  gbep_socket.srv_protocol =GBEP_CLOUD_SERVER_PROTOCOL;
+  gbep_socket.srv_port = GBEP_CLOUD_SERVER_PORT;
+  strcpy((char *)gbep_socket.srv_ip,GBEP_CLOUD_SERVER_IP);
+}
+
+//=========================================================================
+void GBEP_NetSocketInit(void)
+{
   gbep_socket.socket_id = GBEP_SOCKET_ID;
   gbep_socket.state = NET_SOCKET_STATE_INVALID;
   gbep_socket.started_delay = SOCKET_FALSE;
   gbep_socket.state_transition = SOCKET_TRUE;
   gbep_socket.error_cnt = 0;
   gbep_socket.error_flag = SOCKET_FALSE;
-  gbep_socket.socket_fd = -1;
   gbep_socket.enable_flag = SOCKET_FALSE;
+  //gbep_socket.enable_flag = SOCKET_TRUE;
   gbep_socket.link_state = SOCKET_LINK_STATE_CLOSED;
   gbep_socket.hb_10ms_timer_sp = GBEP_HEART_BEAT_TIMEOUT_SP;
 
-  hjep_socket.tx_buff = gbep_conn_tx_buffer;
-  hjep_socket.tx_len = 0;
-  hjep_socket.new_tx_data_flag = 0;
+  gbep_socket.tx_buff = gbep_conn_tx_buffer;
+  gbep_socket.tx_len = 0;
+  gbep_socket.new_tx_data_flag = 0;
 
   gbep_socket.reinit_server_addr = &ReInitGbepServerAddr;
   //(*gbep_socket.reinit_server_addr)();
 }
 
-//============================================================================
-void* pthread_HjepSocketService(void *argument)
+/******************************************************************************
+* 环保主连接
+*******************************************************************************/
+//==环保主连接=============================================================
+void* pthread_MainEpSocketService(void *argument)
 {
   while (1)
   {
     msleep(10); // 10ms周期
-    NetSocket_Service(&hjep_socket);
+    NetSocket_Service(&mainep_socket);
   }
 }
 
-//==重型M2M发送数据线程=======================================================
-void* pthread_HjepProduce(void *argument)
+//==环保主连接发送数据线程=================================================
+void* pthread_MainEpProduce(void *argument)
 {
   while (1)
   {
@@ -373,23 +390,23 @@ void* pthread_HjepProduce(void *argument)
   }
 }
 
-//==重型M2M接收数据处理线程====================================================
-void* pthread_HjepProcess(void *argument)
+//==环保主连接接收数据处理线程=============================================
+void* pthread_MainEpProcess(void *argument)
 {
   while (1)
   {
-    if ((NetSocket_GetLinkState(&hjep_socket)==SOCKET_LINK_STATE_CLOSED) || (HjepSocketFd<0))
+    if ((NetSocket_GetLinkState(&mainep_socket)<SOCKET_LINK_STATE_READY) || (MainEpSocketFd<0))
     {
-      msleep(10);
+      msleep(100);
     }
     else
     {
-      hjep_conn_rx_len = recv(HjepSocketFd, hjep_conn_rx_buffer, (SOCKET_CONN_MAX_DATA_LEN-1), 0);
-      if (hjep_conn_rx_len < 0)
+      mainep_conn_rx_len = recv(MainEpSocketFd, mainep_conn_rx_buffer, (SOCKET_CONN_MAX_DATA_LEN-1), 0);
+      if (mainep_conn_rx_len < 0)
       {
         if (errno == EAGAIN)
         {
-          printf("RE-Len:%d errno EAGAIN\n", hjep_conn_rx_len);
+          printf("RE-Len:%d errno EAGAIN\n", mainep_conn_rx_len);
           continue;
         }
 
@@ -400,31 +417,124 @@ void* pthread_HjepProcess(void *argument)
 
         perror("recv error\n");
 //#if SOCKET_DEBUG
-//      PcDebug_Printf("RecvSocketErr:Id=%d\r\n",hjep_socket.socket_id);
+//      PcDebug_Printf("RecvSocketErr:Id=%d\r\n",mainep_socket.socket_id);
 //#endif
       }
-      else if (hjep_conn_rx_len > 0)
+      else if (mainep_conn_rx_len > 0)
       {
-        if (hjep_conn_rx_len < SOCKET_CONN_MAX_DATA_LEN)
+        if (mainep_conn_rx_len < SOCKET_CONN_MAX_DATA_LEN)
         {
-          PcDebug_SendData(hjep_conn_rx_buffer, hjep_conn_rx_len, DBG_MSG_TYPE_SYS);
-          //HJEP_ProcessRecvData(hjep_conn_rx_buffer, hjep_conn_rx_len);
-          if((hjep_conn_rx_buffer[0]==0x23) && (hjep_conn_rx_buffer[1]==0x23)) // 帧头
+          PcDebug_SendData(mainep_conn_rx_buffer, mainep_conn_rx_len, DBG_MSG_TYPE_SYS);
+          //HJEP_ProcessRecvData(mainep_conn_rx_buffer, mainep_conn_rx_len);
+          if((mainep_conn_rx_buffer[0]==0x23) && (mainep_conn_rx_buffer[1]==0x23)) // 帧头
           {
-            hjep_socket.error_cnt = 0x00; // 清除错误计数
-            hjep_socket.error_flag = FALSE;
-            hjep_socket.hb_10ms_timer = hjep_socket.hb_10ms_timer_sp;
+            mainep_socket.error_cnt = 0x00; // 清除错误计数
+            mainep_socket.error_flag = FALSE;
+            mainep_socket.hb_10ms_timer = mainep_socket.hb_10ms_timer_sp;
           }
 //#if SOCKET_DEBUG
-//        PcDebug_Printf("RecvSkt:Id=%d\r\n",hjep_socket.socket_id);
+//        PcDebug_Printf("RecvSkt:Id=%d\r\n",mainep_socket.socket_id);
 //#endif
         }
       }
       else  // 长度为0表示socket关闭
       {
-        NetSocket_SetLinkState(&hjep_socket, SOCKET_LINK_STATE_CLOSED);
+        NetSocket_SetLinkState(&mainep_socket, SOCKET_LINK_STATE_CLOSED);
 #if SOCKET_DEBUG
-        PcDebug_Printf("DiscSkt:Id=%d\r\n", hjep_socket.socket_id);
+        PcDebug_Printf("DiscSkt:Id=%d\r\n", mainep_socket.socket_id);
+#endif
+      }
+    }
+    msleep(1);
+  }
+}
+
+/******************************************************************************
+* 环保副连接
+*******************************************************************************/
+//==环保副连接=============================================================
+void* pthread_SubEpSocketService(void *argument)
+{
+  while (1)
+  {
+    msleep(10); // 10ms周期
+    NetSocket_Service(&subep_socket);
+  }
+}
+
+//==环保副连接发送数据线程=================================================
+void* pthread_SubEpProduce(void *argument)
+{
+  while (1)
+  {
+    sleep(5); // 1s周期
+#if 0
+    if(CAN_GetEpType()==EP_TYPE_GB)  // 环保功能开启
+    {
+      msleep(10); // 10ms周期
+      //GBEP_ProduceSendData();
+    }
+    else
+    {
+      subep_socket.enable_flag = SOCKET_FALSE;
+      sleep(1); // 1s周期
+    }
+#endif
+  }
+}
+
+//==环保副连接接收数据处理线程=============================================
+void* pthread_SubEpProcess(void *argument)
+{
+  while (1)
+  {
+    if ((NetSocket_GetLinkState(&subep_socket)<SOCKET_LINK_STATE_READY) || (SubEpSocketFd<0))
+    {
+      msleep(100);
+    }
+    else
+    {
+      subep_conn_rx_len = recv(SubEpSocketFd, subep_conn_rx_buffer, (SOCKET_CONN_MAX_DATA_LEN-1), 0);
+      if (subep_conn_rx_len < 0)
+      {
+        if (errno == EAGAIN)
+        {
+          printf("RE-Len:%d errno EAGAIN\n", subep_conn_rx_len);
+          continue;
+        }
+
+        if (errno == EINTR)
+        {
+          continue;
+        }
+
+        perror("recv error\n");
+//#if SOCKET_DEBUG
+//      PcDebug_Printf("RecvSocketErr:Id=%d\r\n",subep_socket.socket_id);
+//#endif
+      }
+      else if (subep_conn_rx_len > 0)
+      {
+        if (subep_conn_rx_len < SOCKET_CONN_MAX_DATA_LEN)
+        {
+          PcDebug_SendData(subep_conn_rx_buffer, subep_conn_rx_len, DBG_MSG_TYPE_SYS);
+          //GBEP_ProcessRecvData(subep_conn_rx_buffer, subep_conn_rx_len);
+          if((subep_conn_rx_buffer[0]==0x23) && (subep_conn_rx_buffer[1]==0x23)) // 帧头
+          {
+            subep_socket.error_cnt = 0x00; // 清除错误计数
+            subep_socket.error_flag = FALSE;
+            subep_socket.hb_10ms_timer = subep_socket.hb_10ms_timer_sp;
+          }
+//#if SOCKET_DEBUG
+//        PcDebug_Printf("RecvSkt:Id=%d\r\n",subep_socket.socket_id);
+//#endif
+        }
+      }
+      else  // 长度为0表示socket关闭
+      {
+        NetSocket_SetLinkState(&subep_socket, SOCKET_LINK_STATE_CLOSED);
+#if SOCKET_DEBUG
+        PcDebug_Printf("DiscSkt:Id=%d\r\n", subep_socket.socket_id);
 #endif
       }
     }
@@ -433,22 +543,54 @@ void* pthread_HjepProcess(void *argument)
 }
 
 //===========================================================================
-void HJEP_ServiceInit(void)
+void EP_ServiceInit(void)
 {
-  HJEP_Initialize();
-  HJEP_NetSocketInit();
+  // 测试用
+  m2m_asset_data.vin_valid_flag = 0x01;
+  m2m_asset_data.ep_type = EP_TYPE_HJ;
+  colt_info.engine_speed = 400;
+  colt_info.ep_valid_flag = 1;
 
-  GBEP_Initialize();
+  if (CAN_GetEpType()==EP_TYPE_HJ) // 环保功能开启
+  {
+    HJEP_Initialize();
+    HJEP_NetSocketInit();
+  }
+  else if(CAN_GetEpType()==EP_TYPE_GB)
+  {
+    GBEP_Initialize();
+    BJEP_NetSocketInit();
+    GBEP_NetSocketInit();
+  }
 }
 
 //============================================================================
-void HJEP_ServiceStart(void)
+void EP_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_HJEP_PRODUCE_ID], NULL, pthread_HjepProduce, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread堆栈设置为40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+
+  // 环保主连接
+  pthread_create(&pthreads[PTHREAD_MAINEP_PRODUCE_ID], &thread_attr, pthread_MainEpProduce, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_HJEP_PROCESS_ID], NULL, pthread_HjepProcess, NULL);
+  pthread_create(&pthreads[PTHREAD_MAINEP_PROCESS_ID], &thread_attr, pthread_MainEpProcess, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_HJEP_SOCKET_SERVICE_ID], NULL, pthread_HjepSocketService, NULL);
+  pthread_create(&pthreads[PTHREAD_MAINEP_SOCKET_SERVICE_ID], &thread_attr, pthread_MainEpSocketService, NULL);
+  usleep(10);
+
+  // 环保副连接
+  //pthread_create(&pthreads[PTHREAD_SUBEP_PRODUCE_ID], &thread_attr, pthread_SubEpProduce, NULL);
+  //usleep(10);
+  pthread_create(&pthreads[PTHREAD_SUBEP_PROCESS_ID], &thread_attr, pthread_SubEpProcess, NULL);
+  usleep(10);
+  pthread_create(&pthreads[PTHREAD_SUBEP_SOCKET_SERVICE_ID], &thread_attr, pthread_SubEpSocketService, NULL);
   usleep(10);
 }
 
@@ -457,20 +599,30 @@ void HJEP_ServiceStart(void)
 ****************************************************************************/
 void Net_CheckIsModemError(void)
 {
-  if (hjep_socket.enable_flag == SOCKET_FALSE)
+  if (subep_socket.enable_flag == SOCKET_TRUE)
   {
-    if (zxm2m_socket.error_flag==TRUE) // 平台都连接不上,重启模块
+    if ((zxm2m_socket.error_flag==TRUE) && (mainep_socket.error_flag==TRUE) && (subep_socket.error_flag==TRUE)) // 所有平台都连接不上,重启模块
     {
       zxm2m_socket.error_flag = FALSE;
+      mainep_socket.error_flag = FALSE;
+      subep_socket.error_flag = FALSE;
+      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+    }
+  }
+  else if(mainep_socket.enable_flag == SOCKET_TRUE)
+  {
+    if ((zxm2m_socket.error_flag==TRUE) && (mainep_socket.error_flag==TRUE)) // 所有平台都连接不上,重启模块
+    {
+      zxm2m_socket.error_flag = FALSE;
+      mainep_socket.error_flag = FALSE;
       Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
     }
   }
   else
   {
-    if ((zxm2m_socket.error_flag==TRUE) && (hjep_socket.error_flag==TRUE)) // 所有平台都连接不上,重启模块
+    if (zxm2m_socket.error_flag==TRUE) // 平台都连接不上,重启模块
     {
       zxm2m_socket.error_flag = FALSE;
-      hjep_socket.error_flag = FALSE;
       Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
     }
   }

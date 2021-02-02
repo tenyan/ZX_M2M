@@ -2,6 +2,7 @@
 * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: Can.h
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-6-19
 * @brief
@@ -40,6 +41,11 @@ typedef struct
   uint16_t recv_timer2; // 接收超时计数器
 
   uint8_t  sleep_state; // 休眠状态,0=未休眠, 1=休眠
+
+  uint32_t twt_up;  // 上车总工作时间
+  uint32_t twt_down;  // 下车总工作时间
+  uint32_t tfc_up;  // 上车总油耗
+  uint32_t tfc_down;  // 下车总油耗
 }can_context_t;
 extern can_context_t can_context;
 
@@ -190,8 +196,15 @@ uint8_t DTC_SaveCode(dtc_context_t* pThis, uint32_t dtcode);
 uint8_t CAN_GetCommState(uint8_t channel);
 uint8_t CAN_GetRecvState(uint8_t channel);
 uint8_t CAN_GetVinState(void);
-uint16_t CAN_GetEngineSpeed(void);
+
 uint8_t CAN_GetEngineType(void);
+uint16_t CAN_GetEngineSpeed(void);
+
+uint32_t CAN_GetUpEngineTwt(void);    // 上车总工作时间
+uint32_t CAN_GetDownEngineTwt(void);    // 下车总工作时间
+
+uint32_t CAN_GetUpEngineTfc(void);// 上车总油耗
+uint32_t CAN_GetDownEngineTfc(void);// 下车总油耗
 
 // 消息队列
 void can_msg_queue_reset(can_msg_queue_t* pThis);

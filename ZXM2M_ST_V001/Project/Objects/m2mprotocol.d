@@ -79,3 +79,5 @@
 .\project\objects\m2mprotocol.o: .\USER\System\icloud_machine.h
 .\project\objects\m2mprotocol.o: .\USER\Misc\crc32.h
 .\project\objects\m2mprotocol.o: .\USER\System\iap.h
+.\project\objects\m2mprotocol.o: .\USER\Memory\FlashDB.h
+.\project\objects\m2mprotocol.o: .\USER\Memory\fal.h

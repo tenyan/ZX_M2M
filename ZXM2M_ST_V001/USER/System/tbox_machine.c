@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: tbox_machine.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-10-16
 * @brief
@@ -42,6 +44,7 @@ uint8_t public_data_buffer[1460];
 static uint8_t acc_off_event_flag = 0; // ACC由ON变为OFF标志位
 static uint32_t acc_off_cumulated_timer = 0;
 static uint32_t acc_off_reset_cumulated_timer = 0;
+static uint8_t save_statistics_flag = 0;
 /******************************************************************************
  * 主电供电情况下,终端断电重启函数(1S执行一次)
  * 当ACC关闭持续时间达到休眠唤醒间隔时长时，通知AM1805对整机进行断电10秒钟
@@ -235,6 +238,7 @@ void tbox_working(void)
     {
       if (COLT_GetAccStatus()==1) // ACC开
       {
+        save_statistics_flag = 1;
         enter_sleep_timer = enter_sleep_timer_sp; // 重置休眠时间
       }
 
@@ -274,6 +278,11 @@ void tbox_working(void)
 void tbox_sleep(void)
 {
   uint8_t it;
+  static uint32_t previous_seconds = 0x00;
+  static uint32_t current_seconds = 0x00;
+  uint32_t d_value = 0x00;
+  uint32_t d_value_max = 0x00;
+  rtc_date_t rtc_time;
   
   if (tbox_state_transition == TRUE)
   {
@@ -325,6 +334,7 @@ void tbox_sleep(void)
       tbox_started_delay = TRUE;
       PcDebug_SendString("Tbox:L-Sleep!\n");
       //=关闭硬件====================================
+      MAIN_POWER_ON();     // 使能主电供电
       Modem_SetState(MODEM_STATE_POWER_OFF); // 关闭4G模块
       for (it=0; it<60; it++) // 保证模块正常关机
       {
@@ -343,6 +353,19 @@ void tbox_sleep(void)
       if (tbox_10msec_timer == 0)
       {
         //PcDebug_Printf("L-SleepTime=%d\n",quit_sleep_timer);
+        rtc_time = RTC_GetBjTime(); // 读取RTC时间;
+        RTC_ConvertDataTimeToSeconds(&rtc_time, &previous_seconds);  // 获取当前系统时间
+
+        if(save_statistics_flag == 1)
+        {
+          // 保存统计数据到数据库
+          save_statistics_flag = 0;
+          PcDebug_SendString("STS:Save!\n");
+          ZxSts_SaveDataToFdb();
+          ZxStsEngine_SaveDataToFdb();
+          TboxSts_SaveDataToFdb();
+        }
+
         PcDebug_SendString("Tbox:L-Slept!\n");
         TBOX_DELAY(OS_TICKS_PER_SEC/10);
         BAT_CHARGE_OFF();
@@ -384,6 +407,14 @@ void tbox_sleep(void)
       PcDebug_SendString("Tbox:D-Sleep!\n");
       //=关闭硬件====================================
       BAT_CHARGE_OFF();
+      TBOX_DELAY(OS_TICKS_PER_SEC);
+
+      // 保存统计数据到数据库
+      PcDebug_SendString("STS:Save!\n");
+      ZxSts_SaveDataToFdb(); 
+      ZxStsEngine_SaveDataToFdb();
+      TboxSts_SaveDataToFdb();
+      
       Modem_SetState(MODEM_STATE_POWER_OFF); // 关闭4G模块
       for (it=0; it<60; it++) // 保证模块正常关机
       {
@@ -418,8 +449,20 @@ void tbox_sleep(void)
       tbox_started_delay = TRUE;
       //=唤醒硬件====================================
       PcDebug_SendString("Tbox:Wakeup!\n");
-
       IWDG_Feed();
+      
+      rtc_time = RTC_GetBjTime(); // 读取RTC时间;
+      RTC_ConvertDataTimeToSeconds(&rtc_time, &current_seconds);  // 获取当前系统时间
+      if(current_seconds > previous_seconds)
+      {
+        d_value = current_seconds - previous_seconds;
+        d_value_max = (m2m_asset_data.sleep_time_sp*60) + 300;
+        if(d_value < d_value_max)
+        {
+          TboxSts_AccumulateTime(d_value); // 终端休眠统计累计
+          PcDebug_SendString("ToxSts:Add!\n");
+        }
+      }
       tbox_10msec_timer = 10;
     }
     else

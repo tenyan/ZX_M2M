@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: am1805.c 
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version:  V1.0
  * @Date:     2020-12-12
  * @brief:    C file containing AM1805 driver functions

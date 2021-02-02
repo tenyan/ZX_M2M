@@ -79,4 +79,6 @@
 .\project\objects\pcdebughw.o: .\USER\System\icloud_machine.h
 .\project\objects\pcdebughw.o: .\USER\Misc\crc32.h
 .\project\objects\pcdebughw.o: .\USER\System\iap.h
+.\project\objects\pcdebughw.o: .\USER\Memory\FlashDB.h
+.\project\objects\pcdebughw.o: .\USER\Memory\fal.h
 .\project\objects\pcdebughw.o: USER\PcDebug\PcDebugHW.h

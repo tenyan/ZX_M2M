@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: GpsHW.c
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version:  V1.0
  * @Date:     2020-10-11
  * @brief:    GPS模块底层驱动函数

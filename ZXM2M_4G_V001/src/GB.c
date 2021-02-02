@@ -1,10 +1,10 @@
 /*****************************************************************************
-* @FileName: GB17691.c
+* @FileName: GB.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2021-1-25
-* @brief:     中国国家标准GB17691-2018(重型柴油车远程排放监控技术规范)实现.C文件
+* @brief:    中国国家标准GB17691-2018(重型柴油车远程排放监控技术规范)实现.C文件
 ******************************************************************************/
 
 /******************************************************************************
@@ -17,20 +17,23 @@
 ******************************************************************************/
 // 网络接口定义
 #define gbep_send_buffer              gbep_data_buffer
-//#define GBEP_SendNetData(pData, len)  NetSocket_Send(&gbep_socket, pData, len)
-//#define GBEP_GetLinkState()           NetSocket_GetLinkState(&gbep_socket)
-//#define GBEP_DisableLink()            NetSocket_Disable(&gbep_socket)
-//#define GBEP_EnableLink()             NetSocket_Enable(&gbep_socket)
 
-#define GBEP_SendNetData(pData, len)  NetSocket_Send(&hjep_socket, pData, len)
-#define GBEP_GetLinkState()           NetSocket_GetLinkState(&hjep_socket)
-#define GBEP_DisableLink()            NetSocket_Disable(&hjep_socket)
-#define GBEP_EnableLink()             NetSocket_Enable(&hjep_socket)
+#define GBEP_GetMainLinkState()           NetSocket_GetLinkState(&gbep_socket)
+#define GBEP_DisableMainLink()            NetSocket_Disable(&gbep_socket)
+#define GBEP_EnableMainLink()             NetSocket_Enable(&gbep_socket)
+#define GBEP_SendMainNetData(pData, len)  NetSocket_Send(&gbep_socket, pData, len)  // 发到北京市环保平台
 
+#define GBEP_GetSubLinkState()           NetSocket_GetLinkState(&bjep_socket)
+#define GBEP_DisableSubLink()            NetSocket_Disable(&bjep_socket)
+#define GBEP_EnableSubLink()             NetSocket_Enable(&bjep_socket)
+#define GBEP_SendSubNetData(pData, len)  NetSocket_Send(&bjep_socket, pData, len)  // 发到重型环保平台
+
+#define GBEP_DisableLink()            do{GBEP_DisableMainLink();GBEP_DisableSubLink();}while(0)
+#define GBEP_EnableLink()             do{GBEP_EnableMainLink();GBEP_EnableSubLink();}while(0)
 
 // GB数据发送周期定义
-#define GBEP_SEND_ENG_DATA_TIME_SP        90   //发送周期10秒
-#define GBEP_SEND_OBD_DATA_TIME_SP        190   //发送周期20秒
+#define GBEP_SEND_ENG_DATA_TIME_SP    90   //发送周期10秒
+#define GBEP_SEND_OBD_DATA_TIME_SP    190   //发送周期20秒
 
 #define GBEP_SEND_HB_TIME_SP          1200  //发送周期3分钟
 #define GBEP_SEND_BZ_DATA_TIME_SP     14    //发送周期1.5秒
@@ -186,9 +189,8 @@ int32_t GBEP_SendLogin(void)
   pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
   len++;
 
-  //retVal = gsm_socket_send(&gbep_socket, pdata, len);
-  //gsm_socket_send(&zxep_socket, pdata, len);
-  retVal = GBEP_SendNetData(pdata, len);
+  retVal = GBEP_SendMainNetData(pdata, len);
+  GBEP_SendSubNetData(pdata, len);
 
   return retVal;
 }
@@ -231,9 +233,8 @@ int32_t GBEP_SendLogout(void)
   pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
   len++;
 
-  //retVal = gsm_socket_send(&gbep_socket, pdata, len);
-  //gsm_socket_send(&zxep_socket, pdata, len);
-  retVal = GBEP_SendNetData(pdata, len);
+  retVal = GBEP_SendMainNetData(pdata, len);
+  GBEP_SendSubNetData(pdata, len);
 
   return retVal;
 }
@@ -266,9 +267,8 @@ int32_t GBEP_SendNtpData(void)
   pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
   len++;
 
-  //retVal = gsm_socket_send(&gbep_socket, pdata, len);
-  //gsm_socket_send(&zxep_socket, pdata, len);
-  retVal = GBEP_SendNetData(pdata, len);
+  retVal = GBEP_SendMainNetData(pdata, len);
+  GBEP_SendSubNetData(pdata, len);
 
   return retVal;
 }
@@ -449,9 +449,9 @@ int32_t GBEP_SendEngData(void)
     pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
     len++;
 
-    //retVal = gsm_socket_send(&gbep_socket, pdata, len);
-    //gsm_socket_send(&zxep_socket, pdata, len);
-    retVal = GBEP_SendNetData(pdata, len);
+    retVal = GBEP_SendMainNetData(pdata, len);
+    GBEP_SendSubNetData(pdata, len);
+
   }
 
   return retVal;
@@ -541,9 +541,8 @@ int32_t GBEP_SendObdData(void)
   pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
   len++;
 
-  //retVal = gsm_socket_send(&gbep_socket, pdata, len);
-  //gsm_socket_send(&zxep_socket, pdata, len);
-  retVal = GBEP_SendNetData(pdata, len);
+  retVal = GBEP_SendMainNetData(pdata, len);
+  GBEP_SendSubNetData(pdata, len);
 
   return retVal;
 }
@@ -609,7 +608,8 @@ int32_t GBEP_SendBzData(void)
     pdata[len] = GBEP_CalcXorCheck(&pdata[GBEP_POS2_ADDRESS],(len-2));  //校验码(1B)
     len++;
 
-    retVal = GBEP_SendNetData(pdata, len);
+    retVal = GBEP_SendMainNetData(pdata, len);
+    GBEP_SendSubNetData(pdata, len);
 
 #if GBEP_BZ_DEBUG
     PcDebug_Printf("GbepBzPop:Ewr=%d,Erd=%d,Top=%d,Bot=%d\r\n",gbep_blind_zone.wr_error_cnt,gbep_blind_zone.rd_error_cnt,gbep_blind_zone.top,gbep_blind_zone.bottom);
@@ -683,7 +683,7 @@ void GbepBlindZone_Service(void)
     else
     {
       gbep_blind_zone.timer_100ms = GBEP_BZ_SAVE_PERIOD_SP; // 1分钟一条
-      if (GBEP_GetLinkState() != SOCKET_LINK_STATE_READY) // 未连接
+      if (GBEP_GetMainLinkState() != SOCKET_LINK_STATE_READY) // 未连接
       {
         if ((GPS_GetPositioningStatus()==1) && (engine_speed>300)) // 终端已定位且发动机启动
         {
@@ -733,12 +733,14 @@ void GbepBlindZone_Service(void)
 }
 #endif
 
+#define GBEP_SEND_LOGIN_DATA_TIME_SP  3000
 /*************************************************************************
 * GB环保状态机,100ms调用一次(无阻塞)
 *************************************************************************/
 void GBEP_StateMachine(void)
 {
   static uint8_t gbep_send_bz_data_time = 50;
+  static uint16_t gbep_send_login_data_time = 50;
   static uint16_t gbep_send_eng_data_time = GBEP_SEND_ENG_DATA_TIME_SP;
   static uint16_t gbep_send_obd_data_time = GBEP_SEND_OBD_DATA_TIME_SP;
   static uint16_t gbep_send_hb_time;
@@ -756,10 +758,14 @@ void GBEP_StateMachine(void)
     engine_speed = CAN_GetEngineSpeed();
     
     // ACC开、有下车数据和VIN码有效
-    if ((acc_state==1) && ((ep_data_valid_flag==1) || (vin_valid_flag==1)))
+    if ((acc_state==1) && (ep_data_valid_flag==1) && (vin_valid_flag==1))
     {
       GBEP_CacheEngMessage();  // 缓冲数据帧
-      GbepBlindZone_Service();
+      GbepBlindZone_Service();  // 记录盲区数据
+    }
+
+   if (vin_valid_flag==1)
+    {
       GBEP_EnableLink(); // 使能gbep连接
       gbep_socket_enable_flag = TRUE;
     }
@@ -769,7 +775,7 @@ void GBEP_StateMachine(void)
       gbep_socket_enable_flag = FALSE;
     }
 
-    if (GBEP_GetLinkState() != SOCKET_LINK_STATE_READY) // 等待网络空闲
+    if (GBEP_GetMainLinkState() != SOCKET_LINK_STATE_READY) // 等待网络空闲
     {
       return;
     }
@@ -777,9 +783,11 @@ void GBEP_StateMachine(void)
     // ACC=ON,发送车辆登录
     if (GBEP_SEND_LOGIN_FLAG==0) // 车辆未登录
     {
-      if((acc_state==1) && (vin_valid_flag==1)) // ACC开和VIN码有效
+      if((gbep_send_login_data_time==0) || (acc_state==1))
       {
+        gbep_send_login_data_time = GBEP_SEND_LOGIN_DATA_TIME_SP; // 重发登录指令时间
         gbep_state = GBEP_STATE_SEND_LOGIN;
+        
         gbep_send_hb_time = GBEP_SEND_HB_TIME_SP;
         gbep_send_eng_data_time = 50; // 登录后,5秒发送数据
         gbep_send_obd_data_time = GBEP_SEND_OBD_DATA_TIME_SP;
@@ -792,6 +800,7 @@ void GBEP_StateMachine(void)
       // ACC=OFF,发送车辆登出
       if (acc_state==0) // ACC关
       {
+        gbep_send_login_data_time = GBEP_SEND_LOGIN_DATA_TIME_SP; // 重发登录指令时间
         gbep_state = GBEP_STATE_SEND_LOGOUT;
         return;
       }
@@ -858,6 +867,10 @@ void GBEP_StateMachine(void)
 
     if(gbep_send_bz_data_time) // 补发数据定时器
       gbep_send_bz_data_time--;
+
+    if(gbep_send_login_data_time) // 登录指令
+      gbep_send_login_data_time--;
+
   }
   else
   {
@@ -997,11 +1010,6 @@ void GBEP_Initialize(void)
   gbep_state = GBEP_STATE_SEND_INIT;
   gbep_flags1.byte = 0x00;
   //GBEP_DisableLink();  // 禁止gbep套接字连接
-
-  // 测试用
-  m2m_asset_data.vin_valid_flag = 0x01;
-  m2m_asset_data.ep_type = EP_TYPE_GB;
-  colt_info.engine_speed = 400;
 }
 
 

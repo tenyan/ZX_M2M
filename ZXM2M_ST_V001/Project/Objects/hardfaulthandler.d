@@ -79,3 +79,5 @@
 .\project\objects\hardfaulthandler.o: .\USER\System\icloud_machine.h
 .\project\objects\hardfaulthandler.o: .\USER\Misc\crc32.h
 .\project\objects\hardfaulthandler.o: .\USER\System\iap.h
+.\project\objects\hardfaulthandler.o: .\USER\Memory\FlashDB.h
+.\project\objects\hardfaulthandler.o: .\USER\Memory\fal.h

@@ -79,4 +79,6 @@
 .\project\objects\auxcomhw.o: .\USER\System\icloud_machine.h
 .\project\objects\auxcomhw.o: .\USER\Misc\crc32.h
 .\project\objects\auxcomhw.o: .\USER\System\iap.h
+.\project\objects\auxcomhw.o: .\USER\Memory\FlashDB.h
+.\project\objects\auxcomhw.o: .\USER\Memory\fal.h
 .\project\objects\auxcomhw.o: USER\AuxCom\AuxComHW.h

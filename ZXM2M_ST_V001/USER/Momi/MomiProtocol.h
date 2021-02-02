@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: MomiProtocol.h
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-12-10
 * @brief     Modem模块和Micro通信协议头文件

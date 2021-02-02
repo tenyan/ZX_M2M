@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: MomiProtocol.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-12-10
 * @brief     Modem模块和Micro通信协议实现
@@ -854,9 +856,15 @@ void Momi_ProduceSendMsg(void)
   static uint8_t divide_for_300ms = 30;
   static uint8_t divide_for_500ms = 50;
   static uint8_t divide_for_1second = 100;
+  static uint8_t divide_for_1min = 60;
+  uint8_t acc_state;
+  static uint16_t acc_on_timer = 30;
+  static uint8_t send_version_flag = 1;
 
   if(Modem_GetState()==MODEM_STATE_DATA_READY) // 模块处于已开机状态
   {
+    acc_state = COLT_GetAccStatus();
+
     // 终端信息(周期型300ms)
     if(divide_for_300ms)
     {  divide_for_300ms--;}
@@ -881,7 +889,40 @@ void Momi_ProduceSendMsg(void)
     else
     {
       divide_for_1second = 100;  // 1s任务
+
+      if(divide_for_1min)
+      {  divide_for_1min--;}
+
+      if(acc_on_timer)
+      {  acc_on_timer--;}
+
       //iMomi_SendGpsMsg();
+    }
+
+    // 版本信息和统计类信息
+    if(acc_state)  // ACC开
+    {
+      if(acc_on_timer==0)  // ACC打开30S后才发送
+      {
+        // 统计类消息(1min一次)
+        if(divide_for_1min==0)
+        {
+          divide_for_1min = 60;
+          iMomi_SendStatisticsMsg();
+        }
+
+        // 版本信息(上电发一次)
+        if(send_version_flag)
+        {
+          send_version_flag = 0;
+          iMomi_SendVersionMsg();
+        }
+      }
+    }
+    else
+    {
+      send_version_flag = 1;
+      acc_on_timer = 30;
     }
 
     // 故障信息(事件型)
@@ -889,13 +930,6 @@ void Momi_ProduceSendMsg(void)
     
     // CAN帧信息(事件型)
     //iMomi_SendCanMsg();
-
-    // 版本信息(上电发一次)
-
-    //iMomi_SendVersionMsg();
-
-    // 统计类消息(ACC关发送一次)
-    //iMomi_SendStatisticsMsg();
   }
   else
   {

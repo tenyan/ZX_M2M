@@ -79,3 +79,5 @@
 .\project\objects\canhw.o: .\USER\System\icloud_machine.h
 .\project\objects\canhw.o: .\USER\Misc\crc32.h
 .\project\objects\canhw.o: .\USER\System\iap.h
+.\project\objects\canhw.o: .\USER\Memory\FlashDB.h
+.\project\objects\canhw.o: .\USER\Memory\fal.h

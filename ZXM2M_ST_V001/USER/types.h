@@ -1,7 +1,9 @@
 /**********************************************************************
-* FileName:     types.h
-* Engineer:     TenYan
-* Date:         2020-10-9
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
+* @FileName: types.h
+* @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
+* @Date:     2020-10-9
 ************************************************************************/
 #ifndef TYPES_H_
 #define TYPES_H_
@@ -25,6 +27,13 @@ typedef signed int     int32;
 typedef unsigned int   uint32;
 
 #define UNUSED_VARIABLE(X)  ((void)(X))
+
+/// Little Endian Order
+//#define NUM_WORD(pbuf) (pbuf[0] + (pbuf[1]<<8))
+//#define NUM_DWORD(pbuf) (pbuf[0] + (pbuf[1]<<8) + (pbuf[2]<<16) + (pbuf[3]<<24))
+/// Big Endian Order
+#define NUM_WORD(pbuf) (pbuf[1] + (pbuf[0]<<8))
+#define NUM_DWORD(pbuf) (pbuf[3] + (pbuf[2]<<8) + (pbuf[1]<<16) + (pbuf[0]<<24))
 
 /******************************************************************************
  *   Data Types

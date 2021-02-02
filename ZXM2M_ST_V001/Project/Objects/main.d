@@ -79,3 +79,5 @@
 .\project\objects\main.o: .\USER\System\icloud_machine.h
 .\project\objects\main.o: .\USER\Misc\crc32.h
 .\project\objects\main.o: .\USER\System\iap.h
+.\project\objects\main.o: .\USER\Memory\FlashDB.h
+.\project\objects\main.o: .\USER\Memory\fal.h

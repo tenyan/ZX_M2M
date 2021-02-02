@@ -17,20 +17,36 @@
 enum
 {
   ZXM2M_SOCKET_ID = 0, // ZXM2M链接
-  HJEP_SOCKET_ID,        // HJ连接
-  GBEP_SOCKET_ID,      // GB连接
+  MAINEP_SOCKET_ID,    // 环保主连接
+  SUBEP_SOCKET_ID,     // 环保副连接
   NUMBER_OF_SOCKET_ID
 };
 
 extern skt_context_t skt_context[NUMBER_OF_SOCKET_ID];
 #define zxm2m_socket  skt_context[ZXM2M_SOCKET_ID] // ZXM2M数据
-#define hjep_socket   skt_context[HJEP_SOCKET_ID]  // HJ环保数据
-#define gbep_socket   skt_context[GBEP_SOCKET_ID]  // GB环保数据
-
 #define ZxM2mSocketFd  zxm2m_socket.socket_fd
-#define HjepSocketFd   hjep_socket.socket_fd
-#define GbepSocketFd   gbep_socket.socket_fd
 
+#define mainep_socket   skt_context[MAINEP_SOCKET_ID]  // 环保数据(主)
+#define MainEpSocketFd   mainep_socket.socket_fd
+
+#define subep_socket   skt_context[SUBEP_SOCKET_ID]  // 环保数据(副)
+#define SubEpSocketFd   subep_socket.socket_fd
+
+//==HJ环保协议(重型HJ平台,转发国家平台)============
+#define hjep_socket   skt_context[MAINEP_SOCKET_ID]  // HJ环保数据
+#define HJEP_SOCKET_ID  MAINEP_SOCKET_ID // HJ连接
+#define HjepSocketFd   mainep_socket.socket_fd
+
+//==GB环保协议(北京环保平台(直连)和重型GB平台)====
+#define bjep_socket   skt_context[MAINEP_SOCKET_ID]  // 北京环保数据(用主连接)
+#define BJEP_SOCKET_ID  MAINEP_SOCKET_ID // HJ连接
+#define BjepSocketFd   mainep_socket.socket_fd
+
+#define gbep_socket   skt_context[SUBEP_SOCKET_ID]  // GB环保数据(用副连接)
+#define GBEP_SOCKET_ID  SUBEP_SOCKET_ID // GB连接
+#define GbepSocketFd   subep_socket.socket_fd
+
+//==发送周期定义==================================
 #define HJEP_DATA_SEND_TIME     10   //发送周期10秒
 #define HJEP_HEART_BEAT_TIME    120  //发送周期2分钟
 
@@ -40,17 +56,22 @@ extern skt_context_t skt_context[NUMBER_OF_SOCKET_ID];
 #define GBEP_DATA_SEND_TIME     10   //发送周期10秒
 #define GBEP_HEART_BEAT_TIME    120  //发送周期2分钟
 
+#define BJEP_DATA_SEND_TIME     10   //发送周期10秒
+#define BJEP_HEART_BEAT_TIME    120  //发送周期2分钟
+
 #define ZXM2M_HEART_BEAT_TIMEOUT_SP  (3*ZXM2M_HEART_BEAT_TIME*100)   // for 10ms time base
 #define HJEP_HEART_BEAT_TIMEOUT_SP   (3*HJEP_HEART_BEAT_TIME*100)  // for 10ms time base
-#define GBEP_HEART_BEAT_TIMEOUT_SP   (3*HJEP_HEART_BEAT_TIME*100)  // for 10ms time base
+#define GBEP_HEART_BEAT_TIMEOUT_SP   (3*GBEP_HEART_BEAT_TIME*100)  // for 10ms time base
+#define BJEP_HEART_BEAT_TIMEOUT_SP   (3*BJEP_HEART_BEAT_TIME*100)  // for 10ms time base
 
-#define HJEP_CLOUD_SERVER_IP        "120.195.166.245"  // HJ环保平台
-#define HJEP_CLOUD_SERVER_PORT      10012
-#define HJEP_CLOUD_SERVER_PROTOCOL  CS_TCP_PROTOCOL
-
-#define M2M_CLOUD_SERVER_IP         "58.218.196.200" // ZXM2M平台
-#define M2M_CLOUD_SERVER_PORT       10004
+// 重型M2M测试环境: 120.195.166.245:20036
+#define M2M_CLOUD_SERVER_IP     "58.218.196.200" // ZXM2M平台
+#define M2M_CLOUD_SERVER_PORT   10004
 #define M2M_CLOUD_SERVER_PROTOCOL   CS_TCP_PROTOCOL
+
+#define HJEP_CLOUD_SERVER_IP    "120.195.166.245"  // HJ环保平台
+#define HJEP_CLOUD_SERVER_PORT  10012
+#define HJEP_CLOUD_SERVER_PROTOCOL  CS_TCP_PROTOCOL
 
 #define GBEP_CLOUD_SERVER_IP    "120.195.166.245"  // GB内部平台
 #define GBEP_CLOUD_SERVER_PORT  10012
@@ -59,11 +80,6 @@ extern skt_context_t skt_context[NUMBER_OF_SOCKET_ID];
 #define BJEP_CLOUD_SERVER_DNS   "jc.bjmemc.com.cn"  // 北京环保平台
 #define BJEP_CLOUD_SERVER_PORT  7740
 #define BJEP_CLOUD_SERVER_PROTOCOL  CS_TCP_PROTOCOL
-
-#if 0
-//M2M_NetSocketInit();  // M2M数据初始化
-//HJEP_NetSocketInit(); // 国六环保数据初始化
-#endif
 
 /******************************************************************************
  *   Data Types
@@ -90,8 +106,6 @@ enum
   SYSBUS_DEVICE_TYPE_PCDEBUG,  // 配置工具
 };
 
-//extern uint8_t public_data_buffer[1460];
-
 /******************************************************************************
  *   Function prototypes
  ******************************************************************************/
@@ -99,9 +113,9 @@ enum
 void ZxM2m_ServiceInit(void);
 void ZxM2m_ServiceStart(void);
 
-// HJ环保平台连接
-void HJEP_ServiceInit(void);
-void HJEP_ServiceStart(void);
+// 环保平台连接
+void EP_ServiceInit(void);
+void EP_ServiceStart(void);
 
 void Net_CheckIsModemError(void);
 

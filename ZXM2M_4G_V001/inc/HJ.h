@@ -15,8 +15,8 @@
 //#define HJEP_CLOUD_SERVER_IP    "120.195.166.245"
 //#define HJEP_CLOUD_SERVER_PORT  10012
 
-#define HJEP_DEBUG       1  // 1-使能, 0-禁止
-#define HJEP_BZ_DEBUG    0  // 1-使能, 0-禁止
+#define HJEP_DEBUG       0  // 1-使能, 0-禁止
+#define HJEP_BZ_DEBUG    1  // 1-使能, 0-禁止
 
 /******************************************************************************
 * Macros(HJ环保数据定义)

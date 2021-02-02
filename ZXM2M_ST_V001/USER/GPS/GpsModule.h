@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: GpsModule.h
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version   V1.0
  * @Date:     2020-10-11
  * @brief:    本文件为GPS功能模块所有对外接口文件

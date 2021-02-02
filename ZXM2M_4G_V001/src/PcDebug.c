@@ -372,7 +372,17 @@ void PcDebug_ServiceInit(void)
 *************************************************************************/
 void PcDebug_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_PC_DEBUG_ID], NULL, pthread_PcDebug, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread∂—’ª…Ë÷√Œ™40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+  
+  pthread_create(&pthreads[PTHREAD_PC_DEBUG_ID], &thread_attr, pthread_PcDebug, NULL);
   usleep(10);
 }
 

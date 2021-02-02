@@ -2,6 +2,7 @@
 * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: Mcu.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-6-19
 * @brief     CAN1接下车,CAN2接上车
@@ -675,7 +676,9 @@ void Can_ServiceInit(void)
 {
   can_msg_queue_reset(&can1_msg_queue);
   can_msg_queue_reset(&can1_msg_queue);
-  zxsts_Initialize();
+  ZxSts_Initialize();
+  ZxStsEngine_Initialize(&zxsts_engine_context);
+  TboxSts_Initialize(&tboxsts_context);
   CAN_GpioInitialize(); 
   CAN_Initialize();
 }
@@ -695,7 +698,7 @@ void Can_ServiceStart(void)
 void Can_Do100msTasks(void)
 {
   iCan_DebounceRecvState();
-  zxsts_StateMachine();
+  ZxSts_StateMachine();
 }
 
 /**********************************************************************************
@@ -765,6 +768,30 @@ uint8_t CAN_GetEngineType(void)
 uint16_t CAN_GetEngineSpeed(void)
 {
   return can_context.engine_speed;
+}
+
+//==上车总工作时间=================================================================
+uint32_t CAN_GetUpEngineTwt(void)
+{
+  return can_context.twt_up;
+}
+
+//==下车总工作时间=================================================================
+uint32_t CAN_GetDownEngineTwt(void)
+{
+  return can_context.twt_down;
+}
+
+//==上车总油耗=================================================================
+uint32_t CAN_GetUpEngineTfc(void)
+{
+  return can_context.tfc_up;
+}
+
+//==下车总油耗=================================================================
+uint32_t CAN_GetDownEngineTfc(void)
+{
+  return can_context.tfc_down;
 }
 
 //-----文件Mcu.c结束---------------------------------------------

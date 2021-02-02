@@ -2,6 +2,7 @@
 * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: Collect.C
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-6-4
 * @brief
@@ -595,8 +596,8 @@ uint32_t COLT_GetTotalWorkTime(void)
 void COLT_SetTotalWorkTime(uint32_t work_time)
 {
   colt_info.total_work_time = work_time;
-  BKP_SaveTotalWorkTimeInfo();
-  Parm_SaveTotalWorkTimeInfo();
+  //BKP_SaveTotalWorkTimeInfo();
+  //Parm_SaveTotalWorkTimeInfo();
 }
 
 /**********************************************************************************
@@ -604,6 +605,7 @@ void COLT_SetTotalWorkTime(uint32_t work_time)
 *********************************************************************************/
 void COLT_InitTotalWorkTime(void)
 {
+#if 0
   uint32_t tempVal;
 
   tempVal = RTC_ReadBackupRegister(RTC_BKP_DR0); // 从内存读取校验头
@@ -616,6 +618,7 @@ void COLT_InitTotalWorkTime(void)
     tempVal = RTC_ReadBackupRegister(RTC_BKP_DR1); // 从内存读取累计工作时间
     colt_info.total_work_time = tempVal;
   }
+#endif
 }
 
 /**********************************************************************************
@@ -624,6 +627,7 @@ void COLT_InitTotalWorkTime(void)
 *********************************************************************************/
 void COLT_CumulateTotalWorkTime(void)
 {
+#if 0
   static uint8 ucCount60s = 60;        // 一分钟计时
   uint8 current_acc_state;
   static uint8_t previous_acc_state  = 0;
@@ -656,6 +660,7 @@ void COLT_CumulateTotalWorkTime(void)
     }
   }
   previous_acc_state = current_acc_state;
+#endif
 }
 
 /******************************************************************************

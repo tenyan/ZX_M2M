@@ -1,4 +1,5 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: tcw.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
@@ -23,10 +24,10 @@
 /******************************************************************************
  *   Function prototypes
  ******************************************************************************/
-void zxsts_SetNumberFlag(zxsts_context_t* pThis);
-void zxsts_SetStartFlag(zxsts_context_t* pThis);
-void zxsts_SetStopFlag(zxsts_context_t* pThis);
-void zxsts_ResetCanMsgTimer(zxsts_context_t* pThis);
+void ZxSts_SetNumberFlag(zxsts_context_t* pThis);
+void ZxSts_SetStartFlag(zxsts_context_t* pThis);
+void ZxSts_SetStopFlag(zxsts_context_t* pThis);
+void ZxSts_ResetCanMsgTimer(zxsts_context_t* pThis);
 
 /******************************************************************************
 * Data Types and Globals
@@ -50,8 +51,12 @@ uint8_t zxengine_buffer[SIZE_OF_ZXENGINE_BUFFER]; /// 下车发动机数据缓存
 uint8_t zxstatistics_buffer[SIZE_OF_ZXSTATISTICS_BUFFER]; ///统计数据缓存
 uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 
-zxsts_context_t zxsts_context[NUMBER_OF_ZXSTS_TYPES]; /// 频次统计
 bittype2 zxsts_flag1,zxsts_flag2;
+
+zxsts_context_t zxsts_context[NUMBER_OF_ZXSTS_TYPES]; /// 频次统计
+uint8_t zxsts_tmr[NUMBER_OF_ZXSTS_TYPES*2]; /// 频次统计100ms定时器
+zxsts_engine_context_t zxsts_engine_context;  // 作业和油耗统计
+tboxsts_context_t tboxsts_context;  // 终端休眠
 
 /*************************************************************************
  * 处理接收到的uCAN报文(上车)
@@ -114,7 +119,7 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_lmi_wind_speed_flag = ZXSTS_TRUE;}
     else
     {  zxsts_lmi_wind_speed_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FSCX]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FSCX]);
     //=======================================================
     retval = 0x01;
     break;
@@ -152,7 +157,7 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_overload_flag = ZXSTS_TRUE;}
     else
     {  zxsts_overload_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_LMI]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_LMI]);
     //=========================================
     
     zxup_buffer_a5a0[ZXUP_A5A0_POS16] = pdata[0]; // 额定重量
@@ -211,31 +216,31 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_setup_flag = ZXSTS_TRUE;}
     else
     {  zxsts_setup_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_CZKG]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_CZKG]);
 
     if(temp_flag.b.bit1)  // 高限强制
     {  zxsts_a2b_force_flag = ZXSTS_TRUE;}
     else
     {  zxsts_a2b_force_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_GXQZ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_GXQZ]);
 
     if(temp_flag.b.bit2)  // 变幅起强制
     {  zxsts_luff_up_force_flag = ZXSTS_TRUE;}
     else
     {  zxsts_luff_up_force_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFQQZ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFQQZ]);
 
     if(temp_flag.b.bit3)  // 三圈强制
     {  zxsts_od_force_flag = ZXSTS_TRUE;}
     else
     {  zxsts_od_force_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_SQQZ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_SQQZ]);
 
     if(temp_flag.b.bit4)  // 总强制
     {  zxsts_lmi_force_flag = ZXSTS_TRUE;}
     else
     {  zxsts_lmi_force_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZQZ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZQZ]);
     //========================================================
     
     if (pdata[2]&BIT(4)) // LMI强制
@@ -569,8 +574,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_main_hoist_down_flag = ZXSTS_TRUE;}
     else
     {  zxsts_main_hoist_down_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJUP]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJDW]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJUP]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJDW]);
 
     if(temp_flag.b.bit2)  // 左回转操作
     {  zxsts_slew_left_flag = ZXSTS_TRUE;}
@@ -581,8 +586,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_slew_right_flag = ZXSTS_TRUE;}
     else
     {  zxsts_slew_right_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZHR]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_YHR]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZHR]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_YHR]);
 
     if(temp_flag.b.bit4)  // 变幅起操作
     {  zxsts_luff_up_flag = ZXSTS_TRUE;}
@@ -593,8 +598,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_luff_down_flag = ZXSTS_TRUE;}
     else
     {  zxsts_luff_down_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFUP]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFDW]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFUP]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_BFDW]);
 
     if(temp_flag.b.bit6)  // 副卷起操作
     {  zxsts_deputy_hoist_up_flag = ZXSTS_TRUE;}
@@ -605,8 +610,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_deputy_hoist_down_flag = ZXSTS_TRUE;}
     else
     {  zxsts_deputy_hoist_down_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJUP]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJDW]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJUP]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJDW]);
     //=========================================================
 
     if (pdata[1]&BIT(0)) // 左手柄中位
@@ -1079,26 +1084,26 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     {  zxsts_od_main_hoist_flag = ZXSTS_TRUE;}
     else
     {  zxsts_od_main_hoist_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJSQ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZJSQ]);
 
     if(temp_flag.b.bit4)  // 副卷三圈保护
     {  zxsts_od_deputy_hoist_flag = ZXSTS_TRUE;}
     else
     {  zxsts_od_deputy_hoist_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJSQ]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FJSQ]);
 
     temp_flag.byte = pdata[1];
     if(temp_flag.b.bit0)  // 主臂高限触发
     {  zxsts_a2b_main_arm_flag = ZXSTS_TRUE;}
     else
     {  zxsts_a2b_main_arm_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZBGX]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_ZBGX]);
     
     if(temp_flag.b.bit3)  // 副臂高限触发
     {  zxsts_a2b_deputy_arm_flag = ZXSTS_TRUE;}
     else
     {  zxsts_a2b_deputy_arm_flag = ZXSTS_FALSE;}
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FBGX]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_FBGX]);
     //===================================================
 
     if (pdata[3]&BIT(3)) // 合流电磁阀
@@ -1173,10 +1178,10 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     else
     {  zxsts_cylinder_extend_flag = ZXSTS_FALSE;}
 
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_KGEX]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_KGS]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_DBEX]);
-    zxsts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_DBS]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_KGEX]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_KGS]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_DBEX]);
+    ZxSts_ResetCanMsgTimer(&zxsts_context[ZXSTS_TYPE_DBS]);
     //=========================================
   
     if (pdata[5]&BIT(5)) // 伸电磁阀
@@ -3548,33 +3553,33 @@ uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size
  * 作业统计实现机制
 *************************************************************************/
 //==设置计数标志==============================================================
-void zxsts_SetNumberFlag(zxsts_context_t* pThis)
+void ZxSts_SetNumberFlag(zxsts_context_t* pThis)
 {
   pThis->number_flag = 0x01; // 需要计数
 }
 
 //==设置开始计时标志==========================================================
-void zxsts_SetStartFlag(zxsts_context_t* pThis)
+void ZxSts_SetStartFlag(zxsts_context_t* pThis)
 {
   pThis->work_flag = 0x01; // 开始
   pThis->debounce_timer = ZXSTS_DEBOUNCE_TIME_SP;
 }
 
 //==设置停止计时标志==========================================================
-void zxsts_SetStopFlag(zxsts_context_t* pThis)
+void ZxSts_SetStopFlag(zxsts_context_t* pThis)
 {
   pThis->work_flag = 0x00; // 停止
   pThis->debounce_timer = ZXSTS_DEBOUNCE_TIME_SP;
 }
 
 //==重置CAN帧消失去耦时间=====================================================
-void zxsts_ResetCanMsgTimer(zxsts_context_t* pThis)
+void ZxSts_ResetCanMsgTimer(zxsts_context_t* pThis)
 {
   pThis->debounce_timer = ZXSTS_DEBOUNCE_TIME_SP;
 }
 
 //==累计工作时间=============================================================
-void zxsts_Accumulate(zxsts_context_t* pThis)
+void ZxSts_Accumulate(zxsts_context_t* pThis)
 {
   //==时间累计===================================
   if(pThis->work_flag)  // 设备工作中
@@ -3586,7 +3591,6 @@ void zxsts_Accumulate(zxsts_context_t* pThis)
       pThis->total_work_time++; // 工作时间累加0.05h(3分钟)
     }
   }
-
   //==频次累计===================================
   if(pThis->number_flag)  // 次数累计
   {
@@ -3596,18 +3600,18 @@ void zxsts_Accumulate(zxsts_context_t* pThis)
 }
 
 //==作业统计状态机============================================================
-void zxsts_AccumulateAll(void)
+void ZxSts_AccumulateAll(void)
 {
   uint8_t it;
 
   for(it=0x00; it<NUMBER_OF_ZXSTS_TYPES; it++)
   {
-    zxsts_Accumulate(&zxsts_context[it]);  // 作业统计
+    ZxSts_Accumulate(&zxsts_context[it]);  // 作业统计
   }
 }
 
 //==状态判断==================================================================
-void zxsts_ServiceInput(zxsts_context_t* pThis, uint8_t current_state)
+void ZxSts_ServiceInput(zxsts_context_t* pThis, uint8_t current_state)
 {
   pThis->current_state = current_state;  // 读取当前状态
 
@@ -3632,7 +3636,7 @@ void zxsts_ServiceInput(zxsts_context_t* pThis, uint8_t current_state)
 }
 
 //==作业统计状态机(100ms周期)=======================================================
-void zxsts_StateMachine(void)
+void ZxSts_StateMachine(void)
 {
   uint8_t current_state;
 
@@ -3641,96 +3645,96 @@ void zxsts_StateMachine(void)
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_KGEX], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_KGEX]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_KGEX], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_KGEX]);
     
   //==空缸缩===========================================
   if((zxsts_empty_cylinder_flag==ZXSTS_TRUE) && (zxsts_cylinder_shrink_flag==ZXSTS_TRUE)) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_KGS], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_KGS]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_KGS], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_KGS]);
 
   //==带臂伸===========================================
   if((zxsts_arm_work_flag==ZXSTS_TRUE) && (zxsts_cylinder_extend_flag==ZXSTS_TRUE)) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_DBEX], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_DBEX]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_DBEX], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_DBEX]);
 
   //==带臂缩===========================================
   if((zxsts_arm_work_flag==ZXSTS_TRUE) && (zxsts_cylinder_shrink_flag==ZXSTS_TRUE)) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_DBS], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_DBS]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_DBS], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_DBS]);
 
   //==变幅起===========================================
   if(zxsts_luff_up_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFUP], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFUP]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFUP], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFUP]);
 
   //==变幅落===========================================
   if(zxsts_luff_down_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFDW], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFDW]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFDW], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFDW]);
 
   //==主卷起升=========================================
   if(zxsts_main_hoist_up_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJUP], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJUP]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJUP], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJUP]);
 
   //==主卷下落=========================================
   if(zxsts_main_hoist_down_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJDW], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJDW]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJDW], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJDW]);
 
   //==副卷起升=========================================
   if(zxsts_deputy_hoist_up_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJUP], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJUP]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJUP], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJUP]);
 
   //==副卷下落=========================================
   if(zxsts_deputy_hoist_down_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJDW], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJDW]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJDW], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJDW]);
   
   //==左回转===========================================
   if(zxsts_slew_left_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZHR], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZHR]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZHR], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZHR]);
   
   //==右回转===========================================
   if(zxsts_slew_right_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_YHR], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_YHR]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_YHR], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_YHR]);
 
   ///////////////////////////////////////////////////////////////////////////
   // 安全统计
@@ -3740,92 +3744,225 @@ void zxsts_StateMachine(void)
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_LMI], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_LMI]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_LMI], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_LMI]);
 
   //==主卷三圈==========================================
   if(zxsts_od_main_hoist_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJSQ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJSQ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZJSQ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZJSQ]);
 
   //==副卷三圈(备用)====================================
   if(zxsts_od_deputy_hoist_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJSQ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJSQ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FJSQ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_FJSQ]);
 
   //==主臂高限==========================================
   if(zxsts_a2b_main_arm_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZBGX], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZBGX]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZBGX], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZBGX]);
 
   //==副臂高限(备用)====================================
   if(zxsts_a2b_deputy_arm_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FBGX], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_FBGX]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FBGX], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_FBGX]);
 
   //==总强制============================================
   if(zxsts_lmi_force_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZQZ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZQZ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_ZQZ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_ZQZ]);
 
   //==拆装开关==========================================
   if(zxsts_setup_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_CZKG], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_CZKG]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_CZKG], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_CZKG]);
   
   //==变幅起强制========================================
   if(zxsts_luff_up_force_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFQQZ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFQQZ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_BFQQZ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_BFQQZ]);
 
   //==高限强制==========================================
   if(zxsts_a2b_force_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_GXQZ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_GXQZ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_GXQZ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_GXQZ]);
 
   //==三圈强制==========================================
   if(zxsts_od_force_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_SQQZ], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_SQQZ]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_SQQZ], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_SQQZ]);
 
   //==风速超限==========================================
   if(zxsts_lmi_wind_speed_flag==ZXSTS_TRUE) // 读取当前状态
   {  current_state = ZXSTS_TRUE;}
   else
   {  current_state = ZXSTS_FALSE;}
-  zxsts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FSCX], current_state);
-  zxsts_Accumulate(&zxsts_context[ZXSTS_TYPE_FSCX]);
+  ZxSts_ServiceInput(&zxsts_context[ZXSTS_TYPE_FSCX], current_state);
+  ZxSts_Accumulate(&zxsts_context[ZXSTS_TYPE_FSCX]);
 }
 
+//==更新缓存数据数据=======================================================
+void ZxSts_UpdateDataBuffer(void)
+{
+  //==TAG-A5C6 动作频次统计2========================================================
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS1), zxsts_context[ZXSTS_TYPE_KGEX].total_work_number);  // 空缸伸
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS1+4), zxsts_context[ZXSTS_TYPE_KGEX].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS2), zxsts_context[ZXSTS_TYPE_KGS].total_work_number);  // 空缸缩
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS2+4), zxsts_context[ZXSTS_TYPE_KGS].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS3), zxsts_context[ZXSTS_TYPE_DBEX].total_work_number);  // 带臂伸
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS3+4), zxsts_context[ZXSTS_TYPE_DBEX].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS4), zxsts_context[ZXSTS_TYPE_DBS].total_work_number);  // 带臂缩
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS4+4), zxsts_context[ZXSTS_TYPE_DBS].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS5), zxsts_context[ZXSTS_TYPE_BFUP].total_work_number);  // 变幅起
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS5+4), zxsts_context[ZXSTS_TYPE_BFUP].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS6), zxsts_context[ZXSTS_TYPE_BFDW].total_work_number);  // 变幅落
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS6+4), zxsts_context[ZXSTS_TYPE_BFDW].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS7), zxsts_context[ZXSTS_TYPE_ZJUP].total_work_number);  // 主卷起升
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS7+4), zxsts_context[ZXSTS_TYPE_ZJUP].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS8), zxsts_context[ZXSTS_TYPE_ZJDW].total_work_number);  // 主卷下落
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS8+4), zxsts_context[ZXSTS_TYPE_ZJDW].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS9), zxsts_context[ZXSTS_TYPE_FJUP].total_work_number);  // 副卷起升
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS9+4), zxsts_context[ZXSTS_TYPE_FJUP].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS10), zxsts_context[ZXSTS_TYPE_FJDW].total_work_number);  // 副卷下落
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS10+4), zxsts_context[ZXSTS_TYPE_FJDW].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS11), zxsts_context[ZXSTS_TYPE_ZHR].total_work_number);  // 左回转
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS11+4), zxsts_context[ZXSTS_TYPE_ZHR].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS12), zxsts_context[ZXSTS_TYPE_YHR].total_work_number);  // 右回转
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS12+4), zxsts_context[ZXSTS_TYPE_YHR].total_work_time);
+
+  //==TAG-A5C7 安全统计=============================================================
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS1), zxsts_context[ZXSTS_TYPE_LMI].total_work_number);  // 超载
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS1+4), zxsts_context[ZXSTS_TYPE_LMI].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS2), zxsts_context[ZXSTS_TYPE_ZJSQ].total_work_number);  // 三圈保护
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS2+4), zxsts_context[ZXSTS_TYPE_FJSQ].total_work_number);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS3), zxsts_context[ZXSTS_TYPE_ZBGX].total_work_number);  // 高限触发
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS3+4), zxsts_context[ZXSTS_TYPE_FBGX].total_work_number);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS4), zxsts_context[ZXSTS_TYPE_ZQZ].total_work_number);  // 总强制
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS4+4), zxsts_context[ZXSTS_TYPE_ZQZ].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS5), zxsts_context[ZXSTS_TYPE_CZKG].total_work_number);  // 拆装开关
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS5+4), zxsts_context[ZXSTS_TYPE_CZKG].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS6), zxsts_context[ZXSTS_TYPE_BFQQZ].total_work_number);  // 变幅起强制
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS6+4), zxsts_context[ZXSTS_TYPE_BFQQZ].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS7), zxsts_context[ZXSTS_TYPE_GXQZ].total_work_number);  // 高限强制
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS7+4), zxsts_context[ZXSTS_TYPE_GXQZ].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS8), zxsts_context[ZXSTS_TYPE_SQQZ].total_work_number);  // 三圈强制
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS8+4), zxsts_context[ZXSTS_TYPE_SQQZ].total_work_time);
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS9), zxsts_context[ZXSTS_TYPE_FSCX].total_work_number);  // 风速超限
+  TCW_SPLIT_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS9+4), zxsts_context[ZXSTS_TYPE_FSCX].total_work_time);
+}
+
+//==从Flash数据库获取历史数据================================================
+void ZxSts_ReadDataFromFdb(void)
+{
+  uint8_t it = 0x00;
+  uint8_t pos = 0x00;
+
+  //从EEPROM内获取3MIN定时器累计值
+  Parm_ReadZxStsTmrInfo();
+  for(it=0x00; it<NUMBER_OF_ZXSTS_TYPES; it++)
+  {
+    zxsts_context[it].timer_100ms = TCW_BUILD_WORD((zxsts_tmr+pos));
+    pos += 2;
+  }
+
+  //从EEPROM内获取作业统计数据
+  Parm_ReadZxStsInfo();
+  //==TAG-A5C6 动作频次统计2========================================================
+  zxsts_context[ZXSTS_TYPE_KGEX].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS1));  // 空缸伸
+  zxsts_context[ZXSTS_TYPE_KGEX].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS1+4));
+  zxsts_context[ZXSTS_TYPE_KGS].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS2));  // 空缸缩
+  zxsts_context[ZXSTS_TYPE_KGS].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS2+4));
+  zxsts_context[ZXSTS_TYPE_DBEX].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS3));  // 带臂伸
+  zxsts_context[ZXSTS_TYPE_DBEX].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS3+4));
+  zxsts_context[ZXSTS_TYPE_DBS].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS4));  // 带臂缩
+  zxsts_context[ZXSTS_TYPE_DBS].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS4+4));
+  zxsts_context[ZXSTS_TYPE_BFUP].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS5));  // 变幅起
+  zxsts_context[ZXSTS_TYPE_BFUP].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS5+4));
+  zxsts_context[ZXSTS_TYPE_BFDW].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS6));  // 变幅落
+  zxsts_context[ZXSTS_TYPE_BFDW].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS6+4));
+  zxsts_context[ZXSTS_TYPE_ZJUP].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS7));  // 主卷起升
+  zxsts_context[ZXSTS_TYPE_ZJUP].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS7+4));
+  zxsts_context[ZXSTS_TYPE_ZJDW].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS8));  // 主卷下落
+  zxsts_context[ZXSTS_TYPE_ZJDW].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS8+4));
+  zxsts_context[ZXSTS_TYPE_FJUP].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS9));  // 副卷起升
+  zxsts_context[ZXSTS_TYPE_FJUP].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS9+4));
+  zxsts_context[ZXSTS_TYPE_FJDW].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS10));  // 副卷下落
+  zxsts_context[ZXSTS_TYPE_FJDW].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS10+4));
+  zxsts_context[ZXSTS_TYPE_ZHR].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS11));  // 左回转
+  zxsts_context[ZXSTS_TYPE_ZHR].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS11+4));
+  zxsts_context[ZXSTS_TYPE_YHR].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS12));  // 右回转
+  zxsts_context[ZXSTS_TYPE_YHR].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c6+ZXSTATISTICS_A5C6_POS12+4));
+
+  //==TAG-A5C7 安全统计=============================================================
+  zxsts_context[ZXSTS_TYPE_LMI].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS1));  // 超载
+  zxsts_context[ZXSTS_TYPE_LMI].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS1+4));
+  zxsts_context[ZXSTS_TYPE_ZJSQ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS2));  // 三圈保护
+  zxsts_context[ZXSTS_TYPE_FJSQ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS2+4));
+  zxsts_context[ZXSTS_TYPE_ZBGX].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS3));  // 高限触发
+  zxsts_context[ZXSTS_TYPE_FBGX].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS3+4));
+  zxsts_context[ZXSTS_TYPE_ZQZ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS4));  // 总强制
+  zxsts_context[ZXSTS_TYPE_ZQZ].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS4+4));
+  zxsts_context[ZXSTS_TYPE_CZKG].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS5));  // 拆装开关
+  zxsts_context[ZXSTS_TYPE_CZKG].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS5+4));
+  zxsts_context[ZXSTS_TYPE_BFQQZ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS6));  // 变幅起强制
+  zxsts_context[ZXSTS_TYPE_BFQQZ].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS6+4));
+  zxsts_context[ZXSTS_TYPE_GXQZ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS7));  // 高限强制
+  zxsts_context[ZXSTS_TYPE_GXQZ].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS7+4));
+  zxsts_context[ZXSTS_TYPE_SQQZ].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS8));  // 三圈强制
+  zxsts_context[ZXSTS_TYPE_SQQZ].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS8+4));
+  zxsts_context[ZXSTS_TYPE_FSCX].total_work_number = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS9));  // 风速超限
+  zxsts_context[ZXSTS_TYPE_FSCX].total_work_time = TCW_BUILD_DWORD((zxstatistics_buffer_a5c7+ZXSTATISTICS_A5C7_POS9+4));
+}
+
+//==存储数据到Flash数据库====================================================
+void ZxSts_SaveDataToFdb(void)
+{
+  uint8_t it = 0x00;
+  uint8_t pos = 0x00;
+
+  // 保存3MIN定时器累计值到数据库
+  for(it=0x00; it<NUMBER_OF_ZXSTS_TYPES; it++)
+  {
+    TCW_SPLIT_WORD((zxsts_tmr+pos), zxsts_context[it].timer_100ms);
+    pos += 2;
+  }
+  Parm_SaveZxStsTmrInfo();
+
+  // 保存作业统计数据
+  ZxSts_UpdateDataBuffer();
+  Parm_SaveZxStsInfo();
+}
+
+
 //==初始化作业统计参数=======================================================
-void zxsts_Initialize(void)
+void ZxSts_Initialize(void)
 {
   uint8_t it;
 
@@ -3836,10 +3973,297 @@ void zxsts_Initialize(void)
     zxsts_context[it].number_flag = 0x00;
     zxsts_context[it].work_flag = 0x00;
     zxsts_context[it].debounce_timer = ZXSTS_DEBOUNCE_TIME_SP;
+    zxsts_context[it].timer_100ms = TCW_BUILD_WORD((zxsts_tmr+2*it));
   }
   zxsts_flag1.word = 0x00;
   zxsts_flag2.word = 0x00;
+
+  tlv_a5c5_valid_flag = 1;  //==TAG-A5C5 动作频次统计1
+  tlv_a5c6_valid_flag = 1;  //==TAG-A5C6 动作频次统计2
+  tlv_a5c7_valid_flag = 1;  //==TAG-A5C7 安全统计
 }
 
 #endif
+
+#if (PART("发动机工作统计"))
+/*************************************************************************
+ * 发动机工作统计实现机制(ACC开且发动机转速大于300)
+*************************************************************************/
+//==发动机工作统计状态机(1s周期)==========================================
+void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
+{
+  uint8_t acc_state;
+  bittype temp_flag;
+  static uint8_t divide_for_1min = 59;
+  static uint8_t divide_for_5min = 4;
+  static uint8_t DO_1MIN_FLAG = ZXSTS_FALSE;
+  static uint8_t DO_5MIN_FLAG = ZXSTS_FALSE;
+
+  //==状态获取==========
+  acc_state = COLT_GetAccStatus();
+  temp_flag.byte = zxdown_buffer_a5e7[ZXDOWN_A5E7_POS1]; // 动力系统: bit0-PTO检测
+  if(temp_flag.b.bit0)
+  {  pThis->pto_status = 0x01;}  // 上车工作
+  else
+  {  pThis->pto_status = 0x02;}  // 下车工作
+
+  temp_flag.byte = zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR]; // 0x574.byte1.bit3
+  if(temp_flag.b.bit3)
+  {  pThis->engine_type = 0x02;}  // 双发动机
+  else
+  {  pThis->engine_type = 0x01;}  // 单发动机
+
+  //==确认发动机工作状态=======
+  if (acc_state==1) // ACC开和发动机发动
+  {
+    if (pThis->engine_type==0x01) // 单发=0x01
+    {
+      if (pThis->pto_status==0x01) // 0x01=作业
+      {
+        pThis->up_work_flag = 0x01;
+        pThis->down_work_flag = 0x00;
+      }
+      else if (pThis->pto_status==0x02) // 0x02=行驶
+      {
+        pThis->up_work_flag = 0x00;
+        pThis->down_work_flag = 0x01;
+      }
+      else
+      {
+        pThis->up_work_flag = 0x00;
+        pThis->down_work_flag = 0x00;
+      }
+    }
+    else if (pThis->engine_type==0x02)// 双发=0x02
+    {
+      pThis->up_work_flag = 0x01;
+      pThis->down_work_flag = 0x01;
+    }
+    else
+    {
+      return;
+    }
+    
+    //==时间分时器==========
+    if (!divide_for_1min)
+    {
+      divide_for_1min = 59;  // 基于1s
+      DO_1MIN_FLAG = ZXSTS_TRUE;
+
+      if (!divide_for_5min)
+      {
+        divide_for_5min = 4;
+        DO_5MIN_FLAG = ZXSTS_TRUE;
+      }
+      else divide_for_5min--;
+    }
+    else divide_for_1min--;
+  }
+  else
+  {
+    divide_for_1min = 59;
+    divide_for_5min = 4;
+    DO_1MIN_FLAG = ZXSTS_FALSE;
+    DO_5MIN_FLAG = ZXSTS_FALSE;
+  }
+
+  //==一分钟任务================================
+  if (DO_1MIN_FLAG==ZXSTS_TRUE)
+  {
+    DO_1MIN_FLAG = ZXSTS_FALSE;
+
+    //==上车工作==============================
+    if (pThis->up_work_flag)
+    {
+      //==工时统计=====
+      pThis->current_twt_up = CAN_GetUpEngineTwt(); // 上车总工作时间
+      if (pThis->current_twt_up > pThis->previous_twt_up)
+      {
+        pThis->tdv_up = pThis->current_twt_up - pThis->previous_twt_up;
+      }
+      else
+      {
+        pThis->tdv_up = 0;
+      }
+      pThis->twt_up += pThis->tdv_up;  // 累计工时
+      pThis->previous_twt_up = pThis->current_twt_up;
+
+      //==油耗统计=====
+      pThis->current_tfc_up = CAN_GetUpEngineTfc(); // 上车总油耗
+      if (pThis->current_tfc_up > pThis->previous_tfc_up)
+      {
+        pThis->fdv_up = pThis->current_tfc_up - pThis->previous_tfc_up;
+      }
+      else
+      {
+        pThis->fdv_up = 0;
+      }
+      pThis->tfc_up += pThis->fdv_up;  // 累计油耗
+      pThis->previous_tfc_up = pThis->current_tfc_up;
+    } // end if (pThis->up_work_flag)
+
+    //==下车工作==============================
+    if (pThis->down_work_flag)
+    {
+      //==工时统计=====
+      pThis->current_twt_down = CAN_GetDownEngineTwt(); // 下车总工作时间
+      if (pThis->current_twt_down > pThis->previous_twt_down)
+      {
+        pThis->tdv_down = pThis->current_twt_down - pThis->previous_twt_down;
+      }
+      else
+      {
+        pThis->tdv_down = 0;
+      }
+      pThis->twt_down += pThis->tdv_down;  // 累计工时
+      pThis->previous_twt_down = pThis->current_twt_down;
+
+      //==油耗统计=====
+      pThis->current_tfc_down = CAN_GetDownEngineTfc(); // 下车总油耗
+      if (pThis->current_tfc_down > pThis->previous_tfc_down)
+      {
+        pThis->fdv_down = pThis->current_tfc_down - pThis->previous_tfc_down;
+      }
+      else
+      {
+        pThis->fdv_down = 0;
+      }
+      pThis->tfc_down += pThis->fdv_down;  // 累计油耗
+      pThis->previous_tfc_down = pThis->current_tfc_down;
+    } // end if (pThis->down_work_flag)
+  } // end if (DO_1MIN_FLAG==ZXSTS_TRUE)
+
+  //==5分钟任务===========================
+  if (DO_5MIN_FLAG==ZXSTS_TRUE)
+  {
+    DO_5MIN_FLAG = ZXSTS_FALSE;
+
+    //==上车平均油耗=====
+    if (pThis->twt_up > 0)
+    {
+      pThis->afc_up = (uint16_t)(pThis->tfc_up / pThis->twt_up);
+    }
+    //==下车平均油耗=====
+    if (pThis->twt_down > 0)
+    {
+      pThis->afc_down = (uint16_t)(pThis->tfc_down / pThis->twt_down);
+    }
+  }
+}
+
+//==更新缓存数据数据=======================================================
+void ZxStsEngine_UpdateDataBuffer(void)
+{
+  //==TAG-A5C8作业油耗信息========
+  TCW_SPLIT_DWORD((zxup_buffer_a5c8+ZXUP_A5C8_POS1), zxsts_engine_context.twt_up); // 作业总运行时间
+  TCW_SPLIT_DWORD((zxup_buffer_a5c8+ZXUP_A5C8_POS2), zxsts_engine_context.tfc_up); // 作业燃油总消耗量
+  TCW_SPLIT_WORD((zxup_buffer_a5c8+ZXUP_A5C8_POS3), zxsts_engine_context.afc_up); // 作业平均油耗
+
+  //==TAG-A5F0行驶油耗============
+  TCW_SPLIT_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS1), zxsts_engine_context.twt_down); // 行驶总运行时间
+  TCW_SPLIT_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS2), zxsts_engine_context.tfc_down); // 行驶燃油总油耗量
+  TCW_SPLIT_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS3), zxsts_engine_context.afc_down); // 百公里油耗
+}
+
+//==从Flash数据库获取历史数据================================================
+void ZxStsEngine_ReadDataFromFdb(void)
+{
+  //从EEPROM内获取作业油耗统计
+  Parm_ReadZxEngineUpStsInfo();
+  zxsts_engine_context.twt_up = TCW_BUILD_DWORD((zxup_buffer_a5c8+ZXUP_A5C8_POS1));  // 作业总运行时间
+  zxsts_engine_context.tfc_up = TCW_BUILD_DWORD((zxup_buffer_a5c8+ZXUP_A5C8_POS2));  // 作业燃油总消耗量
+  zxsts_engine_context.afc_up = TCW_BUILD_WORD((zxup_buffer_a5c8+ZXUP_A5C8_POS3));  // 作业平均油耗
+
+  //从EEPROM内获取行驶油耗统计
+  Parm_ReadZxEngineDwStsInfo();
+  zxsts_engine_context.twt_down = TCW_BUILD_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS1));  // 行驶总运行时间
+  zxsts_engine_context.tfc_down = TCW_BUILD_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS2));  // 行驶燃油总油耗量
+  zxsts_engine_context.afc_down = TCW_BUILD_DWORD((zxengine_buffer_a5f0+ZXENGINE_A5F0_POS3));  // 百公里油耗
+}
+
+//==存储数据到Flash数据库====================================================
+void ZxStsEngine_SaveDataToFdb(void)
+{
+  // 保存作业统计数据
+  ZxStsEngine_UpdateDataBuffer();
+  Parm_SaveZxEngineUpStsInfo();  // 作业油耗统计
+  Parm_SaveZxEngineDwStsInfo();  // 行驶油耗统计
+}
+
+//==初始化发动机工作统计参数=================================================
+void ZxStsEngine_Initialize(zxsts_engine_context_t* pThis)
+{
+  //从EEPROM内获取发动机统计数据
+  ZxStsEngine_ReadDataFromFdb();
+
+  pThis->engine_type = 0x00;
+  pThis->pto_status = 0x00;
+  pThis->up_work_flag = 0x00;
+  pThis->down_work_flag = 0x00;
+  pThis->tdv_down = 0x00;
+  pThis->tdv_up = 0x00;
+  pThis->fdv_up = 0x00;
+  pThis->fdv_down = 0x00;
+
+  pThis->current_twt_up = pThis->twt_up;
+  pThis->previous_twt_up = pThis->twt_up;
+  pThis->current_twt_down = pThis->twt_down;
+  pThis->previous_twt_down = pThis->twt_down;
+  pThis->current_tfc_up = pThis->tfc_up;
+  pThis->previous_tfc_up = pThis->tfc_up;
+  pThis->current_tfc_down = pThis->tfc_down;
+  pThis->previous_tfc_down = pThis->tfc_down;
+
+  tlv_a5f0_valid_flag = 1;  //==TAG-A5F0行驶油耗
+  tlv_a5c8_valid_flag = 1;  //==TAG-A5C8作业油耗信息
+}
+
+#endif
+
+#if (PART("终端休眠统计"))
+/*************************************************************************
+ *
+*************************************************************************/
+//==更新缓存数据数据=======================================================
+void TboxSts_UpdateDataBuffer(void)
+{
+  //==TAG-301E 休眠时间统计数据===
+  TCW_SPLIT_DWORD((zxstatistics_buffer_301e+ZXSTATISTICS_301E_POS1_ADDR), tboxsts_context.total_slept_time);  // 总休眠时间
+  TCW_SPLIT_DWORD((zxstatistics_buffer_301e+ZXSTATISTICS_301E_POS2_ADDR), tboxsts_context.current_slept_time);  // 本次休眠时间
+}
+
+//==从Flash数据库获取历史数据================================================
+void TboxSts_ReadDataFromFdb(void)
+{
+  //从EEPROM内获取终端休眠统计
+  Parm_ReadTboxStsInfo();
+  tboxsts_context.total_slept_time = TCW_BUILD_DWORD((zxstatistics_buffer_301e+ZXSTATISTICS_301E_POS1_ADDR));  // 总休眠时间
+  tboxsts_context.current_slept_time = TCW_BUILD_DWORD((zxstatistics_buffer_301e+ZXSTATISTICS_301E_POS2_ADDR));  // 本次休眠时间
+}
+
+//==存储数据到Flash数据库====================================================
+void TboxSts_SaveDataToFdb(void)
+{
+  // 保存作业统计数据
+  TboxSts_UpdateDataBuffer();
+  Parm_SaveTboxStsInfo();  // 终端休眠统计
+}
+
+//==累计休眠事假====================================================
+void TboxSts_AccumulateTime(uint32_t sleep_time)
+{
+  tboxsts_context.total_slept_time += sleep_time;
+  tboxsts_context.current_slept_time = sleep_time;
+}
+
+//==初始化终端休眠统计参数=================================================
+void TboxSts_Initialize(tboxsts_context_t* pThis)
+{
+  //从EEPROM内获取统计数据
+  TboxSts_ReadDataFromFdb();
+  tlv_301e_valid_flag = 1;
+}
+
+#endif
+
 

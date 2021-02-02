@@ -1,7 +1,9 @@
 /*****************************************************************************
-* FileName:  crc32.h
-* Engineer:  TenYan
-* Date:      2020-07-09
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
+* @FileName:  crc32.h
+* @Engineer:  TenYan
+* @Company:  徐工信息智能硬件部
+* @Date:      2020-07-09
 ******************************************************************************/
 #ifndef CRC32_H
 #define CRC32_H

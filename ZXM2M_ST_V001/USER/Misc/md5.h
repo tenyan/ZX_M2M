@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName:  md5.h
 * @Engineer:  TenYan
+* @Company:  徐工信息智能硬件部
 * @Date:      2020-07-09
 * @brief:     MD5 (Message-Digest Algorithm)
 ******************************************************************************/

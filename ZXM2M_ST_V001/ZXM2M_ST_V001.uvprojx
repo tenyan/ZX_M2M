@@ -517,6 +517,26 @@
               <FileType>5</FileType>
               <FilePath>.\USER\Memory\parameters.h</FilePath>
             </File>
+            <File>
+              <FileName>fal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\Memory\fal.c</FilePath>
+            </File>
+            <File>
+              <FileName>fal.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\Memory\fal.h</FilePath>
+            </File>
+            <File>
+              <FileName>FlashDB.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\Memory\FlashDB.c</FilePath>
+            </File>
+            <File>
+              <FileName>FlashDB.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\Memory\FlashDB.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -1,12 +1,13 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: parameters.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-10-31
 * @brief     参数存储管理
 ******************************************************************************/
 #include "config.h"
-#include "sfud.h"
 
 /******************************************************************************
  *   Macros
@@ -16,10 +17,266 @@
 extern uint16_t im2m_AnalyzeParaData(uint16_t tag, uint16_t len, uint8_t *pValue);
 extern uint16_t im2m_BuildParaData(uint8_t *pbuf, uint16_t tag);
 
+/******************************************************************************
+ * Data Types and Globals
+ ******************************************************************************/
+//==default KV nodes======
+static struct fdb_default_kv_node default_kv_table[] = {
+  {"ZxSts",      zxstatistics_buffer,      (SIZE_OF_ZXSTATISTICS_BUFFER - SIZE_OF_ZXSTATISTICS_301E)}, // 统计类数据(不含终端休眠统计)
+  {"ZxStsTmr",   zxsts_tmr,     sizeof(zxsts_tmr)}, // 频次统计100ms定时器
+  {"TboxSts",    zxstatistics_buffer_301e, SIZE_OF_ZXSTATISTICS_301E}, // 终端休眠统计
+  {"ZxEngineUpSts", zxup_buffer_a5c8,      SIZE_OF_ZXUP_A5C8}, // 作业油耗统计
+  {"ZxEngineDwSts", zxengine_buffer_a5f0,  SIZE_OF_ZXENGINE_A5F0},    // 行驶油耗统计
+};
 
-/*************************************************************************
+static struct fdb_kvdb kvdb = { 0 };  // KVDB object
+osSemaphoreId_t sid_FlashDbSem = NULL;  // KV数据库信号量
+
+/******************************************************************************
+* FlashDB初始化
+******************************************************************************/
+//==数据库上锁====================================
+static void fdb_lock(fdb_db_t* db)
+{
+  osSemaphoreAcquire(sid_FlashDbSem, osWaitForever); // 等待信号量
+}
+
+//==数据库去锁====================================
+static void fdb_unlock(fdb_db_t* db)
+{
+  osSemaphoreRelease(sid_FlashDbSem); // 释放信号量
+}
+
+//==初始化Flash数据库=============================
+int32_t Parm_FlashDbInit(void)
+{
+  fdb_err_t result;
+  struct fdb_default_kv default_kv;
+
+  if(sid_FlashDbSem==NULL)
+  {
+    sid_FlashDbSem = osSemaphoreNew(1, 1, NULL);
+  }
+
+  default_kv.kvs = default_kv_table;
+  default_kv.num = sizeof(default_kv_table) / sizeof(default_kv_table[0]);
+  FlashDB_KvdbControl(&kvdb, FDB_KVDB_CTRL_SET_LOCK, fdb_lock);
+  FlashDB_KvdbControl(&kvdb, FDB_KVDB_CTRL_SET_UNLOCK, fdb_unlock);
+  
+  /* Key-Value database initialization
+   *       &kvdb: database object
+   *       "env": database name
+   * "fdb_kvdb1": The flash partition name base on FAL. Please make sure it's in FAL partition table.
+   *              Please change to YOUR partition name.
+   * &default_kv: The default KV nodes. It will auto add to KVDB when first initialize successfully.
+   *        NULL: The user data if you need, now is empty.
+   */
+  result = FlashDB_KvdbInit(&kvdb, "env", "fdb_kvdb1", &default_kv, NULL);
+
+  if (result != FDB_NO_ERR)
+  {
+    return -1;
+  }
+  
+  return 0;
+}
+
+#if 0
+static uint32_t boot_count = 0;
+static uint32_t boot_time[10] = {0, 1, 2, 3};
+//==default KV nodes======
+static struct fdb_default_kv_node default_kv_table[] = {
+  {"username", "armink", 0}, // string KV
+  {"password", "123456", 0}, // string KV
+  {"boot_count", &boot_count, sizeof(boot_count)}, // int type KV
+  {"boot_time", &boot_time, sizeof(boot_time)},    // int array type KV
+};
+
+#define FDB_LOG_TAG "[sample][kvdb][blob]"
+void kvdb_type_blob_sample(fdb_kvdb_t kvdb)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+
+
+  FDB_INFO("==================== kvdb_type_blob_sample ====================\n");
+
+  { // CREATE new Key-Value
+    int temp_data = 36;
+
+    /* It will create new KV node when "temp" KV not in database.
+     * fdb_blob_make: It's a blob make function, and it will return the blob when make finish.
+     */
+    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
+    FlashDB_KvSetBlob(kvdb, "temp", p_blob);
+    FDB_INFO("create the 'temp' blob KV, value is: %d\n", temp_data);
+  }
+
+  { // GET the KV value
+    int temp_data = 0;
+
+    /* get the "temp" KV value */
+    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
+    FalshDB_KvGetBlob(kvdb, "temp", p_blob);
+    /* the blob.saved.len is more than 0 when get the value successful */
+    if (blob.saved.len > 0)
+    {
+      FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+    }
+  }
+
+  { // CHANGE the KV value
+    int temp_data = 38;
+
+    /* change the "temp" KV's value to 38 */
+    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
+    FlashDB_KvSetBlob(kvdb, "temp", p_blob);
+    FDB_INFO("set 'temp' value to %d\n", temp_data);
+  }
+
+  { // DELETE the KV by name
+    FlashDB_KvDel(kvdb, "temp");
+    FDB_INFO("delete the 'temp' finish\n");
+  }
+
+  FDB_INFO("===========================================================\n");
+}
+#endif /* FDB_USING_KVDB */
+
+/******************************************************************************
+* 作业统计类3MIN定时器
+******************************************************************************/
+void Parm_SaveZxStsTmrInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxsts_tmr, sizeof(zxsts_tmr));
+  FlashDB_KvSetBlob(&kvdb, "ZxStsTmr", p_blob);
+}
+
+//============================================================================
+void Parm_ReadZxStsTmrInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+
+  p_blob = FlashDB_BlobMake(&blob, zxsts_tmr, sizeof(zxsts_tmr));
+  FalshDB_KvGetBlob(&kvdb, "ZxStsTmr", p_blob);
+  if (blob.saved.len > 0) // the blob.saved.len is more than 0 when get the value successful
+  {
+    //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+  }
+}
+
+/******************************************************************************
+* 作业统计类
+******************************************************************************/
+void Parm_SaveZxStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxstatistics_buffer, (SIZE_OF_ZXSTATISTICS_BUFFER - SIZE_OF_ZXSTATISTICS_301E));
+  FlashDB_KvSetBlob(&kvdb, "ZxSts", p_blob);
+}
+
+//============================================================================
+void Parm_ReadZxStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+
+  p_blob = FlashDB_BlobMake(&blob, zxstatistics_buffer, (SIZE_OF_ZXSTATISTICS_BUFFER - SIZE_OF_ZXSTATISTICS_301E));
+  FalshDB_KvGetBlob(&kvdb, "ZxSts", p_blob);
+  if (blob.saved.len > 0) // the blob.saved.len is more than 0 when get the value successful
+  {
+    //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+  }
+}
+
+
+/******************************************************************************
+* 终端休眠统计
+******************************************************************************/
+void Parm_SaveTboxStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxstatistics_buffer_301e, SIZE_OF_ZXSTATISTICS_301E);
+  FlashDB_KvSetBlob(&kvdb, "TboxSts", p_blob);
+}
+
+//============================================================================
+void Parm_ReadTboxStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+
+  p_blob = FlashDB_BlobMake(&blob, zxstatistics_buffer_301e, SIZE_OF_ZXSTATISTICS_301E);
+  FalshDB_KvGetBlob(&kvdb, "TboxSts", p_blob);
+  if (blob.saved.len > 0) // the blob.saved.len is more than 0 when get the value successful
+  {
+    //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+  }
+}
+
+/******************************************************************************
+* 作业油耗统计
+******************************************************************************/
+void Parm_SaveZxEngineUpStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxup_buffer_a5c8, SIZE_OF_ZXUP_A5C8);
+  FlashDB_KvSetBlob(&kvdb, "ZxEngineUpSts", p_blob);
+}
+
+//============================================================================
+void Parm_ReadZxEngineUpStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxup_buffer_a5c8, SIZE_OF_ZXUP_A5C8);
+  FalshDB_KvGetBlob(&kvdb, "ZxEngineUpSts", p_blob);
+  if (blob.saved.len > 0) // the blob.saved.len is more than 0 when get the value successful
+  {
+    //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+  }
+}
+
+/******************************************************************************
+* 行驶油耗统计
+******************************************************************************/
+void Parm_SaveZxEngineDwStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+  
+  p_blob = FlashDB_BlobMake(&blob, zxengine_buffer_a5f0, SIZE_OF_ZXENGINE_A5F0);
+  FlashDB_KvSetBlob(&kvdb, "ZxEngineDwSts", p_blob);
+}
+
+//============================================================================
+void Parm_ReadZxEngineDwStsInfo(void)
+{
+  fdb_blob_t blob;
+  fdb_blob_t* p_blob;
+
+  p_blob = FlashDB_BlobMake(&blob, zxengine_buffer_a5f0, SIZE_OF_ZXENGINE_A5F0);
+  FalshDB_KvGetBlob(&kvdb, "ZxEngineDwSts", p_blob);
+  if (blob.saved.len > 0) // the blob.saved.len is more than 0 when get the value successful
+  {
+    //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
+  }
+}
+
+/******************************************************************************
  * 计算异或校验值
-*************************************************************************/
+******************************************************************************/
 uint8_t iParm_CalcXorValue(uint8_t *p, uint16_t len)
 {
   uint8_t sum = 0;
@@ -101,99 +358,14 @@ void Parm_ReadLvcInfo(void)
   PcDebug_SendString("ParmLvc1_2Err!\n"); // 存储都出错
 }
 
-/******************************************************************************
-* 累计工作时间
-******************************************************************************/
-void Parm_SaveTotalWorkTimeInfo(void)
-{
-  uint8_t buf[7];
-
-  sfud_erase(&sfud_mx25l3206e,EMAP_WORK_TIME_INFO1_ADDRESS,EMAP_WORK_TIME_INFO1_SIZE); // 擦除
-  PARM_DELAY(2); // 延时2ms
-  sfud_erase(&sfud_mx25l3206e,EMAP_WORK_TIME_INFO2_ADDRESS,EMAP_WORK_TIME_INFO2_SIZE); // 擦除
-  PARM_DELAY(2); // 延时2ms
-
-  buf[0] = 0xA5;  //  校验头
-  buf[1] = 0x5A;
-  buf[2] = (uint8_t)((colt_info.total_work_time>>24) & 0xFF);  // 参数
-  buf[3] = (uint8_t)((colt_info.total_work_time>>16) & 0xFF);
-  buf[4] = (uint8_t)((colt_info.total_work_time>>8) & 0xFF);
-  buf[5] = (uint8_t)(colt_info.total_work_time & 0xFF);
-  buf[6] = iParm_CalcXorValue(buf, 6);  // 校验
-
-  sfud_write(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO1_ADDRESS, 7, buf);
-  PARM_DELAY(2); // 延时2ms
-  sfud_write(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO2_ADDRESS, 7, buf);
-}
-
-//============================================================================
-void Parm_ReadTotalWorkTimeInfo(void)
-{
-  uint8_t m_buf[7];
-  uint8_t r_buf[7];
-  uint8_t main_is_ok = PARM_FALSE;
-  uint8_t redundant_is_ok = PARM_FALSE;
-
-  sfud_read(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO1_ADDRESS, 7, m_buf); // 读取主备份
-  if (iParm_CalcXorValue(m_buf, 6) == m_buf[6] && (m_buf[0] == 0xA5)&&(m_buf[1] == 0x5A))
-  {
-    main_is_ok = PARM_TRUE;
-  }
-
-  sfud_read(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO2_ADDRESS, 7, r_buf); // 读取副备份
-  if (iParm_CalcXorValue(r_buf, 6) == r_buf[6] && (r_buf[0] == 0xA5)&&(r_buf[1] == 0x5A))
-  {
-    redundant_is_ok = PARM_TRUE;
-  }
-
-  if (main_is_ok==PARM_TRUE) // 主备份OK
-  {
-    colt_info.total_work_time = m_buf[2];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += m_buf[3];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += m_buf[4];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += m_buf[5];
-    if (redundant_is_ok==PARM_FALSE)
-    {
-      PcDebug_SendString("ParmWkt2Err!\n");
-      sfud_erase(&sfud_mx25l3206e,EMAP_WORK_TIME_INFO2_ADDRESS,EMAP_WORK_TIME_INFO2_SIZE); // 擦除
-      PARM_DELAY(1); // 延时1ms
-      sfud_write(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO2_ADDRESS, 7, m_buf);
-    }
-    return;
-  }
-
-  if (redundant_is_ok==PARM_TRUE) // 副备份OK
-  {
-    colt_info.total_work_time = r_buf[2];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += r_buf[3];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += r_buf[4];
-    colt_info.total_work_time <<= 8;
-    colt_info.total_work_time += r_buf[5];
-    if (main_is_ok==PARM_FALSE)
-    {
-      PcDebug_SendString("ParmWkt1Err!\n");
-      sfud_erase(&sfud_mx25l3206e,EMAP_WORK_TIME_INFO1_ADDRESS,EMAP_WORK_TIME_INFO1_SIZE); // 擦除
-      PARM_DELAY(1); // 延时1ms
-      sfud_write(&sfud_mx25l3206e, EMAP_WORK_TIME_INFO1_ADDRESS, 7, r_buf);
-    }
-    return;
-  }
-
-  colt_info.total_work_time = 0;
-  PcDebug_SendString("ParmWkt1_2Err!\n"); // 存储都出错
-}
-
+#if 0
 //==保存工作小时到RTCRAM=====================================================
 void BKP_SaveTotalWorkTimeInfo(void)
 {
   RTC_WriteBackupRegister(RTC_BKP_DR0, 0x55AA5AA5);
   RTC_WriteBackupRegister(RTC_BKP_DR1, colt_info.total_work_time);
 }
+#endif
 
 /******************************************************************************
 * M2M协议设置参数

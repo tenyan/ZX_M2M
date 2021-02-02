@@ -1678,9 +1678,19 @@ void Cellura_ServiceInit(void)
 *************************************************************************/
 void Cellura_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_CELLURA_PROCESS_ID], NULL, pthread_CelluraProcess, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread∂—’ª…Ë÷√Œ™40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+
+  pthread_create(&pthreads[PTHREAD_CELLURA_PROCESS_ID], &thread_attr, pthread_CelluraProcess, NULL);
   usleep(10);
-   pthread_create(&pthreads[PTHREAD_CELLURA_PRODUCE_ID], NULL, pthread_CelluraProduce, NULL);
+  pthread_create(&pthreads[PTHREAD_CELLURA_PRODUCE_ID], &thread_attr, pthread_CelluraProduce, NULL);
   usleep(10);
 }
 

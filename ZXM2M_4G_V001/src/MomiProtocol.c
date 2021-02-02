@@ -72,8 +72,8 @@ obd_info_t obd_info = {
   .diag_supported_status = 0xFFFF, // Õï¶ÏÖ§³Ö×´Ì¬
   .diag_readiness_status = 0xFFFF, // Õï¶Ï¾ÍÐ÷×´Ì¬
   .vin_valid_flag = 1,  // VINÂëÓÐÐ§
-  //.vin = "LXGBPA123test0088",  // VINÂë(HJ)
-  .vin = "LXGBPA123test0036",  // VINÂë(GB)
+  .vin = "LXGBPA123test0088",  // VINÂë(HJ)
+  //.vin = "LXGBPA123test0036",  // VINÂë(GB)
   .calid_valid_flag = 1,
   .calid = "666666666666666666",
   .cvn_valid_flag = 1,
@@ -958,9 +958,19 @@ void Momi_ServiceInit(void)
 *************************************************************************/
 void Momi_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_MOMI_PROCESS_ID], NULL, pthread_MomiProcess, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread¶ÑÕ»ÉèÖÃÎª40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+
+  pthread_create(&pthreads[PTHREAD_MOMI_PROCESS_ID], &thread_attr, pthread_MomiProcess, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_MOMI_PRODUCE_ID], NULL, pthread_MomiProduce, NULL);
+  pthread_create(&pthreads[PTHREAD_MOMI_PRODUCE_ID], &thread_attr, pthread_MomiProduce, NULL);
   usleep(10);
 }
 

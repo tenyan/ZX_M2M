@@ -197,6 +197,7 @@ void system_Initialize(void)
 * This is the standard entry point for C code.
 * It is assumed that your code will call main() 
 * once you have performed all necessary initialization.
+* 线程栈大小默认为8MB
 ******************************************************************************/
 int main(void)
 {
@@ -213,7 +214,7 @@ int main(void)
   Collect_ServiceInit();
   NetSocket_Init();
   ZxM2m_ServiceInit();
-  HJEP_ServiceInit();
+  EP_ServiceInit();
   AuxCom_ServiceInit();
 
   //==启动线程任务========================================
@@ -223,7 +224,7 @@ int main(void)
   Cellura_ServiceStart();
   Collect_ServiceStart();
   ZxM2m_ServiceStart();
-  HJEP_ServiceStart();
+  EP_ServiceStart();
   AuxCom_ServiceStart();
   
   usleep(100);

@@ -1,7 +1,9 @@
 /*****************************************************************************
-* FileName: crc32.c
-* Engineer: TenYan
-* Date:     2020-07-09
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
+* @FileName: crc32.c
+* @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
+* @Date:     2020-07-09
 * 计算时要选取一个多项式作为除数，一般CRC-32选取如下三个多项式值中的一个 
 * Polynomial representations
 * Normal :0x04C11DB7

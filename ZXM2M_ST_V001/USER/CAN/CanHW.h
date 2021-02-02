@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
  * @FileName: CanHW.h
  * @Engineer: TenYan
+ * @Company:  徐工信息智能硬件部
  * @version   V1.0
  * @Date:     2020-10-15
  * @brief     本文件为CAN硬件驱动层的头文件
@@ -36,7 +37,6 @@ typedef struct
   uint8_t type;  // Ext or Std
   uint8_t data[8];
 }can_msg_t;
-
 
 /******************************************************************************
  * Function prototypes

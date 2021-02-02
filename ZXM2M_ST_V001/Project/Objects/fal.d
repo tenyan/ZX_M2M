@@ -1,0 +1,12 @@
+.\project\objects\fal.o: USER\Memory\fal.c
+.\project\objects\fal.o: USER\Memory\fal.h
+.\project\objects\fal.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\project\objects\fal.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+.\project\objects\fal.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\project\objects\fal.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\project\objects\fal.o: .\USER\types.h
+.\project\objects\fal.o: USER\Memory\sfud.h
+.\project\objects\fal.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+.\project\objects\fal.o: .\USER\PcDebug\PcDebug.h
+.\project\objects\fal.o: USER\Memory\parameters.h
+.\project\objects\fal.o: .\USER\AuxCom\AuxCom.h

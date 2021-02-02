@@ -1,8 +1,10 @@
 /**********************************************************************
-* FileName:        led.h
-* Engineer:        TenYan
-* Date:            2020/10/10
-* Dependencies:    Header (.h) files if applicable, see below
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
+* @FileName: led.h
+* @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
+* @Date:     2020/10/10
+* @Dependencies: Header (.h) files if applicable, see below
 ************************************************************************/
 #ifndef LED_H_
 #define LED_H_

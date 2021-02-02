@@ -2,6 +2,7 @@
 * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: CollectModule.h
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-10-23
 * @brief     本文件为Collect功能模块所有对外接口层的头文件

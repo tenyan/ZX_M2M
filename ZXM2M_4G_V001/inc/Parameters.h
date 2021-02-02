@@ -33,6 +33,9 @@
 #define FILE_OFFLINE_TIME_CPY1    "/media/card/offline_time.txt"  // 终端不上线累积时间
 #define FILE_OFFLINE_TIME_CPY2    "/data/offline_time.txt"        // 终端不上线累积时间
 
+#define FILE_SERIAL_NUMBER_CPY1    "/media/card/odograph.txt" // 登录和登出、发送数据流水号
+#define FILE_SERIAL_NUMBER_CPY2    "/data/odograph.txt"       // 登录和登出、发送数据流水号
+
 #define FILE_ZXM2M_BZ_DATA   "/media/card/zxm2m_bz_data.txt"  // zxm2m盲区数据文件
 #define FILE_ZXM2M_BZ_PARA   "/media/card/zxm2m_bz_para.txt"  // zxm2m盲区参数文件
 #define FILE_HJEP_BZ_DATA    "/media/card/hjep_bz_data.txt"  // hjep盲区数据文件

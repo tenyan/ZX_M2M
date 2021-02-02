@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: AuxComHW.h
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2021-1-12
 * @brief     本文件为4G模块辅助串口硬件驱动层的头文件

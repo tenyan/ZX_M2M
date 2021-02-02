@@ -681,9 +681,19 @@ void AuxCom_ServiceInit(void)
 *************************************************************************/
 void AuxCom_ServiceStart(void)
 {
-  pthread_create(&pthreads[PTHREAD_AUX_COM_PROCESS_ID], NULL, pthread_AuxComProcess, NULL);
+  pthread_attr_t thread_attr;
+  int ret ,stacksize = DEFAULT_THREAD_STACK_SIZE; // thread∂—’ª…Ë÷√Œ™40KB
+
+  pthread_attr_init(&thread_attr);
+  ret = pthread_attr_setstacksize(&thread_attr,stacksize);
+  if(ret!=0)
+  {
+    printf("Set StackSize Error!\n");
+  }
+
+  pthread_create(&pthreads[PTHREAD_AUX_COM_PROCESS_ID], &thread_attr, pthread_AuxComProcess, NULL);
   usleep(10);
-  pthread_create(&pthreads[PTHREAD_AUX_COM_PRODUCE_ID], NULL, pthread_AuxComProduce, NULL);
+  pthread_create(&pthreads[PTHREAD_AUX_COM_PRODUCE_ID], &thread_attr, pthread_AuxComProduce, NULL);
   usleep(10);
 }
 

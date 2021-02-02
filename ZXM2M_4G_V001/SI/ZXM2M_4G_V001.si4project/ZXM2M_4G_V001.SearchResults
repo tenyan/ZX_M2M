@@ -1,3 +1,4 @@
----- SOCKET_LINK_STATE_CONNECTING Matches (2 in 2 files) ----
-NetSocket_Connect in NetSocket.c (E:\ZXM2M_4G_V001\src) :     pThis->link_state = SOCKET_LINK_STATE_CONNECTING;
-NetSocket.h (E:\ZXM2M_4G_V001\inc) line 46 :   SOCKET_LINK_STATE_CONNECTING,
+---- M2M_ProduceSendMsg Matches (3 in 3 files) ----
+pthread_ZxM2mProduce in iCloud.c (E:\ZXM2M_4G_V001\src) :     M2M_ProduceSendMsg(&m2m_context);
+M2mProtocol.c (E:\ZXM2M_4G_V001\src) line 4097 : void M2M_ProduceSendMsg(m2m_context_t* pThis)
+M2mProtocol.h (E:\ZXM2M_4G_V001\inc) line 420 : void M2M_ProduceSendMsg(m2m_context_t* pThis);

@@ -1,6 +1,8 @@
 /*****************************************************************************
+* Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: sfud.h
-* @Engineer: TenYan
+* @Engineer: armink & TenYan
+* @Company:  徐工信息智能硬件部
 * @Date:     2020-7-6
 * @brief     This file is part of the Serial Flash Universal Driver Library.
 ******************************************************************************/
@@ -128,7 +130,6 @@ enum sfud_write_mode
 
 
 // _SFUD_DEF_H_
-
 
 /**
  * retry process

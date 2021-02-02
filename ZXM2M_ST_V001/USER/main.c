@@ -2,6 +2,7 @@
 * Copyright (c) 2020-2040 XGIT Limited. All rights reserved.
 * @FileName: main.c
 * @Engineer: TenYan
+* @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-10-16
 * @brief     Main program body.
@@ -62,6 +63,7 @@ void AppThread_Start(void *argument)
   PcDebug_ServiceInit();
   rtc_Initialize();
   sfud_init();
+  Parm_FlashDbInit();
   Can_ServiceInit();
   iCloud_ServiceInit();
   //GPS_ServiceInit();

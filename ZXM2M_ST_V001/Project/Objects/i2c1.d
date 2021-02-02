@@ -79,3 +79,5 @@
 .\project\objects\i2c1.o: .\USER\System\icloud_machine.h
 .\project\objects\i2c1.o: .\USER\Misc\crc32.h
 .\project\objects\i2c1.o: .\USER\System\iap.h
+.\project\objects\i2c1.o: .\USER\Memory\FlashDB.h
+.\project\objects\i2c1.o: .\USER\Memory\fal.h

@@ -79,3 +79,5 @@
 .\project\objects\collect.o: .\USER\System\icloud_machine.h
 .\project\objects\collect.o: .\USER\Misc\crc32.h
 .\project\objects\collect.o: .\USER\System\iap.h
+.\project\objects\collect.o: .\USER\Memory\FlashDB.h
+.\project\objects\collect.o: .\USER\Memory\fal.h
