@@ -3,7 +3,7 @@
 * @FileName: parameters.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-31
 * @brief:
 ******************************************************************************/
@@ -23,7 +23,9 @@
 #define NUMBER_OF_FLASH_SECTOR          0x400UL   // 扇区总数1024
 
 // 各个存储区大小
-#define EMAP_NO_USED_1_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*4))  // 16KB
+#define EMAP_NO_USED_1_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*2))  // 8KB
+#define EMAP_OFFLINE_INFO1_SIZE         ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
+#define EMAP_PID_INFO1_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_M2M_ASSET_DATA1_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_LVC_INFO1_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_KVDB_SIZE                  ((uint32_t)(FLASH_SECTOR_SIZE*128UL)) // 512KB(擦除时间5210ms)
@@ -31,11 +33,15 @@
 #define EMAP_ECU_HEX_FILE_SIZE          ((uint32_t)(FLASH_SECTOR_SIZE*756UL)) // 3024KB
 #define EMAP_LVC_INFO2_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
 #define EMAP_M2M_ASSET_DATA2_SIZE       ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
-#define EMAP_NO_USED_2_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*4))  // 16KB
+#define EMAP_PID_INFO2_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
+#define EMAP_OFFLINE_INFO2_SIZE         ((uint32_t)(FLASH_SECTOR_SIZE*1))  // 4KB
+#define EMAP_NO_USED_2_SIZE             ((uint32_t)(FLASH_SECTOR_SIZE*2))  // 8KB
 
 // 各个存储区起始地址
 #define EMAP_NO_USED_1_ADDRESS          0x0000UL  // = 0
-#define EMAP_M2M_ASSET_DATA1_ADDRESS    (EMAP_NO_USED_1_ADDRESS + EMAP_NO_USED_1_SIZE)
+#define EMAP_OFFLINE_INFO1_ADDRESS      (EMAP_NO_USED_1_ADDRESS + EMAP_NO_USED_1_SIZE)
+#define EMAP_PID_INFO1_ADDRESS          (EMAP_OFFLINE_INFO1_ADDRESS + EMAP_OFFLINE_INFO1_SIZE)
+#define EMAP_M2M_ASSET_DATA1_ADDRESS    (EMAP_PID_INFO1_ADDRESS + EMAP_PID_INFO1_SIZE)
 #define EMAP_LVC_INFO1_ADDRESS          (EMAP_M2M_ASSET_DATA1_ADDRESS + EMAP_M2M_ASSET_DATA1_SIZE)
 #define EMAP_KVDB_ADDRESS               (EMAP_LVC_INFO1_ADDRESS + EMAP_LVC_INFO1_SIZE)
 #define EMAP_HEX_FILE_ADDRESS           (EMAP_KVDB_ADDRESS + EMAP_KVDB_SIZE)
@@ -43,7 +49,9 @@
 #define EMAP_LVC_INFO2_ADDRESS          (EMAP_ECU_HEX_FILE_ADDRESS + EMAP_ECU_HEX_FILE_SIZE)
 #define EMAP_M2M_ASSET_DATA2_ADDRESS    (EMAP_LVC_INFO2_ADDRESS + EMAP_LVC_INFO2_SIZE)
 #define EMAP_NO_USED_2_ADDRESS          (EMAP_M2M_ASSET_DATA2_ADDRESS + EMAP_M2M_ASSET_DATA2_SIZE)
-#define EMAP_END_ADDRESS                (EMAP_NO_USED_2_ADDRESS + EMAP_NO_USED_2_SIZE)
+#define EMAP_PID_INFO2_ADDRESS          (EMAP_NO_USED_2_ADDRESS + EMAP_NO_USED_2_SIZE)
+#define EMAP_OFFLINE_INFO2_ADDRESS      (EMAP_PID_INFO2_ADDRESS + EMAP_PID_INFO2_SIZE)
+#define EMAP_END_ADDRESS                (EMAP_OFFLINE_INFO2_ADDRESS + EMAP_OFFLINE_INFO2_SIZE)
 
 /******************************************************************************
 * External variables
@@ -92,8 +100,15 @@ void Parm_ReadZxEngineDwStsInfo(void);
 void Parm_ResetM2mAssetDataToFactory(void);
 void Parm_SaveM2mAssetData(void);
 void Parm_ReadM2mAssetData(void);
+
 void Parm_SaveLvcInfo(void);
 void Parm_ReadLvcInfo(void);
+
+void Parm_SaveTboxOfflineTime(void);
+void Parm_ReadTboxOfflineTime(void);
+
+void Parm_SavePidInfo(void);
+void Parm_ReadPidInfo(void);
 
 //void Parm_SaveTotalWorkTimeInfo(void);
 //void Parm_ReadTotalWorkTimeInfo(void);

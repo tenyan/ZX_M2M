@@ -3,10 +3,10 @@
 * @FileName: main.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-16
-* @brief     Main program body.
-* @Micro     STM32F205VET6: 120MHz,512KB FLASH,128KB RAM
+* @brief:    Main program body.
+* @Micro:    STM32F205VET6: 120MHz,512KB FLASH,128KB RAM
 ******************************************************************************/
 
 /******************************************************************************
@@ -73,9 +73,9 @@ void AppThread_Start(void *argument)
   AuxCom_ServiceInit();
   
   //==创建任务AppTaskCreate()=========
+  PcDebug_ServiceStart();
   iCloud_ServiceStart();
   Collect_ServiceStart();
-  PcDebug_ServiceStart();
   Can_ServiceStart();
   //GPS_ServiceStart();
   Momi_ServiceStart();

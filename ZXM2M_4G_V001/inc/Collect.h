@@ -24,31 +24,6 @@
 /******************************************************************************
  * Data Types
  ******************************************************************************/
- // BOOL定义
-enum
-{
-  CAN_NOK = 0x00,
-  CAN_OK = 0x01
-};
-
-// 环保类型定义
-enum
-{
-  EP_TYPE_NONE = 0x00,
-  EP_TYPE_HJ = 0x01,
-  EP_TYPE_GB = 0x02,
-};
-
-// 发动机类型定义
-enum
-{
-  ENGINE_TYPE_WEICHAI = 0x00,
-  ENGINE_TYPE_HANGFA = 0x01,
-  ENGINE_TYPE_SHANGHAI = 0x02,
-  ENGINE_TYPE_YUCHAI = 0x03,
-  NUMBER_OF_ENGINE_TYPE
-};
-
 //采集状态
 typedef struct
 {
@@ -64,9 +39,9 @@ typedef struct
   uint32_t total_work_time; // 累计工作时间,单位:s
   uint32_t total_offline_time; // 累计不上线时间
   
-  uint16_t vbat;            // 内部锂电池电压,单位10mV
-  uint16_t vraw;            // 外电源电压,单位10mV
-  int8_t int_temp;         // 内部温度
+  uint16_t vbat;  // 内部锂电池电压,单位10mV
+  uint16_t vraw;  // 外电源电压,单位10mV
+  int8_t int_temp;  // 内部温度
   uint8_t switch1;// 开关量采集1
   //B0：报警开关    0=低电平,1=高电平
   //B1：钥匙开关ACC 0=关闭,1=打开
@@ -114,10 +89,6 @@ typedef struct
 
   uint16_t st_version;  // 协处理器版本号
   uint8_t st_tbox_mode;  // 协处理器工作模式
-
-  uint8_t ep_valid_flag; // 环保数据有效标志: 0=无效, 1=有效
-  uint8_t mil_lamp;      // 故障灯状态:0:未点亮, 1=点亮
-  uint16_t engine_speed; // 发动机转速
 
   uint8_t open_box_flag;  // 0:未开盖, 1:已开盖
 }colt_info_t;

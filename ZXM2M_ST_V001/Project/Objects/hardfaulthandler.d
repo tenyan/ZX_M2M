@@ -65,6 +65,7 @@
 .\project\objects\hardfaulthandler.o: .\USER\RTC\am1805.h
 .\project\objects\hardfaulthandler.o: .\USER\CAN\Can.h
 .\project\objects\hardfaulthandler.o: .\USER\CAN\CanHW.h
+.\project\objects\hardfaulthandler.o: .\USER\CAN\lvc.h
 .\project\objects\hardfaulthandler.o: .\USER\CAN\ISO27145.h
 .\project\objects\hardfaulthandler.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\hardfaulthandler.o: .\USER\Momi\MomiProtocol.h

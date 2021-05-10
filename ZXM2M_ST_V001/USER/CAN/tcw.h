@@ -3,12 +3,12 @@
 * @FileName: tcw.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-11-20
-* @brief     徐工重型起重机can通信协议定义
+* @brief:    徐工重型起重机can通信协议定义
 ******************************************************************************/
-#ifndef TCW_H_
-#define TCW_H_
+#ifndef _TCW_H_
+#define _TCW_H_
 
 /******************************************************************************
 * Includes
@@ -39,10 +39,15 @@
 //==TAG-A504采集协议信息=========================================================
 #define ZXINFO_A504_ADDR         (ZXINFO_A501_ADDR+SIZE_OF_ZXINFO_A501)  // 起始地址
 #define zxinfo_buffer_a504       (zxinfo_buffer+ZXINFO_A504_ADDR)  // 起始地址定义
-#define ZXINFO_A504_POS1_ADDR    0                          // 车型配置
-#define ZXINFO_A504_POS2_ADDR    (ZXINFO_A504_POS1_ADDR+1)  // 上车CAN协议
-#define ZXINFO_A504_POS3_ADDR    (ZXINFO_A504_POS2_ADDR+1)  // 下车CAN协议
-#define SIZE_OF_ZXINFO_A504      (ZXINFO_A504_POS3_ADDR+1)  // 总字节数(3B)
+#define ZXINFO_A504_POS1_ADDR    0                          // 上车类型状态字
+#define ZXINFO_A504_POS2_ADDR    (ZXINFO_A504_POS1_ADDR+1)  // 上车配置状态字1
+#define ZXINFO_A504_POS3_ADDR    (ZXINFO_A504_POS2_ADDR+1)  // 上车配置状态字2
+#define ZXINFO_A504_POS4_ADDR    (ZXINFO_A504_POS3_ADDR+1)  // 上车协议类型状态字
+#define ZXINFO_A504_POS5_ADDR    (ZXINFO_A504_POS4_ADDR+1)  // 底盘类型状态字
+#define ZXINFO_A504_POS6_ADDR    (ZXINFO_A504_POS5_ADDR+1)  // 底盘配置状态字1
+#define ZXINFO_A504_POS7_ADDR    (ZXINFO_A504_POS6_ADDR+1)  // 底盘配置状态字2
+#define ZXINFO_A504_POS8_ADDR    (ZXINFO_A504_POS7_ADDR+1)  // 底盘CAN协议
+#define SIZE_OF_ZXINFO_A504      (ZXINFO_A504_POS8_ADDR+1)  // 总字节数(8B)
 
 //==TAG-A5FF终端状态信息==========================================================
 #define ZXINFO_A5FF_ADDR         (ZXINFO_A504_ADDR+SIZE_OF_ZXINFO_A504)  // 起始地址
@@ -56,8 +61,10 @@
 #define ZXINFO_A5FF_POS7_ADDR    (ZXINFO_A5FF_POS6_ADDR+1)  // CAN通信状态
 #define ZXINFO_A5FF_POS8_ADDR    (ZXINFO_A5FF_POS7_ADDR+1)  // RTC时间
 #define ZXINFO_A5FF_POS9_ADDR    (ZXINFO_A5FF_POS8_ADDR+6)  // 工作模式
-#define ZXINFO_A5FF_POS10_ADDR    (ZXINFO_A5FF_POS9_ADDR+1)  // ST固件版本信息
-#define SIZE_OF_ZXINFO_A5FF      (ZXINFO_A5FF_POS10_ADDR+2)  // 总字节数(11B)
+#define ZXINFO_A5FF_POS10_ADDR   (ZXINFO_A5FF_POS9_ADDR+1)  // ST固件版本信息
+#define ZXINFO_A5FF_POS11_ADDR   (ZXINFO_A5FF_POS10_ADDR+2)  // ECU绑定状态
+#define ZXINFO_A5FF_POS12_ADDR   (ZXINFO_A5FF_POS11_ADDR+1)  // ST工作状态
+#define SIZE_OF_ZXINFO_A5FF      (ZXINFO_A5FF_POS12_ADDR+1)  // 总字节数(11B)
 
 // 车型配置信息数据缓存大小
 #define SIZE_OF_ZXINFO_BUFFER  (ZXINFO_A5FF_ADDR+SIZE_OF_ZXINFO_A5FF)
@@ -775,13 +782,13 @@
 #define ZXVERSION_A505_ADDR    0  // 起始地址
 #define zxversion_buffer_a505  (zxversion_buffer+ZXVERSION_A505_ADDR)
 #define ZXVERSION_A505_POS1    0                        // 力矩限制器
-#define ZXVERSION_A505_POS2    (ZXVERSION_A505_POS1+3)  // 显示器1
-#define ZXVERSION_A505_POS3    (ZXVERSION_A505_POS2+3)  // 显示器底层版本
+#define ZXVERSION_A505_POS2    (ZXVERSION_A505_POS1+8)  // 显示器1
+#define ZXVERSION_A505_POS3    (ZXVERSION_A505_POS2+8)  // 显示器底层版本
 #define ZXVERSION_A505_POS4    (ZXVERSION_A505_POS3+3)  // GPS终端
 #define ZXVERSION_A505_POS5    (ZXVERSION_A505_POS4+3)  // 控制器
-#define ZXVERSION_A505_POS6    (ZXVERSION_A505_POS5+3)  // 显示器2
-#define ZXVERSION_A505_POS7    (ZXVERSION_A505_POS6+3)  // 显示器2底层
-#define SIZE_OF_ZXVERSION_A505 (ZXVERSION_A505_POS7+3)  // 总字节数(18B)
+#define ZXVERSION_A505_POS6    (ZXVERSION_A505_POS5+8)  // 显示器2
+#define ZXVERSION_A505_POS7    (ZXVERSION_A505_POS6+8)  // 显示器2底层
+#define SIZE_OF_ZXVERSION_A505 (ZXVERSION_A505_POS7+3)  // 总字节数(41B)
 
 //==TAG-A506 下车系统版本=========================================================
 #define ZXVERSION_A506_ADDR   (ZXVERSION_A505_ADDR+SIZE_OF_ZXVERSION_A505)  // 起始地址
@@ -806,8 +813,14 @@
 #define ZXVERSION_A506_POS18   (ZXVERSION_A506_POS17+3)  // P8底层
 #define SIZE_OF_ZXVERSION_A506 (ZXVERSION_A506_POS18+3)  // 总字节数(54B)
 
+//==TAG-A50A 整车VIN码============================================================
+#define ZXVERSION_A50A_ADDR    (ZXVERSION_A506_ADDR+SIZE_OF_ZXVERSION_A506)  // 起始地址
+#define zxversion_buffer_a50a  (zxversion_buffer+ZXVERSION_A50A_ADDR)  // 起始地址定义
+#define ZXVERSION_A50A_POS1    0
+#define SIZE_OF_ZXVERSION_A50A (ZXVERSION_A50A_POS1+17)  // 总字节数(17B)
+
 // 版本信息数据缓存大小
-#define SIZE_OF_ZXVERSION_BUFFER   (ZXVERSION_A506_ADDR+SIZE_OF_ZXVERSION_A506)
+#define SIZE_OF_ZXVERSION_BUFFER  (ZXVERSION_A50A_ADDR+SIZE_OF_ZXVERSION_A50A)
 
 /******************************************************************************
  * Data Types
@@ -950,7 +963,7 @@ extern bittype2 zxengine_tlv_flag;
 extern bittype2 zxversion_tlv_flag;
 #define tlv_a505_valid_flag    zxversion_tlv_flag.w.bit0  //==TAG-A505 上车系统版本
 #define tlv_a506_valid_flag    zxversion_tlv_flag.w.bit1  //==TAG-A506 下车系统版本
-//#define X    zxversion_tlv_flag.w.bit2
+#define tlv_a50a_valid_flag    zxversion_tlv_flag.w.bit2  //==TAG-A50A 整车VIN码
 //#define X    zxversion_tlv_flag.w.bit3
 //#define X    zxversion_tlv_flag.w.bit4
 //#define X    zxversion_tlv_flag.w.bit5
@@ -1100,7 +1113,7 @@ extern bittype2 zxsts_flag2;
  * tfc = total fuel consumption
  * afc = average fuel consumption
  ******************************************************************************/
-// 频次统计结构体
+// 发动机工作统计
 typedef struct
 {
   uint8_t engine_type;  // 发动机类型: 0x00=无效, 单发=0x01, 双发=0x02
@@ -1133,7 +1146,7 @@ typedef struct
   uint32_t tfc_down;  // 行驶(下车)总油耗量(单位0.5L)
 
   //==平均油耗=========================================
-  uint16_t afc_up;  // 作业(上车)平均油耗(单位0.1L/100Km)
+  uint16_t afc_up;  // 作业(上车)平均油耗(单位0.1L/h)
   uint32_t afc_down;  // 行驶(下车)平均油耗(单位0.1L/100Km)
 
   //uint16_t timer_100ms;  // 基于100mS计时器
@@ -1180,5 +1193,7 @@ void TboxSts_SaveDataToFdb(void);
 void TboxSts_AccumulateTime(uint32_t sleep_time);
 void TboxSts_Initialize(tboxsts_context_t* pThis);
 
-#endif /* TCW_H_ */
+void ZxM2m_InitTlvData(void);
+
+#endif /* _TCW_H_ */
 

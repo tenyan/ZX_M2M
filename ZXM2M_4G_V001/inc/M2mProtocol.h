@@ -36,6 +36,10 @@ extern uint8_t rfu_data_buffer[RFU_BUFFER_SIZE];
 #define DEFAULT_SS_DATA_RSP_TIMEOUT_SP  10
 #define DEFAULT_SS_DATA_RETRY_SP        3
 
+#define DEFAULT_TC_DATA_SEND_PERIOD_SP  20
+#define DEFAULT_TC_DATA_RSP_TIMEOUT_SP  10
+#define DEFAULT_TC_DATA_RETRY_SP        3
+
 #define DEFAULT_BZ_DATA_SEND_PERIOD_SP  3
 #define DEFAULT_BZ_DATA_RSP_TIMEOUT_SP  10
 #define DEFAULT_BZ_DATA_RETRY_SP        1
@@ -221,7 +225,8 @@ typedef struct
   im2m_alarm_t alarm_table[NUM_OF_M2M_ALARM_TYPE];
   im2m_request_t conn_req;  // 连接请求
   im2m_request_t ss_req;    // 状态同步请求
-  im2m_request_t bz_req;    // 状态同步请求
+  im2m_request_t tc_req;    // 工况数据请求
+  im2m_request_t bz_req;    // 盲区数据请求
   im2m_lt_report_t lt_report; // 位置追踪上报
   im2m_request_t ping_req;  // 心跳请求
   im2m_request_t alarm_req; // 告警请求
@@ -340,12 +345,7 @@ typedef struct
   
   uint8_t position_report_mode_sp;  // 位置信息单条上传模式
   uint8_t position_report_time_sp;  // 位置信息上传间隔
-  
-  uint8_t ecu_type;                 // 发动机类型
-  uint8_t ep_type;                  // 环保类型
-  uint8_t vin[17];  // 车辆识别号码(Vehicle Identification Number)或车架号码
-  uint8_t vin_valid_flag;  // VIN码有效标识
-  
+
   uint8_t xor_value;    // 校验值
 }m2m_asset_data_t;
 extern m2m_asset_data_t m2m_asset_data;

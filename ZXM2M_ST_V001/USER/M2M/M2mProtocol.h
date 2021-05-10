@@ -3,9 +3,9 @@
 * @FileName: M2mProtocol.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-20
-* @brief     M2M 协议头文件
+* @brief:    M2M 协议头文件
 ******************************************************************************/
 #ifndef _M2M_PROTOCOL_H_
 #define _M2M_PROTOCOL_H_
@@ -327,12 +327,7 @@ __packed typedef struct
   
   uint8_t position_report_mode_sp;  // 位置信息单条上传模式
   uint8_t position_report_time_sp;  // 位置信息上传间隔
-  
-  uint8_t ecu_type;                 // 发动机类型
-  uint8_t ep_type;                  // 环保类型
-  uint8_t vin[17];  // 车辆识别号码(Vehicle Identification Number)或车架号码
-  uint8_t vin_valid_flag;  // VIN码有效标识
-  
+
   uint8_t xor_value;    // 校验值
 }m2m_asset_data_t;
 extern m2m_asset_data_t m2m_asset_data;

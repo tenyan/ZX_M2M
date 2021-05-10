@@ -3,9 +3,9 @@
  * @FileName: CanHW.h
  * @Engineer: TenYan
  * @Company:  徐工信息智能硬件部
- * @version   V1.0
+ * @version:  V1.0
  * @Date:     2020-10-15
- * @brief     本文件为CAN硬件驱动层的头文件
+ * @brief:    本文件为CAN硬件驱动层的头文件
 ******************************************************************************/
 #ifndef _CAN_HW_H_
 #define _CAN_HW_H_

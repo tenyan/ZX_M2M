@@ -3,9 +3,9 @@
 * @FileName: Mcu.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-6-19
-* @brief     CAN1接下车,CAN2接上车
+* @brief:    CAN1接下车,CAN2接上车
 ******************************************************************************/
 //-----头文件调用-------------------------------------------------------------
 #include "config.h"
@@ -37,26 +37,11 @@ const osThreadAttr_t AppThreadAttr_Can2Recv =
 /******************************************************************************
  * Data Types and Globals
  ******************************************************************************/
-// 锁车对象
-lvc_context_t lvc_context = {
-  .header = 0x55AA5AA5,     // 校验字节  
-  .lock_cmd_flag = 0x00,    // 平台下发的锁车和绑定命令标识
-  .report_srv_flag = 0x00,  // 上报平台标志
-  .lock_command = 0x00,     // 锁车级别:  0:解锁, 1~3:锁车级别
-  .bind_command = 0x00,     // 绑定命令,0:无任何命令, 0xaa:绑定, 0x55:解绑
-  .lock_level1_sn = 0x00,   // 平台下发的一级锁车流水号
-  .lock_level2_sn = 0x00,   // 平台下发的二级锁车流水号
-  .unlock_sn = 0x00,        // 平台下发的解锁流水号
-  .bind_sn = 0x00,          // 平台下发的设置监控模式流水号
-  .ecu_rsp_lock_state = 0x00, // ECU反馈的锁车状态:1=锁车, 0=解锁
-  .ecu_rsp_bind_state = 0x00, // ECU反馈的绑定状态:1=绑定, 0=解除绑定
-};
-
 // CAN对象
 can_context_t can_context = {
   .ep_valid_flag = 0, // 环保数据有效标志: 0=无效, 1=有效
   .mil_lamp = 0,      // 故障灯状态:0:未点亮, 1=点亮
-  .engine_speed = 0x00, // 发动机转速
+  //.engine_speed = 0x00, // 发动机转速
 
   .comm_state1 = 0,  // 通信状态:0=异常, 1=正常
   .recv_state1 = 0,  // 接收状态:0=未收到数据, 1=已收到数据
@@ -67,6 +52,29 @@ can_context_t can_context = {
   .recv_timer2 = CAN2_RECV_TIMEOUT_SP, // 接收超时计数器
 
   .sleep_state = 0, // 休眠状态,0=未休眠, 1=休眠
+
+  .up_engine_speed = 0,  // 上车发动机转速
+  .dw_engine_speed = 0,  // 下车发动机转速
+
+  .pid_up_type = 1,      // 上车类型状态字
+  .pid_up_config1 = 0,   // 上车配置状态字1
+  .pid_up_config2 = 0,   // 上车配置状态字2
+  .pid_up_can = 0,       // 上车协议类型状态字
+  .pid_down_type = 3,    // 底盘类型状态字
+  .pid_down_config1 = 0, // 底盘配置状态字1
+  .pid_down_config2 = 0, // 底盘配置状态字2
+  .pid_down_can = 0,     // 底盘CAN协议
+  .pid_save_flag = 0,    // 保存协议信息标志位
+
+  .hzep_fault_data_len = 0,
+  .hzep_fault_data_flag = 0,
+  .hzep_fault_data_timer = 0,
+  .hzep_new_fdata_flag = 0,
+  
+  .vin_valid_flag = 0,            // VIN码无效
+  .vin = "",     // VIN码
+  .ecu_type = ENGINE_TYPE_NONE,// 发动机类型
+  .ep_type = EP_TYPE_HJ,       // 环保类型
 };
 
 obd_info_t obd_info;
@@ -79,6 +87,7 @@ can_msg_queue_t can1_msg_queue;
 can_msg_queue_t can2_msg_queue;
 
 #define ACC_ON_TIMEOUT_SP     30  //通信异常判定时间
+#define CAN_COMM_ERR_DEBOUNCE_TIME_SP   5 // 5秒
 /**********************************************************************************
 * MCU通信状态判断，此函数1s执行一次
 ***********************************************************************************/
@@ -89,10 +98,13 @@ void Can_CheckCommState(void)
   static uint16_t acc_on_timer = ACC_ON_TIMEOUT_SP; // 30秒
   static uint8_t reset_can_timer = 0;  // 5秒钟
   static uint8_t reset_can_flag = 0;     // 0=可以重新启动CAN，1=不可以重新启动CAN
+  static uint8_t can1_comm_err_debounce_cnt = 0;
+  static uint8_t can2_comm_err_debounce_cnt = 0;
 
   acc_current_state = COLT_GetAccStatus();
   if (acc_current_state != acc_previous_state)
   {
+    acc_previous_state = acc_current_state;
     if (acc_current_state==0) // ACC关闭事件
     {
       acc_on_timer = ACC_ON_TIMEOUT_SP;
@@ -112,8 +124,51 @@ void Can_CheckCommState(void)
       reset_can_flag = 1;
       reset_can_timer = 5;
       CAN_POWER_OFF();  // 收发器进入待机状态
-      can_context.comm_state1 = CAN_NOK; //CAN通讯异常
       PcDebug_SendString("Can Off!\n");
+    }
+    
+    //==CAN1通信失败判断============================
+    if (can_context.recv_state1==0)
+    {
+      if(can1_comm_err_debounce_cnt>CAN_COMM_ERR_DEBOUNCE_TIME_SP)
+      {
+        if(can_context.comm_state1 == CAN_OK)
+        {
+          PcDebug_SendString("Can1CommErr!\n");
+        }
+        can_context.comm_state1 = CAN_NOK;  //CAN通讯异常
+      }
+      else
+      {
+        can1_comm_err_debounce_cnt++;
+      }
+    }
+    else
+    {
+      can1_comm_err_debounce_cnt = 0;
+      can_context.comm_state1 = CAN_OK;  //CAN通讯正常
+    }
+    
+    //==CAN2通信失败判断============================
+    if (can_context.recv_state2==0)
+    {
+      if(can2_comm_err_debounce_cnt>CAN_COMM_ERR_DEBOUNCE_TIME_SP)
+      {
+        if(can_context.comm_state2 == CAN_OK)
+        {
+          PcDebug_SendString("Can2CommErr!\n");
+        }
+        can_context.comm_state2 = CAN_NOK;  //CAN通讯异常
+      }
+      else
+      {
+        can2_comm_err_debounce_cnt++;
+      }
+    }
+    else
+    {
+      can2_comm_err_debounce_cnt = 0;
+      can_context.comm_state2 = CAN_OK;  //CAN通讯正常
     }
 
     if (reset_can_timer)
@@ -127,7 +182,11 @@ void Can_CheckCommState(void)
     }
   }
 
-  acc_previous_state = acc_previous_state;
+  if((can_context.recv_state1==1) || (can_context.recv_state2==1))
+  {
+    acc_on_timer = ACC_ON_TIMEOUT_SP;
+    reset_can_flag = 0;
+  }
 }
 
 /**********************************************************************************
@@ -588,7 +647,7 @@ void CAN1_ProcessRecvMsg(can_msg_t* pMsg)
 #define can1MsgQueueENTER_CRITICAL()  do{CAN_ITConfig(CAN1,CAN_IT_FMP0, DISABLE);CAN_ITConfig(CAN1,CAN_IT_FMP1, DISABLE);}while(0)
 #define can1MsgQueueEXIT_CRITICAL()   do{CAN_ITConfig(CAN1,CAN_IT_FMP0, ENABLE);CAN_ITConfig(CAN1,CAN_IT_FMP1, ENABLE);}while(0)
 /******************************************************************************
-* 处理MCU模块的任务(阻塞)
+* 处理下车工况数据的任务(阻塞)
 *******************************************************************************/
 void AppThread_Can1Recv(void *argument)
 {
@@ -617,10 +676,34 @@ void CAN2_ProcessRecvMsg(can_msg_t* pMsg)
   uint8_t buff[8];
   uint8_t retval = 0x00;
 
+#if 0
+  if(pMsg->id==0x574)  // 车型配置(上车发出)
+  {
+    if((can_context.pid_vehicle!=pMsg->data[1]) || (can_context.pid_up!=pMsg->data[0]))
+    {
+      can_context.pid_vehicle = pMsg->data[1];
+      can_context.pid_up = pMsg->data[0];
+      // 获取CAN处理函数
+      Parm_SavePidInfo();
+      PcDebug_Printf("Vpid=%d,Upid=%d,Dpid=%d\n", can_context.pid_vehicle, can_context.pid_up,can_context.pid_down);
+    }
+  }
+#endif
+
+
   retval = CAN_ProcessRecvUpMsg(pMsg->id, pMsg->data, pMsg->len); // 上车数据
   if (retval==0x01)
   {
     return;
+  }
+
+  if(lvc_context.protocol==LVC_PROTOCOL_LTC)  // 大吨位锁车协议
+  {
+    retval = pLVC_ProcessCanMsg(&lvc_context, pMsg->id, pMsg->data, pMsg->len);  // 锁车处理
+    if (retval==0x01)
+    {
+      return;
+    }
   }
 
   switch (pMsg->id)
@@ -648,7 +731,7 @@ void CAN2_ProcessRecvMsg(can_msg_t* pMsg)
 #define can2MsgQueueENTER_CRITICAL()  do{CAN_ITConfig(CAN2,CAN_IT_FMP0, DISABLE);CAN_ITConfig(CAN2,CAN_IT_FMP1, DISABLE);}while(0)
 #define can2MsgQueueEXIT_CRITICAL()   do{CAN_ITConfig(CAN2,CAN_IT_FMP0, ENABLE);CAN_ITConfig(CAN2,CAN_IT_FMP1, ENABLE);}while(0)
 /******************************************************************************
-* 处理MCU模块的任务(阻塞)
+* 处理上车工况数据的任务(阻塞)
 *******************************************************************************/
 void AppThread_Can2Recv(void *argument)
 {
@@ -674,13 +757,16 @@ void AppThread_Can2Recv(void *argument)
 *************************************************************************/
 void Can_ServiceInit(void)
 {
+  CAN_GpioInitialize();
   can_msg_queue_reset(&can1_msg_queue);
   can_msg_queue_reset(&can1_msg_queue);
   ZxSts_Initialize();
   ZxStsEngine_Initialize(&zxsts_engine_context);
   TboxSts_Initialize(&tboxsts_context);
-  CAN_GpioInitialize(); 
+  Parm_ReadLvcInfo();
+  Parm_ReadPidInfo();
   CAN_Initialize();
+  LVC_Initialize(&lvc_context);
 }
 
 /*************************************************************************
@@ -690,6 +776,14 @@ void Can_ServiceStart(void)
 {
   tid_Can1Recv = osThreadNew(AppThread_Can1Recv, NULL, &AppThreadAttr_Can1Recv);
   tid_Can2Recv = osThreadNew(AppThread_Can2Recv, NULL, &AppThreadAttr_Can2Recv);
+}
+
+/**********************************************************************************
+* 10ms执行一次(无阻塞)
+***********************************************************************************/
+void Can_Do10msTasks(void)
+{
+  pLVC_ProduceCanMsg(&lvc_context);
 }
 
 /**********************************************************************************
@@ -709,46 +803,86 @@ void Can_Do1sTasks(void)
   Can_CheckCommState();
   DTC_DebounceCode(&dtc_1939);
   DTC_DebounceCode(&dtc_27145);
+
+  can_context.hzep_fault_data_timer++;
+  if (can_context.hzep_fault_data_timer > HZEP_FAULTCODE_TIMEOUT_SP)
+  {
+    can_context.hzep_fault_data_flag = 0;
+  }
+
+  ZxStsEngine_StateMachine(&zxsts_engine_context);
 }
 
 /**********************************************************************************
 * 获取GPS终端与MCU的通信状态
 ***********************************************************************************/
-uint8_t CAN_GetCommState(uint8_t channel)
+uint8_t CAN1_GetCommState(void)
 {
-  if (CAN_CHANNEL1==channel)
-  {
-    return can_context.comm_state1;
-  }
-  else if (CAN_CHANNEL2==channel)
-  {
-    return can_context.comm_state2;
-  }
-
-  return CAN_NOK;
+  return can_context.comm_state1;  // 通信状态:0=异常, 1=正常
 }
+
+uint8_t CAN2_GetCommState(void)
+{
+  return can_context.comm_state2;  // 通信状态:0=异常, 1=正常
+}
+
 
 /**********************************************************************************
 * 获取CAN接收状态,1:收到了CAN1数据，2:没有收到CAN1数据
 ***********************************************************************************/
-uint8_t CAN_GetRecvState(uint8_t channel)
+uint8_t CAN1_GetRecvState(void)
 {
-  if (CAN_CHANNEL1==channel)
-  {
-    return can_context.recv_state1;
-  }
-  else if (CAN_CHANNEL2==channel)
-  {
-    return can_context.recv_state2;
-  }
+  return can_context.recv_state1;
+}
 
-  return CAN_NOK;
+uint8_t CAN2_GetRecvState(void)
+{
+  return can_context.recv_state2;
+}
+
+//==获取VIN码有效性=============================================================
+uint8_t CAN_GetVinState(void)
+{
+  if ((can_context.vin_valid_flag == 0x01) || (obd_info.vin_valid_flag==0x01))
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
 
 //==获取环保数据有效性=============================================================
-uint8_t CAN_GetVinState(void)
+uint8_t CAN_GetObdVinState(void)
 {
-  if ((m2m_asset_data.vin_valid_flag == 0x01) || (obd_info.vin_valid_flag==0x01))
+  if (obd_info.vin_valid_flag==0x01)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+//==获取环保数据有效性=============================================================
+uint8_t CAN_GetUserVinState(void)
+{
+  if (can_context.vin_valid_flag == 0x01)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+//==获取CI码标志==================================================================
+uint8_t CAN_GetCiCodeState(void)
+{
+  if (can_context.got_ci_code_flag == 0x01)
   {
     return 1;
   }
@@ -761,13 +895,39 @@ uint8_t CAN_GetVinState(void)
 //==获取发动机类型=================================================================
 uint8_t CAN_GetEngineType(void)
 {
-  return m2m_asset_data.ecu_type;
+  return can_context.ecu_type;
 }
 
 //==获取发动机转速=================================================================
 uint16_t CAN_GetEngineSpeed(void)
 {
-  return can_context.engine_speed;
+  return can_context.dw_engine_speed;
+}
+
+//==获取下车发动机工作状态=========================================================
+uint8_t CAN_GetDwEngineState(void)
+{
+  if(can_context.dw_engine_speed > 300)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+//==获取上车发动机工作状态=========================================================
+uint8_t CAN_GetUpEngineState(void)
+{
+  if(can_context.up_engine_speed > 300)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
 
 //==上车总工作时间=================================================================

@@ -65,6 +65,7 @@
 .\project\objects\i2c1.o: .\USER\RTC\am1805.h
 .\project\objects\i2c1.o: .\USER\CAN\Can.h
 .\project\objects\i2c1.o: .\USER\CAN\CanHW.h
+.\project\objects\i2c1.o: .\USER\CAN\lvc.h
 .\project\objects\i2c1.o: .\USER\CAN\ISO27145.h
 .\project\objects\i2c1.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\i2c1.o: .\USER\Momi\MomiProtocol.h

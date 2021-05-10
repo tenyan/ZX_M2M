@@ -3,9 +3,9 @@
 * @FileName: tcw.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2019-10-29
-* @brief     徐工重型起重机CAN通信协议(上车(CAN2)、下车(CAN1))
+* @brief:    徐工重型起重机CAN通信协议(上车(CAN2)、下车(CAN1))
 * @Device ID: 2181193799(全地面)  2181193800(轮式KXCT)
 ******************************************************************************/
 
@@ -59,6 +59,194 @@ zxsts_engine_context_t zxsts_engine_context;  // 作业和油耗统计
 tboxsts_context_t tboxsts_context;  // 终端休眠
 
 /*************************************************************************
+ * 用于测试
+*************************************************************************/
+void ZxM2m_InitTlvData(void)
+{
+  uint16_t it;
+
+  for(it=0; it<SIZE_OF_ZXINFO_BUFFER; it++)  // 基本信息
+  {
+    zxinfo_buffer[it] = 0x00;
+  }
+  zxinfo_tlv_flag.word = 0xFFFF;
+
+  for(it=0; it<SIZE_OF_ZXUP_BUFFER; it++)  // 上车数据缓存
+  { 
+    zxup_buffer[it] = 0x00;
+  }
+  zxup_tlv_flag1.word = 0xFFFF;
+  zxup_tlv_flag2.word = 0xFFFF;
+  zxup_tlv_flag3.word = 0xFFFF;
+  
+  for(it=0; it<SIZE_OF_ZXDOWN_BUFFER; it++)  // 下车底盘数据缓存
+  { 
+    zxdown_buffer[it] = 0x00;
+  }
+  zxdown_tlv_flag1.word = 0xFFFF;
+  zxdown_tlv_flag2.word = 0xFFFF;
+
+  for(it=0; it<SIZE_OF_ZXENGINE_BUFFER; it++)  // 下车发动机数据缓存
+  { 
+    zxengine_buffer[it] = 0x00;
+  }
+  zxengine_tlv_flag.word = 0xFFFF;
+  zxengine_buffer_a5ef[ZXENGINE_A5EF_POS22] = 0x09; // 发动机扭矩模式
+
+  for(it=0; it<SIZE_OF_ZXSTATISTICS_BUFFER; it++)  //统计数据缓存
+  {
+    zxstatistics_buffer[it] = 0x00;
+
+  }
+  zxstatistics_tlv_flag.word = 0xFFFF;
+
+  for(it=0; it<SIZE_OF_ZXVERSION_BUFFER; it++)  // 版本信息缓存
+  {
+    zxversion_buffer[it] = 0x00;
+  }
+  zxversion_tlv_flag.word = 0xFFFF;
+}
+
+//==单独更新A501数据==========================================================
+void iZxm2m_UpdateTlvMsg_A501(void)
+{
+  bittype tempVal;
+  uint8_t status;
+
+  //==工作状态位======================
+  tempVal.byte = 0x00;
+  if (CAN_OK==CAN2_GetCommState())  // CAN2(上车)总线异常标志：0=异常, 1=正常
+  {
+    tempVal.b.bit0 = 1;  // 1：正常 0：异常
+  }
+
+  if (CAN_OK==CAN1_GetCommState())  // CAN1(下车)总线异常标志：0=异常, 1=正常
+  {
+    tempVal.b.bit1 = 1;  // 1：正常 0：异常
+  }
+
+  if(1==CAN_GetUpEngineState())  // 上车发动机工作状态
+  {
+    tempVal.b.bit2 = 1;  // 0：未工作 1：工作
+  }
+
+  if(1==CAN_GetDwEngineState())  // 下车发动机工作状态
+  {
+    tempVal.b.bit3 = 1;  // 0：未工作 1：工作
+  }
+  zxinfo_buffer_a501[ZXINFO_A501_POS1_ADDR] = tempVal.byte;  // 工作状态位
+
+  //==绑定和锁车状态位===============
+  tempVal.byte = 0x00;
+  if(1==LVC_GetGpsBindStatus())  // GPS绑定状态
+  {
+    tempVal.b.bit0 = 1;  // 0-解绑, 1-绑定
+  }
+
+  status = LVC_GetEcuBindStatus();  // ECU绑定状态
+  if(1==status)
+  {
+    tempVal.b.bit2 = 1;
+    tempVal.b.bit3 = 0;
+  }
+  else if(0==status)
+  {
+    tempVal.b.bit2 = 0;
+    tempVal.b.bit3 = 0;
+  }
+  else
+  {
+    tempVal.b.bit2 = 1;
+    tempVal.b.bit3 = 1;
+  }
+
+  if(1==LVC_GetGpsLockStatus())  // GPS锁车状态
+  {
+    tempVal.b.bit4 = 1;  // 0-解锁,1-锁车
+  }
+
+  status = LVC_GetEcuLockStatus();  // ECU锁车状态
+  if(1==status)
+  {
+    tempVal.b.bit6 = 1;
+    tempVal.b.bit7 = 0;
+  }
+  else if(0==status)
+  {
+    tempVal.b.bit6 = 0;
+    tempVal.b.bit7 = 0;
+  }
+  else
+  {
+    tempVal.b.bit6 = 1;
+    tempVal.b.bit7 = 1;
+  }
+  zxinfo_buffer_a501[ZXINFO_A501_POS3_ADDR] = tempVal.byte;  // 工作状态位
+
+  // 锁车原因和获取信息状态位
+  tempVal.byte = 0x00;
+  if(1==LVC_LockByGpsAnt())  // 锁车原因: GPS天线
+  {
+    tempVal.b.bit0 = 1;
+  }
+
+  if(1==LVC_LockByUser())  // 锁车原因: 平台
+  {
+    tempVal.b.bit1 = 1;
+  }
+
+  if(1==LVC_LockBySimCard())  // 锁车原因: SIM卡故障
+  {
+    tempVal.b.bit2 = 1;
+  }
+
+  if(1==LVC_LockByOffline())  // 锁车原因: 离线
+  {
+    tempVal.b.bit3 = 1;
+  }
+
+  //if(1==CAN_GetUserVinState())  // VIN码平台设置功能
+  //{
+  //  tempVal.b.bit4 = 1;
+  //}
+
+   if(1==CAN_GetCiCodeState())  // CI码获取状态
+  {
+    tempVal.b.bit5 = 1;
+  }
+
+  if(1==CAN_GetObdVinState())  // VIN获取状态
+  {
+    tempVal.b.bit6 = 1;
+  }
+  zxinfo_buffer_a501[ZXINFO_A501_POS4_ADDR] = tempVal.byte;
+}
+
+//==单独更新A504数据==========================================================
+void iZxm2m_UpdateTlvMsg_A504(void)
+{
+#if 0
+  zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR] = can_context.pid_up_type;    // 上车类型状态字
+  zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR] = can_context.pid_up_config1; // 上车配置状态字1
+  zxinfo_buffer_a504[ZXINFO_A504_POS3_ADDR] = can_context.pid_up_config2; // 上车配置状态字2
+  zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR] = can_context.pid_up_can;     // 上车协议类型状态字
+  zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR] = can_context.pid_down_type;  // 底盘类型状态字
+  zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR] = can_context.pid_down_config1; // 底盘配置状态字1
+  zxinfo_buffer_a504[ZXINFO_A504_POS7_ADDR] = can_context.pid_down_config2; // 底盘配置状态字2
+  zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR] = can_context.pid_down_can;     // 底盘CAN协议
+#endif
+
+  //zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR] = 0x03;    // 上车类型状态字
+  //zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR] = 0x0F; // 上车配置状态字1
+  //zxinfo_buffer_a504[ZXINFO_A504_POS3_ADDR] = 0x00; // 上车配置状态字2
+  //zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR] = 0x00;     // 上车协议类型状态字
+  zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR] = 0x02;  // 底盘类型状态字
+  zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR] = 0x01; // 底盘配置状态字1
+  zxinfo_buffer_a504[ZXINFO_A504_POS7_ADDR] = can_context.ecu_type; // 底盘配置状态字2
+  zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR] = 0x00;     // 底盘CAN协议
+}
+
+/*************************************************************************
  * 处理接收到的uCAN报文(上车)
 *************************************************************************/
 uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
@@ -70,13 +258,38 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
 
   switch (canId) // 上车通信
   {
-  //==TAG-A504采集协议信息==========================================================
+  //==TAG-A504采集协议信息================================================
   case 0x574:  // 上车类型配置说明
-   zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR] = pdata[0]; // 车型配置
-   zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR] = pdata[1]; // 上车CAN协议
-   break;
+    if(can_context.pid_up_type != pdata[0])  // 上车类型状态字
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_up_type = pdata[0];
+    }
 
-  //==A5A0====================================================================================
+    if(can_context.pid_up_config1 != pdata[1])  // 上车配置状态字1
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_up_config1 = pdata[1];
+    }
+
+    if(can_context.pid_up_config2 != pdata[2])  // 上车配置状态字2
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_up_config2 = pdata[2];
+    }
+
+    if(can_context.pid_up_can != pdata[3])  // 上车协议类型状态字
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_up_can = pdata[3];
+    }
+    zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR] = pdata[0]; // 上车类型状态字
+    zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR] = pdata[1]; // 上车配置状态字1
+    zxinfo_buffer_a504[ZXINFO_A504_POS3_ADDR] = pdata[2]; // 上车配置状态字2
+    zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR] = pdata[3]; // 上车协议类型状态字
+    break;
+
+  //==A5A0================================================================
   case 0x565:
     zxup_buffer_a5a0[ZXUP_A5A0_POS1] = pdata[0]; // 力限器配置
     zxup_buffer_a5a0[ZXUP_A5A0_POS1+1] = pdata[1];
@@ -86,6 +299,7 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     zxup_buffer_a5a0[ZXUP_A5A0_POS2] = pdata[1]; // 工况代码(ABCDEFGH)
     zxup_buffer_a5a0[ZXUP_A5A0_POS2+1] = pdata[3];
     zxup_buffer_a5a0[ZXUP_A5A0_POS2+2] = pdata[2];
+    zxup_buffer_a5a0[ZXUP_A5A0_POS2+3] = 0x00;  // GH
     zxup_buffer_a5a0[ZXUP_A5A0_POS3] = pdata[0]; // 倍率
     zxup_buffer_a5a0[ZXUP_A5A0_POS6] = pdata[4]; // 主臂长度
     zxup_buffer_a5a0[ZXUP_A5A0_POS6+1] = pdata[5];
@@ -197,14 +411,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     break;
 
   case 0x1C5:
-    if (pdata[4]&BIT(0)) // 高度限位
-      zxup_buffer_a5a0[ZXUP_A5A0_POS24] |= BIT(0); // 置1
-    else
-      zxup_buffer_a5a0[ZXUP_A5A0_POS24] &= ~BIT(0); // 清0
-
     zxup_buffer_a5a2[ZXUP_A5A2_POS2] = pdata[0]; // 塔臂拉力右
     zxup_buffer_a5a2[ZXUP_A5A2_POS2+1] = pdata[1];
-    tlv_a5a0_valid_flag = 1;
     tlv_a5a2_valid_flag = 1;
     retval = 0x01;
     break;
@@ -432,8 +640,6 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
   case 0x3F3:
     zxup_buffer_a5a2[ZXUP_A5A2_POS3] = pdata[4]; // 防后倾压力
     zxup_buffer_a5a2[ZXUP_A5A2_POS3+1] = pdata[5];
-    zxup_buffer_a5a2[ZXUP_A5A2_POS4] = pdata[4]; // 前支架角度
-    zxup_buffer_a5a2[ZXUP_A5A2_POS4+1] = pdata[5];
     zxup_buffer_a5be[ZXUP_A5BE_POS2] = pdata[6]; // 卷筒转速*****
     zxup_buffer_a5be[ZXUP_A5BE_POS2+1] = pdata[7];
     tlv_a5a2_valid_flag = 1;
@@ -446,6 +652,21 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     else
       zxup_buffer_a5a2[ZXUP_A5A2_POS5] &= ~BIT(0); // 清0
 
+    if (pdata[0]&BIT(0)) // 塔卷锁止
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] |= BIT(1); // 置1
+    else
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] &= ~BIT(1); // 清0
+
+    if (pdata[0]&BIT(1)) // 防后倾10度检测
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] |= BIT(2); // 置1
+    else
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] &= ~BIT(2); // 清0
+
+    if (pdata[0]&BIT(2)) // 防后倾8度检测
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] |= BIT(3); // 置1
+    else
+      zxup_buffer_a5a2[ZXUP_A5A2_POS5] &= ~BIT(3); // 清0
+
     if (pdata[2]&BIT(0)) // 制动电磁阀
       zxup_buffer_a5be[ZXUP_A5BE_POS3] |= BIT(1); // 置1
     else
@@ -456,6 +677,8 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     else
       zxup_buffer_a5be[ZXUP_A5BE_POS3] &= ~BIT(2); // 清0
 
+    zxup_buffer_a5a2[ZXUP_A5A2_POS4] = pdata[4]; // 前支架角度
+    zxup_buffer_a5a2[ZXUP_A5A2_POS4+1] = pdata[5];
     zxup_buffer_a5be[ZXUP_A5BE_POS1] = pdata[6]; // 马达电流
     zxup_buffer_a5be[ZXUP_A5BE_POS1+1] = pdata[7];
     tlv_a5a2_valid_flag = 1;
@@ -465,6 +688,7 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
 
   //==A5A5====================================================================================
   case 0x35A:
+    can_context.up_engine_speed = (pdata[3] + (uint16)(pdata[4]<<8))/8;  // 上车发动机转速
     zxup_buffer_a5a5[ZXUP_A5A5_POS1] = pdata[3]; // 发动机转速
     zxup_buffer_a5a5[ZXUP_A5A5_POS1+1] = pdata[4];
     zxup_buffer_a5a5[ZXUP_A5A5_POS2] = pdata[2]; // 实际扭矩百分比
@@ -1078,6 +1302,12 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     break;
 
   case 0x443:
+    if (pdata[1]&BIT(0)) // 高度限位
+    {  zxup_buffer_a5a0[ZXUP_A5A0_POS24] |= BIT(0);} // 置1
+    else
+    {  zxup_buffer_a5a0[ZXUP_A5A0_POS24] &= ~BIT(0);} // 清0
+    tlv_a5a0_valid_flag = 1;
+
     //==频次统计:主卷和副卷三圈保护、主臂和副臂高限触发======
     temp_flag.byte = pdata[0];
     if(temp_flag.b.bit3)  // 主卷三圈保护
@@ -1522,7 +1752,7 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     tlv_a5c4_valid_flag = 1;
     retval = 0x01;
     break;
-    
+
   case 0x504:
     zxup_buffer_a5c3[ZXUP_A5C3_POS3] = pdata[0]; // 左-超起马达变量
     zxup_buffer_a5c3[ZXUP_A5C3_POS3+1] = pdata[1];
@@ -1553,33 +1783,25 @@ uint8_t CAN_ProcessRecvUpMsg(uint32_t canId, uint8_t *pdata, uint8_t size)
     break;
 
   case 0x571:
-    zxversion_buffer_a505[ZXVERSION_A505_POS2] = pdata[4];  // 显示器1
-    zxversion_buffer_a505[ZXVERSION_A505_POS2+1] = pdata[5];
-    zxversion_buffer_a505[ZXVERSION_A505_POS2+2] = pdata[6];
+    memcpy(&zxversion_buffer_a505[ZXVERSION_A505_POS2], pdata, 8);  // 显示器1
     tlv_a505_valid_flag = 1;
     retval = 0x01;
     break;
 
   case 0x572:
-    zxversion_buffer_a505[ZXVERSION_A505_POS6] = pdata[4];  // 显示器2
-    zxversion_buffer_a505[ZXVERSION_A505_POS6+1] = pdata[5];
-    zxversion_buffer_a505[ZXVERSION_A505_POS6+2] = pdata[6];
+    memcpy(&zxversion_buffer_a505[ZXVERSION_A505_POS6], pdata, 8);  // 显示器2
     tlv_a505_valid_flag = 1;
     retval = 0x00;
     break;
 
   case 0x573:
-    zxversion_buffer_a505[ZXVERSION_A505_POS5] = pdata[4];  // 控制器
-    zxversion_buffer_a505[ZXVERSION_A505_POS5+1] = pdata[5];
-    zxversion_buffer_a505[ZXVERSION_A505_POS5+2] = pdata[6];
+    memcpy(&zxversion_buffer_a505[ZXVERSION_A505_POS5], pdata, 8);  // 控制器
     tlv_a505_valid_flag = 1;
     retval = 0x00;
     break;
     
   case 0x575:
-    zxversion_buffer_a505[ZXVERSION_A505_POS1] = pdata[4];  // 力矩限制器
-    zxversion_buffer_a505[ZXVERSION_A505_POS1+1] = pdata[5];
-    zxversion_buffer_a505[ZXVERSION_A505_POS1+2] = pdata[6];
+    memcpy(&zxversion_buffer_a505[ZXVERSION_A505_POS1], pdata, 8);  // 力矩限制器
     tlv_a505_valid_flag = 1;
     retval = 0x01;
     break;
@@ -1601,6 +1823,30 @@ uint8_t CAN_ProcessRecvDownMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size)
 
   switch (canId) // 下车通信
   {
+  //==采集协议信息A504=========================================================================
+  case 0x1CF23F21:
+    if(can_context.pid_down_type != pdata[1])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_type = pdata[1];
+    }
+    
+    if(can_context.pid_down_config1 != pdata[2])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_config1 = pdata[2];
+    }
+    
+    if(can_context.pid_down_can != pdata[0])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_can = pdata[0];
+    }
+    zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR] = pdata[1];  // 底盘类型状态字
+    zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR] = pdata[2];  // 底盘配置状态字1
+    zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR] = pdata[0];  // 底盘CAN协议
+    break;
+
   //==A5E0===================================================================================
   case 0x1CF23B21:
     zxdown_buffer_a5e0[ZXDOWN_A5E0_POS1] = pdata[0]; // 节点状态1
@@ -1693,7 +1939,7 @@ uint8_t CAN_ProcessRecvDownMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size)
     else
       zxdown_buffer_a5e6[ZXDOWN_A5E6_POS8] &= ~BIT(5); // 清0
     
-    if (pdata[6]&BIT(7)) // PTO检测
+    if (pdata[3]&BIT(1)) // PTO检测
       zxdown_buffer_a5e7[ZXDOWN_A5E7_POS1] |= BIT(0); // 置1
     else
       zxdown_buffer_a5e7[ZXDOWN_A5E7_POS1] &= ~BIT(0); // 清0
@@ -1825,14 +2071,14 @@ uint8_t CAN_ProcessRecvDownMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size)
     break;
 
   //==A5EB====================================================================================
-  case 0x1CF28C21:
-    if(pdata[0]>0 && pdata[0]<19) // 1号轮胎到18号轮胎
-    {
-      zxdown_buffer_a5eb[ZXDOWN_A5EB_POS1+pdata[0]-1] = pdata[1];
-      tlv_a5eb_valid_flag = 1;
-    }
-    retval = 0x01;
-    break;
+  //case 0x1CF28C21:
+  //  if(pdata[0]>0 && pdata[0]<19) // 1号轮胎到18号轮胎
+  //  {
+  //    zxdown_buffer_a5eb[ZXDOWN_A5EB_POS1+pdata[0]-1] = pdata[1];
+  //    tlv_a5eb_valid_flag = 1;
+  //  }
+  //  retval = 0x01;
+  //  break;
 
   //==下车系统版本====================================================================================
   case 0x1CF20F21:
@@ -1947,6 +2193,30 @@ uint8_t CAN_ProcessRecvDownMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size)
 
   switch (canId) // 下车通信
   {
+  //==采集协议信息A504=========================================================================
+  case 0x23F:
+    if(can_context.pid_down_type != pdata[1])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_type = pdata[1];
+    }
+    
+    if(can_context.pid_down_config1 != pdata[2])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_config1 = pdata[2];
+    }
+    
+    if(can_context.pid_down_can != pdata[0])
+    {
+      can_context.pid_save_flag = 1;
+      can_context.pid_down_can = pdata[0];
+    }
+    zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR] = pdata[1];  // 底盘类型状态字
+    zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR] = pdata[2];  // 底盘配置状态字1
+    zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR] = pdata[0];  // 底盘CAN协议
+    break;
+
   //==A5A3====================================================================================
   case 0x24D:
     memcpy(&zxdown_buffer_a5a3[ZXDOWN_A5A3_POS1], pdata, 8); // 水平支腿长度
@@ -2114,7 +2384,7 @@ uint8_t CAN_ProcessRecvDownMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size)
     else
       zxdown_buffer_a5e6[ZXDOWN_A5E6_POS8] &= ~BIT(5); // 清0
     
-    if (pdata[6]&BIT(7)) // PTO检测
+    if (pdata[3]&BIT(1)) // PTO检测
       zxdown_buffer_a5e7[ZXDOWN_A5E7_POS1] |= BIT(0); // 置1
     else
       zxdown_buffer_a5e7[ZXDOWN_A5E7_POS1] &= ~BIT(0); // 清0
@@ -2415,14 +2685,14 @@ uint8_t CAN_ProcessRecvDownMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size)
     break;
 
   //==A5EB====================================================================================
-  case 0x28C:
-    if(pdata[0]>0 && pdata[0]<19) // 1号轮胎到18号轮胎
-    {
-      zxdown_buffer_a5eb[ZXDOWN_A5EB_POS1+pdata[0]-1] = pdata[1];
-      tlv_a5eb_valid_flag = 1;
-    }
-    retval = 0x01;
-    break;
+  //case 0x28C:
+  //  if(pdata[0]>0 && pdata[0]<19) // 1号轮胎到18号轮胎
+  //  {
+  //    zxdown_buffer_a5eb[ZXDOWN_A5EB_POS1+pdata[0]-1] = pdata[1];
+  //    tlv_a5eb_valid_flag = 1;
+  //  }
+  //  retval = 0x01;
+  //  break;
 
   //==A5EC====================================================================================
   case 0x2AB:
@@ -2579,6 +2849,115 @@ uint8_t CAN_ProcessRecvDownMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size)
   return retval;
 }
 
+/******************************************************************************
+ * strnstr - 反向查找s2在s1第一次的指针地址; 若找不到,指针地址为NULL
+ * @src: The string to be searched
+ * @substr: The string to search for
+ * @src_len: 在src的前src_len字符中查找
+ ******************************************************************************/
+static char* strnstr( const char * src, uint16_t src_len, const char * substr, uint16_t substr_len )
+{
+  const char * p;
+  const char * pend;
+
+  if (src_len == 0 || substr_len == 0)
+  {
+    return NULL;
+  }
+
+  if (src == NULL || substr == NULL)
+  {
+    return NULL;
+  }
+
+  if (0==*src || 0==*substr)
+  {
+    return NULL;
+  }
+
+  if (src_len < substr_len)
+  {
+    return NULL;
+  }
+
+  p = src;
+  pend = p + src_len - substr_len;
+  while ( p < pend )
+  {
+    if ( *p == *substr )
+    {
+      if ( memcmp(p, substr, substr_len ) == 0)
+      {
+        return (char*)p;
+      }
+    }
+    p++;
+  }
+
+  return NULL;
+}
+
+//==处理CI码信息=========================================================
+void CAN_ProcessCiMsg(uint8_t *pdata, uint8_t size)
+{
+  char *str;
+
+  str = strnstr((char *)pdata, size, "CNHTC", 5);  // 杭发发动机
+  if (str!=NULL)
+  {
+    if(can_context.ecu_type != ENGINE_TYPE_HANGFA)
+    {
+      PcDebug_SendString("EngType:HF!\n");
+    }
+    can_context.ecu_type = ENGINE_TYPE_HANGFA;
+    return;
+  }
+
+  str = strnstr((char *)pdata, size, "SC9DF", 5);  // 上柴发动机
+  if (str!=NULL)
+  {
+    if(can_context.ecu_type != ENGINE_TYPE_SHANGCHAI)
+    {
+      PcDebug_SendString("EngType:SC!\n");
+    }
+    can_context.ecu_type = ENGINE_TYPE_SHANGCHAI;
+    return;
+  }
+
+  str = strnstr((char *)pdata, size, "702*H", 5);  // 潍柴发动机
+  if (str!=NULL)
+  {
+    if(can_context.ecu_type != ENGINE_TYPE_WEICHAI)
+    {
+      PcDebug_SendString("EngType:WC!\n");
+    }
+    can_context.ecu_type = ENGINE_TYPE_WEICHAI;
+    return;
+  }
+
+  str = strnstr((char *)pdata, size, "YCCID", 5);  // 玉柴发动机
+  if (str!=NULL)
+  {
+    if(can_context.ecu_type != ENGINE_TYPE_YUCHAI)
+    {
+      PcDebug_SendString("EngType:YC!\n");
+    }
+    can_context.ecu_type = ENGINE_TYPE_YUCHAI;
+    return;
+  }
+
+  str = strnstr((char *)pdata, size, "MRCBN", 5);  // MRCBN
+  if (str!=NULL)
+  {
+    if(can_context.ecu_type != ENGINE_TYPE_BENZ)
+    {
+      PcDebug_SendString("EngType:BZ!\n");
+    }
+    can_context.ecu_type = ENGINE_TYPE_BENZ;
+    return;
+  }
+}
+
 /*************************************************************************
  * 处理接收到的CAN报文(汽车底盘发动机)
 *************************************************************************/
@@ -2586,6 +2965,13 @@ uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size
 {
   uint8_t retval = 0x00;
   //uint32_t tempVal;
+  uint32_t dtc;
+  static uint8_t dtc_total;
+  static uint8_t mult_packages = 0;  // ECM分包数量
+  static uint8 mult_index = 0;   // ECM多个故障码帧序列
+  static uint8_t torque_valid_flag = 0;  // 参考扭矩接收标志0-无 1-有
+  static uint8_t dm1_valid_flag = 0;  // 收到多故障广播帧
+  static uint8_t ci_valid_flag = 0;  // CI数据接收标志0-无 1-有
 
   switch (canId) // 上车通信
   {
@@ -2617,6 +3003,7 @@ uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size
     else
       zxengine_buffer_a5ef[ZXENGINE_A5EF_POS22] &= ~BIT(3); // 清0
 
+    can_context.dw_engine_speed = (pdata[3] + (uint16)(pdata[4]<<8))/8;  // 下车发动机转速
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS1] = pdata[3]; // 发动机转速
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS1+1] = pdata[4];
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS2] = pdata[2]; // 实际扭矩百分比
@@ -3018,8 +3405,8 @@ uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size
     retval = 0x01;
     break;
   case 0x18FDB200:
-    zxengine_buffer_a5f2[ZXENGINE_A5F2_POS4] = pdata[0]; // DPF压差
-    zxengine_buffer_a5f2[ZXENGINE_A5F2_POS4+1] = pdata[1];
+    zxengine_buffer_a5f2[ZXENGINE_A5F2_POS4] = pdata[3]; // DPF压差
+    zxengine_buffer_a5f2[ZXENGINE_A5F2_POS4+1] = pdata[4];
     tlv_a5f2_valid_flag = 1;
     retval = 0x01;
     break;
@@ -3048,7 +3435,7 @@ uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size
       zxengine_buffer_a5f2[ZXENGINE_A5F2_POS7] |= BIT(1); // 置1
     else
       zxengine_buffer_a5f2[ZXENGINE_A5F2_POS7] &= ~BIT(1); // 清0
-      
+
     tlv_a5f2_valid_flag = 1;
     retval = 0x01;
     break;
@@ -3076,12 +3463,150 @@ uint8_t CAN_ProcessRecvEngineMsg_AC(uint32_t canId, uint8_t *pdata, uint8_t size
     tlv_a5f2_valid_flag = 1;
     retval = 0x01;
     break;
-  
+
+  case 0x18FECA00:  // 单包故障(0x18FECA00)
+    // HZEP_data_buffer[HZEP_POS28_ADDRESS] = (pdata[0]>>6) & 0x03; // MIL灯状态(B1.bit7-8)
+    can_context.hzep_fault_data[7] = 0x18;  // canId
+    can_context.hzep_fault_data[8] = 0xFE;
+    can_context.hzep_fault_data[9] = 0xCA;
+    can_context.hzep_fault_data[10] = 0x00;
+    memcpy(&can_context.hzep_fault_data[11], pdata, 8); // canData
+    can_context.hzep_fault_data_len = 12;  // (4byteID+8btyeData)
+    can_context.hzep_fault_data_flag = 1;
+    can_context.hzep_fault_data_timer = 0;
+    can_context.hzep_new_fdata_flag = 1;
+    retval = 0x01;
+    break;
+
+  case 0x18ECFF00: // 发动机多包判断故障报文(广播帧) (0x18ECFF00)
+    if (pdata[5]==0xCA && pdata[6]==0xFE && pdata[7]==0x00) // 多包故障诊断协议PGN65226
+    {
+      dtc_total = (pdata[1] - 2) / 4; // 故障代码总数
+      mult_packages = pdata[3];  // CAN帧个数
+      mult_index = 1;
+      dm1_valid_flag = 1;
+      can_context.hzep_fault_data[7] = 0x18;  // canId
+      can_context.hzep_fault_data[8] = 0xEC;
+      can_context.hzep_fault_data[9] = 0xFF;
+      can_context.hzep_fault_data[10] = 0x00;
+      memcpy(&can_context.hzep_fault_data[11], pdata, 8); // canData
+    }
+    else if (pdata[5]==0xE3 && pdata[6]==0xFE && pdata[7]==0x00) // 发动机配置通告PGN65251
+    {
+      torque_valid_flag = 1;
+      mult_index = 1;
+    }
+    else if (pdata[5]==0xEB && pdata[6]==0xFE && pdata[7]==0x00) // 发动机配置通告PGN65251
+    {
+      ci_valid_flag = 1;
+      mult_packages = pdata[3];  // CAN帧个数
+      mult_index = 1;
+      can_context.eng_ci_index = 0;
+    }
+    retval = 0x01;
+    break;
+
+  case 0x18EBFF00:  // 发动机多包内容报文(0x18EBFF00)
+    if (torque_valid_flag == 1 && pdata[0] == 3) // 发动机配置package3
+    {
+      // HZEP_data_buffer[HZEP_POS17_ADDRESS] = pdata[6];  // 参考扭矩(B6:B7)
+      // HZEP_data_buffer[HZEP_POS17_ADDRESS+1] = pdata[7];
+      torque_valid_flag = 0;   //接收结束
+      mult_index = 0;
+      mult_packages = 0;
+    }
+    else if (ci_valid_flag == 1)  // CI码数据处理
+    {
+      if (pdata[0]==mult_index) // 收到多分包
+      {
+        memcpy(&can_context.eng_ci_buffer[can_context.eng_ci_index], &pdata[1], 7);
+        can_context.eng_ci_index += 7;
+        
+        mult_index++;
+        if (mult_index >= mult_packages) //传送结束
+        {
+          mult_index = 0;
+          mult_packages = 0;
+          ci_valid_flag = 0;
+          can_context.eng_ci_new_flag = 1;
+          CAN_ProcessCiMsg(can_context.eng_ci_buffer, can_context.eng_ci_index); // 处理CI码数据
+        }
+      }
+      else
+      {
+        mult_index = 0;
+        mult_packages = 0;
+        ci_valid_flag = 0;
+        can_context.eng_ci_index = 0;
+      }
+    }
+    else if (dm1_valid_flag == 1)  // 发动机故障处理
+    {
+      if (pdata[0]==mult_index) // 收到多分包
+      {
+        can_context.hzep_fault_data[7+mult_index*12] = 0x18; // canId
+        can_context.hzep_fault_data[8+mult_index*12] = 0xEB;
+        can_context.hzep_fault_data[9+mult_index*12] = 0xFF;
+        can_context.hzep_fault_data[10+mult_index*12] = 0x00;
+        memcpy(&can_context.hzep_fault_data[11+mult_index*12], pdata, 8); // canData
+        can_context.hzep_fault_data_len = 12 + mult_index*12;
+        can_context.hzep_fault_data_flag = 1;
+        can_context.hzep_fault_data_timer = 0;
+        can_context.hzep_new_fdata_flag = 1;
+
+        if (pdata[0] == 1) // 首帧解析
+        {
+          //HZEP_data_buffer[HZEP_POS28_ADDRESS] = (pdata[1]>>6) & 0x03; // MIL灯状态(B1.bit7-8)
+          //memset(eng_dtc_buffer, 0xFF, ENG_DTC_BUFFER_SIZE); // 清除DTC缓存
+          //memcpy(&eng_dtc_buffer[0],&pdata[3],5);
+          //eng_dtc_index = 5;
+        }
+        else // 非首帧解析
+        {
+          //if (eng_dtc_index < (ENG_DTC_BUFFER_SIZE-7))
+          //{
+          //  memcpy(&eng_dtc_buffer[eng_dtc_index],&pdata[1],7);
+          //  eng_dtc_index += 7;
+          //}
+        }
+
+        mult_index++;
+        if (mult_index >= mult_packages) //传送结束
+        {
+          //for (i=0; i<dtc_total; i++)
+          //{
+          //  dtc = (uint32_t)(eng_dtc_buffer[j]) + (uint32_t)(eng_dtc_buffer[j+1]<<8) + (uint32_t)(eng_dtc_buffer[j+2]<<16) + (uint32_t)(eng_dtc_buffer[j+3]<<24);
+          //  j += 4;
+
+          //  if((dtc!=0xFFFFFFFF) && (dtc!=0x00000000))
+          //  {
+          //    uint8_t val = EP_OBD_SaveDTC(dtc); // 存入故障码
+
+          //    if(val == 1) // 新故障码
+          //      new_dtc_flag = 1;
+          //  }
+          //}
+
+          mult_index = 0;
+          mult_packages = 0;
+          dm1_valid_flag = 0;
+        }
+      }
+      else
+      {
+        mult_index = 0;
+        mult_packages = 0;
+        dm1_valid_flag = 0;
+      }
+    }
+    retval = 0x01;
+    break;
+
   default:
     retval = 0x00;
     break;
   }
-  
+
   return retval;
 }
 
@@ -3092,6 +3617,14 @@ uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size
 {
   uint8_t retval = 0x00;
   //uint32_t tempVal;
+  uint32_t dtc;
+  uint32_t eng_work_time;
+  static uint8_t dtc_total;
+  static uint8_t mult_packages = 0;  // ECM分包数量
+  static uint8 mult_index = 0;   // ECM多个故障码帧序列
+  static uint8_t torque_valid_flag = 0;  // 参考扭矩接收标志0-无 1-有
+  static uint8_t dm1_valid_flag = 0;  // 收到多故障广播帧
+  static uint8_t ci_valid_flag = 0;  // CI数据接收标志0-无 1-有
 
   switch (canId) // 下车通信
   {
@@ -3117,6 +3650,7 @@ uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size
     else
       zxengine_buffer_a5ef[ZXENGINE_A5EF_POS22] &= ~BIT(3); // 清0
 
+    can_context.dw_engine_speed = (pdata[3] + (uint16)(pdata[4]<<8))/8;  // 下车发动机转速
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS1] = pdata[3]; // 发动机转速
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS1+1] = pdata[4];
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS2] = pdata[2]; // 实际扭矩百分比
@@ -3157,16 +3691,33 @@ uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size
     tlv_a5ef_valid_flag = 1;
     retval = 0x01;
     break;
-    
-  case 0x40B:
-    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10] = pdata[0]; // 发动机总运行时间
-    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1] = pdata[1];
-    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2] = pdata[2];
-    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3] = pdata[3];
+
+  case 0x24A:  // 单位1min,需要转成0.05hr
+    eng_work_time = pdata[3]; // 发动机总运行时间
+    eng_work_time <<= 8;
+    eng_work_time += pdata[2];
+    eng_work_time <<= 8;
+    eng_work_time += pdata[1];
+    eng_work_time <<= 8;
+    eng_work_time += pdata[0];
+    eng_work_time = eng_work_time / 3;  // 转成0.05hr
+    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10] = (uint8_t)eng_work_time; // 发动机总运行时间
+    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1] = (uint8_t)(eng_work_time >> 8);
+    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2] = (uint8_t)(eng_work_time >> 16);
+    zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3] = (uint8_t)(eng_work_time >> 24);
     tlv_a5ef_valid_flag = 1;
     retval = 0x01;
-    break;   
-    
+    break;
+
+  //case 0x40B: // 单位0.05hr
+  //  zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10] = pdata[0]; // 发动机总运行时间
+  //  zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1] = pdata[1];
+  //  zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2] = pdata[2];
+  //  zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3] = pdata[3];
+  //  tlv_a5ef_valid_flag = 1;
+  //  retval = 0x01;
+  //  break;
+
   case 0x20A:
     zxengine_buffer_a5ef[ZXENGINE_A5EF_POS11] = pdata[1]; // 油门踏板百分比
     tlv_a5ef_valid_flag = 1;
@@ -3539,7 +4090,142 @@ uint8_t CAN_ProcessRecvEngineMsg_AG(uint32_t canId, uint8_t *pdata, uint8_t size
     tlv_a5f2_valid_flag = 1;
     retval = 0x01;
     break;
-  
+
+  case 0x21A:  // 单包故障(0x18FECA00)
+    // HZEP_data_buffer[HZEP_POS28_ADDRESS] = (pdata[0]>>6) & 0x03; // MIL灯状态(B1.bit7-8)
+    can_context.hzep_fault_data[7] = 0x18;  // canId
+    can_context.hzep_fault_data[8] = 0xFE;
+    can_context.hzep_fault_data[9] = 0xCA;
+    can_context.hzep_fault_data[10] = 0x00;
+    memcpy(&can_context.hzep_fault_data[11], pdata, 8); // canData
+    can_context.hzep_fault_data_len = 12;  // (4byteID+8btyeData)
+    can_context.hzep_fault_data_flag = 1;
+    can_context.hzep_fault_data_timer = 0;
+    can_context.hzep_new_fdata_flag = 1;
+    retval = 0x01;
+    break;
+
+  case 0x21B: // 发动机多包判断故障报文(广播帧) (0x18ECFF00)
+    if(pdata[5]==0xCA && pdata[6]==0xFE && pdata[7]==0x00) // 多包故障诊断协议PGN65226
+    {
+      dtc_total = (pdata[1] - 2) / 4; // 故障代码总数
+      mult_packages = pdata[3];  //故障帧CAN帧个数
+      mult_index = 1;
+      dm1_valid_flag = 1;
+      can_context.hzep_fault_data[7] = 0x18;  // canId
+      can_context.hzep_fault_data[8] = 0xEC;
+      can_context.hzep_fault_data[9] = 0xFF;
+      can_context.hzep_fault_data[10] = 0x00;
+      memcpy(&can_context.hzep_fault_data[11], pdata, 8); // canData
+    }
+    else if(pdata[5]==0xE3 && pdata[6]==0xFE && pdata[7]==0x00) // 发动机配置通告PGN65251
+    {
+      torque_valid_flag = 1;
+    }
+    else if (pdata[5]==0xEB && pdata[6]==0xFE && pdata[7]==0x00) // 发动机配置通告PGN65251
+    {
+      ci_valid_flag = 1;
+      mult_packages = pdata[3];  // CAN帧个数
+      mult_index = 1;
+      can_context.eng_ci_index = 0;
+    }
+    break;
+
+  case 0x21C: // 发动机多包内容报文 (0x18EBFF00)
+    if(torque_valid_flag == 1 && pdata[0] == 3) // 发动机配置package3
+    {
+      // HZEP_data_buffer[HZEP_POS17_ADDRESS] = pdata[6];  // 参考扭矩(B6:B7)
+      // HZEP_data_buffer[HZEP_POS17_ADDRESS+1] = pdata[7];
+      torque_valid_flag = 0;   //接收结束
+      mult_index = 0;
+      mult_packages = 0;
+    }
+    else if (ci_valid_flag == 1)  // CI码数据处理
+    {
+      if (pdata[0]==mult_index) // 收到多分包
+      {
+        memcpy(&can_context.eng_ci_buffer[can_context.eng_ci_index], &pdata[1], 7);
+        can_context.eng_ci_index += 7;
+        
+        mult_index++;
+        if (mult_index >= mult_packages) //传送结束
+        {
+          mult_index = 0;
+          mult_packages = 0;
+          ci_valid_flag = 0;
+          can_context.eng_ci_new_flag = 1;
+          CAN_ProcessCiMsg(can_context.eng_ci_buffer, can_context.eng_ci_index); // 处理CI码数据
+        }
+      }
+      else
+      {
+        mult_index = 0;
+        mult_packages = 0;
+        ci_valid_flag = 0;
+        can_context.eng_ci_index = 0;
+      }
+    }
+    else if (dm1_valid_flag == 1)  // 发动机故障处理
+    {
+      if (pdata[0]==mult_index) // 收到多分包
+      {
+        can_context.hzep_fault_data[7+mult_index*12] = 0x18; // canId
+        can_context.hzep_fault_data[8+mult_index*12] = 0xEB;
+        can_context.hzep_fault_data[9+mult_index*12] = 0xFF;
+        can_context.hzep_fault_data[10+mult_index*12] = 0x00;
+        memcpy(&can_context.hzep_fault_data[11+mult_index*12], pdata, 8); // canData
+        can_context.hzep_fault_data_len = 12 + mult_index*12;
+        can_context.hzep_fault_data_flag = 1;
+        can_context.hzep_fault_data_timer = 0;
+        can_context.hzep_new_fdata_flag = 1;
+
+        if (pdata[0] == 1) // 首帧解析
+        {
+          //HZEP_data_buffer[HZEP_POS28_ADDRESS] = (pdata[1]>>6) & 0x03; // MIL灯状态(B1.bit7-8)
+          //memset(eng_dtc_buffer, 0xFF, ENG_DTC_BUFFER_SIZE); // 清除DTC缓存
+          //memcpy(&eng_dtc_buffer[0],&pdata[3],5);
+          //eng_dtc_index = 5;
+        }
+        else // 非首帧解析
+        {
+          //if (eng_dtc_index < (ENG_DTC_BUFFER_SIZE-7))
+          //{
+          //  memcpy(&eng_dtc_buffer[eng_dtc_index],&pdata[1],7);
+          //  eng_dtc_index += 7;
+          //}
+        }
+
+        mult_index++;
+        if (mult_index >= mult_packages) //传送结束
+        {
+          //for (i=0; i<dtc_total; i++)
+          //{
+          //  dtc = (uint32_t)(eng_dtc_buffer[j]) + (uint32_t)(eng_dtc_buffer[j+1]<<8) + (uint32_t)(eng_dtc_buffer[j+2]<<16) + (uint32_t)(eng_dtc_buffer[j+3]<<24);
+          //  j += 4;
+
+          //  if((dtc!=0xFFFFFFFF) && (dtc!=0x00000000))
+          //  {
+          //    uint8_t val = EP_OBD_SaveDTC(dtc); // 存入故障码
+
+          //    if(val == 1) // 新故障码
+          //      new_dtc_flag = 1;
+          //  }
+          //}
+
+          mult_index = 0;
+          mult_packages = 0;
+          dm1_valid_flag = 0;
+        }
+      }
+      else
+      {
+        mult_index = 0;
+        mult_packages = 0;
+        dm1_valid_flag = 0;
+      }
+    }
+    break;
+
   default:
     retval = 0x00;
     break;
@@ -3960,7 +4646,6 @@ void ZxSts_SaveDataToFdb(void)
   Parm_SaveZxStsInfo();
 }
 
-
 //==初始化作业统计参数=======================================================
 void ZxSts_Initialize(void)
 {
@@ -4067,6 +4752,96 @@ void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
     DO_5MIN_FLAG = ZXSTS_FALSE;
   }
 
+  if(pThis->engine_type == 0x01)  // 单发动机
+  {
+    if(pThis->pto_status == 0x01)  // 上车工作
+    {
+      can_context.twt_up = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3];  //==上车总工作时间
+      can_context.twt_up <<= 8;
+      can_context.twt_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2];
+      can_context.twt_up <<= 8;
+      can_context.twt_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1];
+      can_context.twt_up <<= 8;
+      can_context.twt_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10];
+
+      can_context.tfc_up = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+3];  //==上车总油耗
+      can_context.tfc_up <<= 8;
+      can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+2];
+      can_context.tfc_up <<= 8;
+      can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+1];
+      can_context.tfc_up <<= 8;
+      can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18];
+    }
+    else if(pThis->pto_status == 0x02)  // 下车工作
+    {
+      can_context.twt_down = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3];  //==下车总工作时间
+      can_context.twt_down <<= 8;
+      can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2];
+      can_context.twt_down <<= 8;
+      can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1];
+      can_context.twt_down <<= 8;
+      can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10];
+
+      can_context.tfc_down = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+3];  //==下车总油耗
+      can_context.tfc_down <<= 8;
+      can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+2];
+      can_context.tfc_down <<= 8;
+      can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+1];
+      can_context.tfc_down <<= 8;
+      can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18];
+
+      can_context.odo_down = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS19+3];  // 下车总里程
+      can_context.odo_down <<= 8;
+      can_context.odo_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS19+2];
+      can_context.odo_down <<= 8;
+      can_context.odo_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS19+1];
+      can_context.odo_down <<= 8;
+      can_context.odo_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS19];
+    }
+    else
+    {
+      return;
+    }
+  }
+  else if(pThis->engine_type == 0x02)  // 双发动机
+  {
+    can_context.twt_up = zxup_buffer_a5a5[ZXUP_A5A5_POS10+3];  //==上车总工作时间
+    can_context.twt_up <<= 8;
+    can_context.twt_up += zxup_buffer_a5a5[ZXUP_A5A5_POS10+2];
+    can_context.twt_up <<= 8;
+    can_context.twt_up += zxup_buffer_a5a5[ZXUP_A5A5_POS10+1];
+    can_context.twt_up <<= 8;
+    can_context.twt_up += zxup_buffer_a5a5[ZXUP_A5A5_POS10];
+  
+    can_context.tfc_up = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+3];  //==上车总油耗
+    can_context.tfc_up <<= 8;
+    can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+2];
+    can_context.tfc_up <<= 8;
+    can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+1];
+    can_context.tfc_up <<= 8;
+    can_context.tfc_up += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18];
+
+    can_context.twt_down = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+3];  //==下车总工作时间
+    can_context.twt_down <<= 8;
+    can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+2];
+    can_context.twt_down <<= 8;
+    can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10+1];
+    can_context.twt_down <<= 8;
+    can_context.twt_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS10];
+  
+    can_context.tfc_down = zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+3];  //==下车总油耗
+    can_context.tfc_down <<= 8;
+    can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+2];
+    can_context.tfc_down <<= 8;
+    can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18+1];
+    can_context.tfc_down <<= 8;
+    can_context.tfc_down += zxengine_buffer_a5ef[ZXENGINE_A5EF_POS18];
+  }
+  else
+  {
+    return;
+  }
+
   //==一分钟任务================================
   if (DO_1MIN_FLAG==ZXSTS_TRUE)
   {
@@ -4080,6 +4855,10 @@ void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
       if (pThis->current_twt_up > pThis->previous_twt_up)
       {
         pThis->tdv_up = pThis->current_twt_up - pThis->previous_twt_up;
+        if(pThis->tdv_up > 5)
+        {
+          pThis->tdv_up = 0;
+        }
       }
       else
       {
@@ -4093,6 +4872,10 @@ void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
       if (pThis->current_tfc_up > pThis->previous_tfc_up)
       {
         pThis->fdv_up = pThis->current_tfc_up - pThis->previous_tfc_up;
+        if(pThis->fdv_up > 5)
+        {
+          pThis->fdv_up = 0;
+        }
       }
       else
       {
@@ -4110,6 +4893,10 @@ void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
       if (pThis->current_twt_down > pThis->previous_twt_down)
       {
         pThis->tdv_down = pThis->current_twt_down - pThis->previous_twt_down;
+        if(pThis->tdv_down > 5)
+        {
+          pThis->tdv_down = 0;
+        }
       }
       else
       {
@@ -4123,6 +4910,10 @@ void ZxStsEngine_StateMachine(zxsts_engine_context_t* pThis)
       if (pThis->current_tfc_down > pThis->previous_tfc_down)
       {
         pThis->fdv_down = pThis->current_tfc_down - pThis->previous_tfc_down;
+        if(pThis->fdv_down > 5)
+        {
+          pThis->fdv_down = 0;
+        }
       }
       else
       {

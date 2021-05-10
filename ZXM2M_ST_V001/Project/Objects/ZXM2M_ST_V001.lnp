@@ -9,6 +9,7 @@
 ".\project\objects\canhw.o"
 ".\project\objects\can.o"
 ".\project\objects\tcw.o"
+".\project\objects\lvc.o"
 ".\project\objects\sfud.o"
 ".\project\objects\parameters.o"
 ".\project\objects\fal.o"

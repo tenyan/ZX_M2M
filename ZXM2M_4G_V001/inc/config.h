@@ -69,6 +69,7 @@
 #include "M2mProtocol.h"
 #include "HJ.h"
 #include "GB.h"
+#include "HZD.h"
 #include "iCloud.h"
 #include "Parameters.h"
 #include "AuxCom.h"

@@ -65,6 +65,7 @@
 .\project\objects\icloud_machine.o: .\USER\RTC\am1805.h
 .\project\objects\icloud_machine.o: .\USER\CAN\Can.h
 .\project\objects\icloud_machine.o: .\USER\CAN\CanHW.h
+.\project\objects\icloud_machine.o: .\USER\CAN\lvc.h
 .\project\objects\icloud_machine.o: .\USER\CAN\ISO27145.h
 .\project\objects\icloud_machine.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\icloud_machine.o: .\USER\Momi\MomiProtocol.h

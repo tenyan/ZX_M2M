@@ -27,10 +27,15 @@
 //==TAG-A504采集协议信息=========================================================
 #define ZXINFO_A504_ADDR         (ZXINFO_A501_ADDR+SIZE_OF_ZXINFO_A501)  // 起始地址
 #define zxinfo_buffer_a504       (zxinfo_buffer+ZXINFO_A504_ADDR)  // 起始地址定义
-#define ZXINFO_A504_POS1_ADDR    0                          // 车型配置
-#define ZXINFO_A504_POS2_ADDR    (ZXINFO_A504_POS1_ADDR+1)  // 上车CAN协议
-#define ZXINFO_A504_POS3_ADDR    (ZXINFO_A504_POS2_ADDR+1)  // 下车CAN协议
-#define SIZE_OF_ZXINFO_A504      (ZXINFO_A504_POS3_ADDR+1)  // 总字节数(3B)
+#define ZXINFO_A504_POS1_ADDR    0                          // 上车类型状态字
+#define ZXINFO_A504_POS2_ADDR    (ZXINFO_A504_POS1_ADDR+1)  // 上车配置状态字1
+#define ZXINFO_A504_POS3_ADDR    (ZXINFO_A504_POS2_ADDR+1)  // 上车配置状态字2
+#define ZXINFO_A504_POS4_ADDR    (ZXINFO_A504_POS3_ADDR+1)  // 上车协议类型状态字
+#define ZXINFO_A504_POS5_ADDR    (ZXINFO_A504_POS4_ADDR+1)  // 底盘类型状态字
+#define ZXINFO_A504_POS6_ADDR    (ZXINFO_A504_POS5_ADDR+1)  // 底盘配置状态字1
+#define ZXINFO_A504_POS7_ADDR    (ZXINFO_A504_POS6_ADDR+1)  // 底盘配置状态字2
+#define ZXINFO_A504_POS8_ADDR    (ZXINFO_A504_POS7_ADDR+1)  // 底盘CAN协议
+#define SIZE_OF_ZXINFO_A504      (ZXINFO_A504_POS8_ADDR+1)  // 总字节数(8B)
 
 //==TAG-A5FF终端状态信息==========================================================
 #define ZXINFO_A5FF_ADDR         (ZXINFO_A504_ADDR+SIZE_OF_ZXINFO_A504)  // 起始地址
@@ -45,8 +50,9 @@
 #define ZXINFO_A5FF_POS8_ADDR    (ZXINFO_A5FF_POS7_ADDR+1)  // RTC时间
 #define ZXINFO_A5FF_POS9_ADDR    (ZXINFO_A5FF_POS8_ADDR+6)  // 工作模式
 #define ZXINFO_A5FF_POS10_ADDR   (ZXINFO_A5FF_POS9_ADDR+1)  // ST固件版本信息
-#define SIZE_OF_ZXINFO_A5FF      (ZXINFO_A5FF_POS10_ADDR+2)  // 总字节数(11B)
-
+#define ZXINFO_A5FF_POS11_ADDR   (ZXINFO_A5FF_POS10_ADDR+2)  // ECU绑定状态
+#define ZXINFO_A5FF_POS12_ADDR   (ZXINFO_A5FF_POS11_ADDR+1)  // ST工作状态
+#define SIZE_OF_ZXINFO_A5FF      (ZXINFO_A5FF_POS12_ADDR+1)  // 总字节数(11B)
 
 // 车型配置信息数据缓存大小
 #define SIZE_OF_ZXINFO_BUFFER  (ZXINFO_A5FF_ADDR+SIZE_OF_ZXINFO_A5FF)
@@ -649,7 +655,6 @@
 #define ZXENGINE_A5EF_POS24   (ZXENGINE_A5EF_POS23+1)  // 进气流量
 #define SIZE_OF_ZXENGINE_A5EF (ZXENGINE_A5EF_POS24+2)  // 总字节数(39B)
 
-
 //==TAG-A5F0行驶油耗==============================================================
 #define ZXENGINE_A5F0_ADDR    (ZXENGINE_A5EF_ADDR+SIZE_OF_ZXENGINE_A5EF) // 起始地址
 #define zxengine_buffer_a5f0  (zxengine_buffer+ZXENGINE_A5F0_ADDR)// 起始地址定义
@@ -659,7 +664,7 @@
 #define SIZE_OF_ZXENGINE_A5F0 (ZXENGINE_A5F0_POS3+4)  // 总字节数(12B)
 
 //==TAG-A5F1 SCR参数（国五）======================================================
-#define ZXENGINE_A5F1_ADDR    (ZXENGINE_A5F0_ADDR+SIZE_OF_ZXENGINE_A5F0)                             // 起始地址
+#define ZXENGINE_A5F1_ADDR    (ZXENGINE_A5F0_ADDR+SIZE_OF_ZXENGINE_A5F0)  // 起始地址
 #define zxengine_buffer_a5f1  (zxengine_buffer+ZXENGINE_A5F1_ADDR)// 起始地址定义
 #define ZXENGINE_A5F1_POS1    0                       // 尿素喷射状态
 #define ZXENGINE_A5F1_POS2    (ZXENGINE_A5F1_POS1+1)  // T15_DCU
@@ -683,7 +688,7 @@
 #define SIZE_OF_ZXENGINE_A5F1 (ZXENGINE_A5F1_POS19+1)  // 总字节数(28B)
 
 //==TAG-A5F2 DPF参数(国六）=======================================================
-#define ZXENGINE_A5F2_ADDR    (ZXENGINE_A5F1_ADDR+SIZE_OF_ZXENGINE_A5F1)                             // 起始地址
+#define ZXENGINE_A5F2_ADDR    (ZXENGINE_A5F1_ADDR+SIZE_OF_ZXENGINE_A5F1)  // 起始地址
 #define zxengine_buffer_a5f2  (zxengine_buffer+ZXENGINE_A5F2_ADDR)// 起始地址定义
 #define ZXENGINE_A5F2_POS1    0                       // DOC上游排气温度
 #define ZXENGINE_A5F2_POS2    (ZXENGINE_A5F2_POS1+2)  // DPF上游排气温度
@@ -766,13 +771,13 @@
 #define ZXVERSION_A505_ADDR    0  // 起始地址
 #define zxversion_buffer_a505  (zxversion_buffer+ZXVERSION_A505_ADDR)
 #define ZXVERSION_A505_POS1    0                        // 力矩限制器
-#define ZXVERSION_A505_POS2    (ZXVERSION_A505_POS1+3)  // 显示器1
-#define ZXVERSION_A505_POS3    (ZXVERSION_A505_POS2+3)  // 显示器底层版本
+#define ZXVERSION_A505_POS2    (ZXVERSION_A505_POS1+8)  // 显示器1
+#define ZXVERSION_A505_POS3    (ZXVERSION_A505_POS2+8)  // 显示器底层版本
 #define ZXVERSION_A505_POS4    (ZXVERSION_A505_POS3+3)  // GPS终端
 #define ZXVERSION_A505_POS5    (ZXVERSION_A505_POS4+3)  // 控制器
-#define ZXVERSION_A505_POS6    (ZXVERSION_A505_POS5+3)  // 显示器2
-#define ZXVERSION_A505_POS7    (ZXVERSION_A505_POS6+3)  // 显示器2底层
-#define SIZE_OF_ZXVERSION_A505 (ZXVERSION_A505_POS7+3)  // 总字节数(18B)
+#define ZXVERSION_A505_POS6    (ZXVERSION_A505_POS5+8)  // 显示器2
+#define ZXVERSION_A505_POS7    (ZXVERSION_A505_POS6+8)  // 显示器2底层
+#define SIZE_OF_ZXVERSION_A505 (ZXVERSION_A505_POS7+3)  // 总字节数(41B)
 
 //==TAG-A506 下车系统版本=========================================================
 #define ZXVERSION_A506_ADDR   (ZXVERSION_A505_ADDR+SIZE_OF_ZXVERSION_A505)  // 起始地址
@@ -797,8 +802,15 @@
 #define ZXVERSION_A506_POS18   (ZXVERSION_A506_POS17+3)  // P8底层
 #define SIZE_OF_ZXVERSION_A506 (ZXVERSION_A506_POS18+3)  // 总字节数(54B)
 
+//==TAG-A50A 整车VIN码============================================================
+#define ZXVERSION_A50A_ADDR    (ZXVERSION_A506_ADDR+SIZE_OF_ZXVERSION_A506)  // 起始地址
+#define zxversion_buffer_a50a  (zxversion_buffer+ZXVERSION_A50A_ADDR)  // 起始地址定义
+#define ZXVERSION_A50A_POS1    0
+#define SIZE_OF_ZXVERSION_A50A (ZXVERSION_A50A_POS1+17)  // 总字节数(17B)
+
 // 版本信息数据缓存大小
-#define SIZE_OF_ZXVERSION_BUFFER   (ZXVERSION_A506_ADDR+SIZE_OF_ZXVERSION_A506)
+#define SIZE_OF_ZXVERSION_BUFFER  (ZXVERSION_A50A_ADDR+SIZE_OF_ZXVERSION_A50A)
+
 
 /******************************************************************************
  * Data Types
@@ -963,7 +975,7 @@ extern bittype2 zxengine_tlv_flag;
 extern bittype2 zxversion_tlv_flag;
 #define tlv_a505_valid_flag    zxversion_tlv_flag.w.bit0  //==TAG-A505 上车系统版本
 #define tlv_a506_valid_flag    zxversion_tlv_flag.w.bit1  //==TAG-A506 下车系统版本
-//#define X    zxversion_tlv_flag.w.bit2
+#define tlv_a50a_valid_flag    zxversion_tlv_flag.w.bit2  //==TAG-A50A 整车VIN码
 //#define X    zxversion_tlv_flag.w.bit3
 //#define X    zxversion_tlv_flag.w.bit4
 //#define X    zxversion_tlv_flag.w.bit5
@@ -1007,6 +1019,38 @@ extern uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 /******************************************************************************
  * Typedef
  ******************************************************************************/
+  // BOOL定义
+enum
+{
+  CAN_NOK = 0x00,
+  CAN_OK = 0x01
+};
+
+// 环保类型定义
+enum
+{
+  EP_TYPE_HJ = 0x00,
+  EP_TYPE_HZ = 0x01,
+  EP_TYPE_GB = 0x02,
+};
+
+// 环保开启与关闭
+enum
+{
+  EP_DISABLE = 0x00,
+  EP_ENABLE = 0x01
+};
+
+// 发动机类型定义
+enum
+{
+  ENGINE_TYPE_WEICHAI = 0x00,
+  ENGINE_TYPE_HANGFA = 0x01,
+  ENGINE_TYPE_SHANGHAI = 0x02,
+  ENGINE_TYPE_YUCHAI = 0x03,
+  NUMBER_OF_ENGINE_TYPE
+};
+  
 // 重型数据类型
 typedef enum 
 {
@@ -1022,11 +1066,38 @@ typedef enum
 #define MAX_NUM_OF_ZXUP_TLV     50
 #define MAX_NUM_OF_ZXDOWN_TLV   30
 #define MAX_NUM_OF_ZXENGINE_TLV 10
+#define VIN_BUFFER_SIZE         17
 typedef struct
 {
-  uint8_t pid_vehicle;  // 车型配置
-  uint8_t pid_up;  // 上车CAN协议
-  uint8_t pid_down;  // 下车CAN协议
+  uint16_t engine_speed; // 发动机转速
+  uint8_t mil_lamp;      // 故障灯状态:0:未点亮, 1=点亮
+  uint8_t ecu_type;  // 发动机类型
+  
+  uint8_t ep_valid_flag; // 环保数据有效标志: 0=无效, 1=有效
+  uint8_t ep_type;  // 环保类型
+  uint8_t bk_ep_valid_flag; // 环保数据有效标志: 0=无效, 1=有效
+  uint8_t bk_ep_type;  // 环保类型
+
+  uint8_t lvc_binded_flag;  // 已绑定标志: 0=未绑定, 1=绑定
+  uint8_t tbox_state;  // TBOX工作状态(ST)
+
+  //uint8_t pid_vehicle;  // 车型配置
+  //uint8_t pid_up;  // 上车CAN协议
+  //uint8_t pid_down;  // 下车CAN协议
+
+  uint8_t pid_up_type;      // 上车类型状态字
+  uint8_t pid_up_config1;   // 上车配置状态字1
+  uint8_t pid_up_config2;   // 上车配置状态字2
+  uint8_t pid_up_can;       // 上车协议类型状态字
+  uint8_t pid_down_type;    // 底盘类型状态字
+  uint8_t pid_down_config1; // 底盘配置状态字1
+  uint8_t pid_down_config2; // 底盘配置状态字2
+  uint8_t pid_down_can;     // 底盘CAN协议
+
+  uint8_t vin_valid_flag;  // VIN码有效标识
+  uint8_t vin_size;  // VIN码长度
+  uint8_t vin[VIN_BUFFER_SIZE];  // 车辆识别号码(Vehicle Identification Number)或车架号码
+
   uint8_t valid_tlv_num;  // 有效的TLV总数量
 
   uint8_t zxup_tlv_num;  // 上车TLV个数
@@ -1037,6 +1108,29 @@ typedef struct
 }zxtcw_context_t;
 extern zxtcw_context_t zxtcw_context;
 
+// 锁车数据对象定义
+typedef struct
+{
+  uint8_t bind_ecu_rsp_state; // ECU反馈的绑定状态: 0xAA=绑定, 0x55=解除绑定, 0x00=未收到
+  uint8_t lock_ecu_rsp_state; // ECU反馈的锁车状态: 0xAA=锁车, 0x55=解锁, 0x00=未收到
+
+  uint8_t disable_lvc_fun_flag; // 强制解绑标志: 0=不需要解绑, 需要解绑
+  uint8_t disable_lvc_fun_password[4]; // 强制解绑密码
+
+  uint8_t state;     // 主状态(命令)
+  uint8_t command;   // 服务器下发的指令
+  uint8_t response;  // 响应类型
+
+  uint32_t seconds;
+  uint16_t timer_100ms;  // 基于100ms计时器
+  uint16_t lock_cmd;  // 锁车状态
+
+  uint8_t lte_cpin_flag;  // SIM卡安装标志位
+  uint8_t gps_antenna_flag;  // GPS天线断开标志位
+  uint8_t lte_no_upload_500h_flag;  // 终端500个小时不上线标志位
+}lvc_context_t;
+extern lvc_context_t lvc_context;
+
 /******************************************************************************
  *   Function prototypes
  ******************************************************************************/
@@ -1044,6 +1138,9 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A510(uint8_t* pValue, uint16_t len); //==重型专用:
 uint16_t iZxM2m_AnalyzeTlvMsg_A511(uint8_t* pValue, uint16_t len); //==重型专用:锁车与解锁
 uint16_t iZxM2m_AnalyzeTlvMsg_A512(uint8_t* pValue, uint16_t len); //==重型专用:环保协议类型
 uint16_t iZxM2m_AnalyzeTlvMsg_A513(uint8_t* pValue, uint16_t len); //==重型专用:VIN码设置
+uint16_t iZxM2m_AnalyzeTlvMsg_A514(uint8_t* pValue, uint16_t len); //==重型专用:强制、故障救援指令
+void ZxM2m_UpdatePidInfo(void);
+void ZxM2m_ReInitTcwTlvInfo(zxtcw_context_t* pThis);
 
 #endif  /* _ZX_M2M_PROTOCOL_H_ */
 

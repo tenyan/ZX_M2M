@@ -5,7 +5,7 @@
 * @Company:  徐工信息智能硬件部
 * @version   V1.0
 * @Date:     2020-6-19
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _CAN_H_
 #define _CAN_H_
@@ -21,6 +21,8 @@
 #define MAX_CAN_FRAME_NUM      90   // 容许接收的最大CAN帧数量
 #define MAX_CAN_RCV_TIMEOUT_SP 100  //can1接收无数据超时时间,单位:10ms
 
+#define HZEP_FAULTCODE_TIMEOUT_SP  30 //故障码超时最大时间30秒
+
 /******************************************************************************
  * Data Types
  ******************************************************************************/
@@ -30,7 +32,9 @@ typedef struct
 {
   uint8_t ep_valid_flag; // 环保数据有效标志: 0=无效, 1=有效
   uint8_t mil_lamp;      // 故障灯状态:0:未点亮, 1=点亮
-  uint16_t engine_speed; // 发动机转速
+  uint8_t got_ci_code_flag; // 获取CI码标志: 0=未获取, 1=已获取
+  uint16_t up_engine_speed;  // 上车发动机转速
+  uint16_t dw_engine_speed;  // 下车发动机转速
 
   uint8_t comm_state1;  // 通信状态:0=异常, 1=正常
   uint8_t recv_state1;  // 接收状态:0=未收到数据, 1=已收到数据
@@ -46,6 +50,32 @@ typedef struct
   uint32_t twt_down;  // 下车总工作时间
   uint32_t tfc_up;  // 上车总油耗
   uint32_t tfc_down;  // 下车总油耗
+  uint32_t odo_down;  // 下车总里程
+
+  uint8_t pid_up_type;      // 上车类型状态字
+  uint8_t pid_up_config1;   // 上车配置状态字1
+  uint8_t pid_up_config2;   // 上车配置状态字2
+  uint8_t pid_up_can;       // 上车协议类型状态字
+  uint8_t pid_down_type;    // 底盘类型状态字
+  uint8_t pid_down_config1; // 底盘配置状态字1
+  uint8_t pid_down_config2; // 底盘配置状态字2
+  uint8_t pid_down_can;     // 底盘CAN协议
+  uint8_t pid_save_flag;    // 保存协议信息标志位
+
+  uint8_t hzep_fault_data[100];  // 杭州环保发动机故障数据缓冲
+  uint16_t hzep_fault_data_len;  // 杭州环保发动机故障数据长度
+  uint8_t hzep_fault_data_flag;  // 0-未收到故障码或者收到的故障码已经超时,超时时间为30秒
+  uint8_t hzep_fault_data_timer;  // 杭州环保故障超时计时器  暂定30秒
+  uint8_t hzep_new_fdata_flag;  // 接收到新的数据帧
+
+  uint8_t eng_ci_buffer[100];  // 多帧CI码缓存
+  uint8_t eng_ci_index;        // 多帧CI码索引
+  uint8_t eng_ci_new_flag;     // 接收到新的数据帧
+
+  uint8_t ecu_type;  // 发动机类型
+  uint8_t ep_type;   // 环保类型
+  uint8_t vin[17];   // 车辆识别号码(Vehicle Identification Number)或车架号码
+  uint8_t vin_valid_flag;  // VIN码有效标识
 }can_context_t;
 extern can_context_t can_context;
 
@@ -73,38 +103,6 @@ typedef struct
 }dtc_context_t;
 extern dtc_context_t dtc_1939;
 extern dtc_context_t dtc_27145;
-
-// 锁车命令 LVC = Lock Vehicle Control
-__packed typedef struct
-{
-
-  uint32_t header; // 校验字节  0x55AA5AA5
-
-  // B0=发送监控模式命令,B1=监控模式开启和关闭
-  // B2=发送一级锁车命令,B3=一级锁车开启和关闭
-  // B4=发送二级锁车命令,B5=二级锁车开启和关闭
-  uint8_t lock_cmd_flag;      // 平台下发的锁车和绑定命令标识
-
-  // B0=一级锁车成功, B1=二级锁车成功
-  // B2=一级解锁成功,B3=二级解锁成功
-  // B4=绑定成功, B5=解绑成功
-  uint8_t report_srv_flag;    // 上报平台标志
-  
-  uint8_t lock_command;       // 锁车级别:  0:解锁, 1~3:锁车级别
-  uint8_t bind_command;       // 绑定命令,0:无任何命令, 0xaa:绑定, 0x55:解绑
-  
-  uint16_t lock_level1_sn;    // 平台下发的一级锁车流水号
-  uint16_t lock_level2_sn;    // 平台下发的二级锁车流水号
-  uint16_t unlock_sn;         // 平台下发的解锁流水号
-  uint16_t bind_sn;           // 平台下发的设置监控模式流水号
-  
-  uint8_t ecu_rsp_lock_state; // ECU反馈的锁车状态:1=锁车, 0=解锁
-  uint8_t ecu_rsp_bind_state; // ECU反馈的绑定状态:1=绑定, 0=解除绑定
-
-  uint8_t xor_value;    // 校验值
-}lvc_context_t;
-extern lvc_context_t lvc_context;
-#define SIZEOF_LVC_CONTEXT  (sizeof(lvc_context_t))
 
 // CAN帧结构体
 typedef struct
@@ -152,10 +150,12 @@ extern obd_info_t obd_info;
 // 发动机类型定义
 enum
 {
-  ENGINE_TYPE_WEICHAI = 0x00,
-  ENGINE_TYPE_HANGFA = 0x01,
-  ENGINE_TYPE_SHANGHAI = 0x02,
-  ENGINE_TYPE_YUCHAI = 0x03,
+  ENGINE_TYPE_NONE = 0x00,
+  ENGINE_TYPE_WEICHAI,
+  ENGINE_TYPE_HANGFA,
+  ENGINE_TYPE_SHANGCHAI,
+  ENGINE_TYPE_YUCHAI,
+  ENGINE_TYPE_BENZ,
   NUMBER_OF_ENGINE_TYPE
 };
 
@@ -181,7 +181,6 @@ typedef struct
 extern can_msg_queue_t can1_msg_queue;
 extern can_msg_queue_t can2_msg_queue;
 
-
 /******************************************************************************
  * Function prototypes
  ******************************************************************************/
@@ -193,12 +192,21 @@ uint8_t DTC_GetTotalNumber(dtc_context_t* pThis);
 uint8_t DTC_SaveCode(dtc_context_t* pThis, uint32_t dtcode);
 
 // 用户API函数
-uint8_t CAN_GetCommState(uint8_t channel);
-uint8_t CAN_GetRecvState(uint8_t channel);
+uint8_t CAN1_GetCommState(void);
+uint8_t CAN2_GetCommState(void);
+uint8_t CAN1_GetRecvState(void);
+uint8_t CAN2_GetRecvState(void);
+
 uint8_t CAN_GetVinState(void);
+uint8_t CAN_GetObdVinState(void);
+uint8_t CAN_GetUserVinState(void);
+uint8_t CAN_GetCiCodeState(void);
 
 uint8_t CAN_GetEngineType(void);
 uint16_t CAN_GetEngineSpeed(void);
+
+uint8_t CAN_GetDwEngineState(void);
+uint8_t CAN_GetUpEngineState(void);
 
 uint32_t CAN_GetUpEngineTwt(void);    // 上车总工作时间
 uint32_t CAN_GetDownEngineTwt(void);    // 下车总工作时间
@@ -215,6 +223,7 @@ static uint8_t can_msg_queue_size(can_msg_queue_t* pThis);
 // 接口函数
 void Can_ServiceInit(void);
 void Can_ServiceStart(void);
+void Can_Do10msTasks(void);
 void Can_Do100msTasks(void);
 void Can_Do1sTasks(void);
 

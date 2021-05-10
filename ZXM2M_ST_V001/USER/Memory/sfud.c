@@ -4,7 +4,7 @@
 * @Engineer: armink & TenYan
 * @Company:  徐工信息智能硬件部
 * @Date:     2020-7-6
-* @brief     This file is part of the Serial Flash Universal Driver Library.
+* @brief:    This file is part of the Serial Flash Universal Driver Library.
 ******************************************************************************/
 #include "sfud.h"
 #include <string.h>

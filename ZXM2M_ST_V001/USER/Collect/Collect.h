@@ -3,9 +3,9 @@
 * @FileName: Collect.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-6-4
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _COLLECT_H_
 #define _COLLECT_H_
@@ -36,7 +36,11 @@ typedef struct
   uint8_t restart_timer;    // 当服务器或者短信下发复位命令时, 需要延时x秒后复位系统
   uint8_t wdt_status;  // 单片机内部看门狗状态:0x00=未开启,0xAA=已开启
   uint8_t tobx_state;  // T-Box工作状态:0=正常, 1=休眠, 2=掉电, 3=运输
-  uint32_t total_work_time;	// 累计工作时间,单位:s
+  uint32_t total_work_time;  // 累计工作时间,单位:s
+
+  uint8_t save_offline_time_flag;  // 存储离线时间标志
+  uint32_t total_offline_time;  // 累计不上线时间
+
   uint16_t vbat;            // 内部锂电池电压,单位10mV
   uint16_t vraw;            // 外电源电压,单位10mV
   int8_t int_temp;         // 内部温度
@@ -87,6 +91,7 @@ typedef struct
   uint8_t gpsFixValid;    // 0:未定位，1:已定位
 
   uint8_t correct_rtc_flag; // RTC校时标志: 0=未校时, 1=已校时
+  uint8_t sim_card_status; // SIM卡状态: 0=未识别, 1=已识别
   uint8_t net_4g_status;  // 4G模块数据状态: 0=未联网, 1=已联网
   uint8_t gps_4g_status;  // 4G模块上的GPS定位状态: 0=未定位, 1=已定位
   uint8_t wifi_status;  // WIFI工作状态: 0=未工作, 1=已工作
@@ -106,7 +111,6 @@ enum
   RTC_NOK = 0x00,
   RTC_OK = 0x01
 };
-
 
 /******************************************************************************
  * Application Specific Globals

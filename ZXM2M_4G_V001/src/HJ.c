@@ -116,9 +116,9 @@ int32_t HJEP_BuildMsgHead(uint8_t cmdType, uint8_t *pdata)
   {
     memcpy(&pdata[HJEP_POS3_ADDRESS], obd_info.vin, 17);// 车辆识别号VIN(CAN总线获取)
   }
-  else if (m2m_asset_data.vin_valid_flag)
+  else if (zxtcw_context.vin_valid_flag)
   {
-    memcpy(&pdata[HJEP_POS3_ADDRESS], m2m_asset_data.vin, 17);// 车辆识别号VIN(平台下发)
+    memcpy(&pdata[HJEP_POS3_ADDRESS], zxtcw_context.vin, 17);// 车辆识别号VIN(平台下发)
   }
   else
   {
@@ -454,9 +454,9 @@ uint16_t HJEP_BuildObdData(uint8_t* pdata)
   {
     memcpy(&pdata[len], obd_info.vin, 17);// 车辆识别号VIN(17B)
   }
-  else if (m2m_asset_data.vin_valid_flag)
+  else if (zxtcw_context.vin_valid_flag)
   {
-    memcpy(&pdata[len], m2m_asset_data.vin, 17);// 车辆识别号VIN(17B)
+    memcpy(&pdata[len], zxtcw_context.vin, 17);// 车辆识别号VIN(17B)
   }
   len += 17;
 
@@ -692,7 +692,7 @@ void HjepBlindZone_Service(void)
   else // ACC关闭
   {
     obd_data_report_timer = 20;
-    hjep_blind_zone.timer_100ms = HJEP_BZ_SAVE_PERIOD_SP; // 不存储
+    hjep_blind_zone.timer_100ms = HJEP_BZ_SAVE_PERIOD_SP*3; // 不存储
   }
 
   // 出现读写错误,复位栈为0
@@ -728,7 +728,7 @@ void HJEP_StateMachine(void)
   uint16_t engine_speed = 0x00;
   static uint8_t hjep_socket_enable_flag = FALSE;
 
-  if (CAN_GetEpType()==EP_TYPE_HJ) // 环保功能开启
+  if ((CAN_GetEpType()==EP_TYPE_HJ) || (CAN_GetEpType()==EP_TYPE_HZ)) // 环保功能开启
   {
     vin_valid_flag = CAN_GetVinState();
     ep_data_valid_flag = CAN_GetEpDataState();

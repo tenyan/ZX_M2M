@@ -3,9 +3,9 @@
  * @FileName: PcDebug.c
  * @Engineer: TenYan
  * @Company:  徐工信息智能硬件部
- * @version   V1.0
+ * @version:  V1.0
  * @Date:     2020-5-29
- * @brief     本文件为PcDebug功能模块协议层处理的文件
+ * @brief:    本文件为PcDebug功能模块协议层处理的文件
  ********************************************************************************/
 #include "PcDebugHW.h"
 #include "config.h"

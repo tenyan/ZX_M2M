@@ -3,9 +3,9 @@
 * @FileName: tbox_machine.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-16
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _TBOX_MACHINE_H_
 #define _TBOX_MACHINE_H_
@@ -81,6 +81,7 @@ void tbox_initialize(void);
 void tbox_state_machine(void);
 
 void Tbox_SetMachineState(tbox_state_t state);
+uint8_t Tbox_GetMachineState(void);
 void Tbox_ResetSleepTime(void);
 
 #endif /* _TBOX_MACHINE_H_ */

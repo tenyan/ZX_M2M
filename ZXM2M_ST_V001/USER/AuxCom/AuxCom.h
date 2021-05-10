@@ -3,9 +3,9 @@
 * @FileName: AuxCom.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2021-1-12
-* @brief     Modem模块和Micro辅助通信协议头文件
+* @brief:    Modem模块和Micro辅助通信协议头文件
 ******************************************************************************/
 #ifndef _AUX_COM_H_
 #define _AUX_COM_H_

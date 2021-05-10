@@ -234,31 +234,330 @@ void Parm_ReadLvcInfo(void)
 #endif
 }
 
+extern uint16_t hjep_login_sn;
+extern uint16_t hjep_send_data_sn;
+
+extern uint16_t gbep_login_sn;
+extern uint16_t gbep_send_data_sn;
+
+/******************************************************************************
+* 流水号信息
+******************************************************************************/
+void Parm_SaveSnInfo(void)
+{
+  uint8_t buf[5];
+  uint8_t len = 0;
+  uint8_t check_sum;
+  uint16_t days;
+  rtc_date_t time;
+
+  time = RTC_GetBjTime(); // 获取当前时间
+  RTC_ConvertDataTimeToDays(&time, &days); // 获取当前天数
+  
+  buf[len++] = 0xA5;  //  校验头
+  buf[len++] = 0x5A;
+  
+  buf[len++] = (uint8_t)(days>>8);  // 当前天数
+  buf[len++] = (uint8_t)days;
+
+  buf[len++] = (uint8_t)(m2m_context.upload_sn>>8);  // M2M协议报文流水号
+  buf[len++] = (uint8_t)m2m_context.upload_sn;
+
+  buf[len++] = (uint8_t)(hjep_login_sn>>8);  // HJ环保登录流水号
+  buf[len++] = (uint8_t)hjep_login_sn;
+
+  buf[len++] = (uint8_t)(hjep_send_data_sn>>8);  // HJ环保数据流水号
+  buf[len++] = (uint8_t)hjep_send_data_sn;
+
+  buf[len++] = (uint8_t)(gbep_login_sn>>8);  // GB环保登录流水号
+  buf[len++] = (uint8_t)gbep_login_sn;
+
+  buf[len++] = (uint8_t)(gbep_send_data_sn>>8);  // GB环保数据流水号
+  buf[len++] = (uint8_t)gbep_send_data_sn;
+
+  check_sum = Parm_CalcXorValue(buf, len);
+  buf[len++] = check_sum; // 校验和
+
+  FileIO_Write(FILE_SERIAL_NUMBER_CPY1, buf, len);
+  PARM_DELAY(5); // 延时5ms
+  FileIO_Write(FILE_SERIAL_NUMBER_CPY2, buf, len);
+}
+
+//============================================================================
+void Parm_ReadSnInfo(void)
+{
+  uint8_t m_buf[20];
+  uint8_t xor_value1;
+  uint8_t r_buf[20];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  FileIO_Read(FILE_SERIAL_NUMBER_CPY1, m_buf, 15); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 14);
+  if ((m_buf[0] == 0xA5) && (m_buf[1] == 0x5A) && (xor_value1== m_buf[14]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  FileIO_Read(FILE_SERIAL_NUMBER_CPY2, r_buf, 15); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 14);
+  if ((r_buf[0] == 0xA5) && (r_buf[1] == 0x5A) && (xor_value2== r_buf[14]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    zxtcw_context.ep_valid_flag = m_buf[2]; // 环保数据有效标志
+    zxtcw_context.ep_type = m_buf[3];  // 环保类型
+    if (redundant_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmEpType2Err!\n");
+      FileIO_Write(FILE_SERIAL_NUMBER_CPY2, m_buf, 5);
+    }
+    return;
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    zxtcw_context.ep_valid_flag = r_buf[2]; // 环保数据有效标志
+    zxtcw_context.ep_type = r_buf[3];  // 环保类型
+    if (main_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmEpType1Err!\n");
+      FileIO_Write(FILE_SERIAL_NUMBER_CPY1, r_buf, 5);
+    }
+    return;
+  }
+
+  zxtcw_context.ep_valid_flag = EP_ENABLE;
+  zxtcw_context.ep_type = EP_TYPE_HJ;
+  PcDebug_SendString("ParmEpType1_2Err!\n"); // 存储都出错
+}
+
+
+/******************************************************************************
+* 环保类型信息
+******************************************************************************/
+void Parm_SaveEpTypeInfo(void)
+{
+  uint8_t buf[5];
+  
+  buf[0] = 0xA5;  //  校验头
+  buf[1] = 0x5A;
+  buf[2] = zxtcw_context.bk_ep_valid_flag;  // 环保数据有效标志
+  buf[3] = zxtcw_context.bk_ep_type;  // 环保类型
+  buf[4] = Parm_CalcXorValue(buf, 4); // 校验和
+
+  FileIO_Write(FILE_USER_EP_TYPE_CPY1, buf, 5);
+  PARM_DELAY(5); // 延时5ms
+  FileIO_Write(FILE_USER_EP_TYPE_CPY2, buf, 5);
+  PARM_DELAY(5); // 延时5ms
+}
+
+//============================================================================
+void Parm_ReadEpTypeInfo(void)
+{
+  uint8_t m_buf[5];
+  uint8_t xor_value1;
+  uint8_t r_buf[5];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  FileIO_Read(FILE_USER_EP_TYPE_CPY1, m_buf, 5); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 4);
+  if ((m_buf[0] == 0xA5) && (m_buf[1] == 0x5A) && (xor_value1== m_buf[4]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  FileIO_Read(FILE_USER_EP_TYPE_CPY2, r_buf, 5); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 4);
+  if ((r_buf[0] == 0xA5) && (r_buf[1] == 0x5A) && (xor_value2== r_buf[4]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    zxtcw_context.ep_valid_flag = m_buf[2]; // 环保数据有效标志
+    zxtcw_context.ep_type = m_buf[3];  // 环保类型
+    zxtcw_context.bk_ep_valid_flag = m_buf[2]; // 环保数据有效标志
+    zxtcw_context.bk_ep_type = m_buf[3];  // 环保类型
+    if (redundant_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmEpType2Err!\n");
+      FileIO_Write(FILE_USER_EP_TYPE_CPY2, m_buf, 5);
+    }
+    return;
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    zxtcw_context.ep_valid_flag = r_buf[2]; // 环保数据有效标志
+    zxtcw_context.ep_type = r_buf[3];  // 环保类型
+    zxtcw_context.bk_ep_valid_flag = r_buf[2]; // 环保数据有效标志
+    zxtcw_context.bk_ep_type = r_buf[3];  // 环保类型
+    if (main_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmEpType1Err!\n");
+      FileIO_Write(FILE_USER_EP_TYPE_CPY1, r_buf, 5);
+    }
+    return;
+  }
+
+  zxtcw_context.ep_valid_flag = EP_ENABLE;
+  zxtcw_context.ep_type = EP_TYPE_HJ;
+  zxtcw_context.bk_ep_valid_flag = EP_ENABLE;
+  zxtcw_context.bk_ep_type = EP_TYPE_HJ;
+  PcDebug_SendString("ParmEpType1_2Err!\n"); // 存储都出错
+}
+
+/******************************************************************************
+* 导航定位信息
+******************************************************************************/
+void Parm_SaveGpsNavInfo(void)
+{
+  uint8_t buf[15];
+  
+  buf[0] = 0xA5;  //  校验头
+  buf[1] = 0x5A;
+
+  buf[2] = nav_data.ns;
+  buf[3] = (uint8_t)((nav_data.lat>>24) & 0xFF);  /// 纬度 单位:百万分之一度
+  buf[4] = (uint8_t)((nav_data.lat>>16) & 0xFF);
+  buf[5] = (uint8_t)((nav_data.lat>>8) & 0xFF);
+  buf[6] = (uint8_t)( nav_data.lat & 0xFF );
+
+  buf[7] = nav_data.ew;
+  buf[8] = (uint8_t)((nav_data.lon>>24) & 0xFF);  /// 经度 单位:百万分之一度
+  buf[9] = (uint8_t)((nav_data.lon>>16) & 0xFF);
+  buf[10] = (uint8_t)((nav_data.lon>>8) & 0xFF);
+  buf[11] = (uint8_t)( nav_data.lon & 0xFF );
+
+  buf[12] = (uint8_t)((nav_data.alt>>8) & 0xFF);  /// 海拔高度(米),海平面以下为负数
+  buf[13] = (uint8_t)( nav_data.alt & 0xFF );
+  buf[14] = Parm_CalcXorValue(buf, 14); // 校验和
+
+  FileIO_Write(FILE_GPS_NAV_INFO_CPY1, buf, 15);
+  PARM_DELAY(5); // 延时5ms
+  FileIO_Write(FILE_GPS_NAV_INFO_CPY2, buf, 15);
+  PARM_DELAY(5); // 延时5ms
+}
+
+//============================================================================
+void Parm_ReadGpsNavInfo(void)
+{
+  uint8_t m_buf[15];
+  uint8_t xor_value1;
+  uint8_t r_buf[15];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  FileIO_Read(FILE_GPS_NAV_INFO_CPY1, m_buf, 15); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 14);
+  if ((m_buf[0] == 0xA5) && (m_buf[1] == 0x5A) && (xor_value1== m_buf[14]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  FileIO_Read(FILE_GPS_NAV_INFO_CPY2, r_buf, 15); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 14);
+  if ((r_buf[0] == 0xA5) && (r_buf[1] == 0x5A) && (xor_value2== r_buf[14]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    nav_data.ns = m_buf[2];
+    nav_data.lat = m_buf[3];
+    nav_data.lat <<= 8;
+    nav_data.lat += m_buf[4];
+    nav_data.lat <<= 8;
+    nav_data.lat += m_buf[5];
+    nav_data.lat <<= 8;
+    nav_data.lat += m_buf[6];
+
+    nav_data.ew = m_buf[7];
+    nav_data.lon = m_buf[8];
+    nav_data.lon <<= 8;
+    nav_data.lon += m_buf[9];
+    nav_data.lon <<= 8;
+    nav_data.lon += m_buf[10];
+    nav_data.lon <<= 8;
+    nav_data.lon += m_buf[11];
+
+    nav_data.alt = m_buf[12];
+    nav_data.alt <<= 8;
+    nav_data.alt += m_buf[13];
+    if (redundant_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmGpsNavInfo2Err!\n");
+      FileIO_Write(FILE_GPS_NAV_INFO_CPY2, m_buf, 15);
+    }
+    return;
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    nav_data.ns = r_buf[2];
+    nav_data.lat = r_buf[3];
+    nav_data.lat <<= 8;
+    nav_data.lat += r_buf[4];
+    nav_data.lat <<= 8;
+    nav_data.lat += r_buf[5];
+    nav_data.lat <<= 8;
+    nav_data.lat += r_buf[6];
+
+    nav_data.ew = r_buf[7];
+    nav_data.lon = r_buf[8];
+    nav_data.lon <<= 8;
+    nav_data.lon += r_buf[9];
+    nav_data.lon <<= 8;
+    nav_data.lon += r_buf[10];
+    nav_data.lon <<= 8;
+    nav_data.lon += r_buf[11];
+
+    nav_data.alt = r_buf[12];
+    nav_data.alt <<= 8;
+    nav_data.alt += r_buf[13];
+    if (main_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmGpsNavInfo1Err!\n");
+      FileIO_Write(FILE_GPS_NAV_INFO_CPY1, r_buf, 15);
+    }
+    return;
+  }
+
+  PcDebug_SendString("ParmGpsNavInfo1_2Err!\n"); // 存储都出错
+}
+
 /******************************************************************************
 * VIN码信息
 ******************************************************************************/
 void Parm_SaveVinInfo(void)
 {
-#if 0
   uint8_t buf[25];
   
   buf[0] = 0xA5;  //  校验头
   buf[1] = 0x5A;
-  buf[2] = VinValidFlag; // 激活或关闭
-  buf[3] = VinLen;       // VIN长度
-  memcpy(&buf[4], Vin, VIN_SIZE); // 17个字节VIN码
+  buf[2] = zxtcw_context.vin_valid_flag; // 激活或关闭
+  buf[3] = zxtcw_context.vin_size;       // VIN长度
+  memcpy(&buf[4], zxtcw_context.vin, zxtcw_context.vin_size); // 17个字节VIN码
   buf[24] = Parm_CalcXorValue(buf, 24); // 校验和
 
   FileIO_Write(FILE_USER_VIN_CPY1, buf, 25);
   PARM_DELAY(5); // 延时5ms
   FileIO_Write(FILE_USER_VIN_CPY2, buf, 25);
-#endif
 }
 
 //============================================================================
 void Parm_ReadVinInfo(void)
 {
-#if 0
   uint8_t m_buf[25];
   uint8_t xor_value1;
   uint8_t r_buf[25];
@@ -282,33 +581,129 @@ void Parm_ReadVinInfo(void)
 
   if (main_is_ok==PARM_TRUE) // 主备份OK
   {
-    VinValidFlag = m_buf[2]; // 激活或关闭
-    VinLen = m_buf[3];       // VIN长度
-    memcpy(Vin, &m_buf[4], VIN_SIZE); // 17个字节VIN码
+    if(m_buf[3] <= VIN_BUFFER_SIZE)
+    {
+      zxtcw_context.vin_valid_flag = m_buf[2]; // 激活或关闭
+      zxtcw_context.vin_size = m_buf[3];  // VIN长度
+      memcpy(zxtcw_context.vin, &m_buf[4], zxtcw_context.vin_size); // 17个字节VIN码
+      if (redundant_is_ok==PARM_FALSE)
+      {
+        PcDebug_SendString("ParmVin2Err!\n");
+        FileIO_Write(FILE_USER_VIN_CPY2, m_buf, 25);
+      }
+      return;
+    }
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    if(m_buf[3] <= VIN_BUFFER_SIZE)
+    {
+      zxtcw_context.vin_valid_flag = r_buf[2]; // 激活或关闭
+      zxtcw_context.vin_size = r_buf[3];       // VIN长度
+      memcpy(zxtcw_context.vin, &r_buf[4], VIN_BUFFER_SIZE); // 17个字节VIN码
+      if (main_is_ok==PARM_FALSE)
+      {
+        PcDebug_SendString("ParmVin1Err!\n");
+        FileIO_Write(FILE_USER_VIN_CPY1, r_buf, 25);
+      }
+      return;
+    }
+  }
+
+  PcDebug_SendString("ParmVin1_2Err!\n"); // 存储都出错
+}
+
+/******************************************************************************
+* 车辆配置信息信息
+******************************************************************************/
+void Parm_SavePidInfo(void)
+{
+  uint8_t buf[20];
+  uint8_t len = 0;
+  uint8_t check_sum;
+
+  buf[len++] = 0xA5;  //  校验头
+  buf[len++] = 0x5A;
+  buf[len++] = zxtcw_context.pid_up_type;      // 上车类型状态字
+  buf[len++] = zxtcw_context.pid_up_config1;   // 上车配置状态字1
+  buf[len++] = zxtcw_context.pid_up_config2;   // 上车配置状态字2
+  buf[len++] = zxtcw_context.pid_up_can;       // 上车协议类型状态字
+  buf[len++] = zxtcw_context.pid_down_type;    // 底盘类型状态字
+  buf[len++] = zxtcw_context.pid_down_config1; // 底盘配置状态字1
+  buf[len++] = zxtcw_context.pid_down_config2; // 底盘配置状态字2
+  buf[len++] = zxtcw_context.pid_down_can;     // 底盘CAN协议
+  check_sum = Parm_CalcXorValue(buf, len);
+  buf[len++] = check_sum; // 校验和
+
+  FileIO_Write(FILE_PID_CPY1, buf, len);
+  PARM_DELAY(5); // 延时5ms
+  FileIO_Write(FILE_PID_CPY2, buf, len);
+}
+
+//============================================================================
+void Parm_ReadPidInfo(void)
+{
+  uint8_t m_buf[25];
+  uint8_t xor_value1;
+  uint8_t r_buf[25];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  FileIO_Read(FILE_PID_CPY1, m_buf, 11); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 10);
+  if ((m_buf[0] == 0xA5) && (m_buf[1] == 0x5A) && (xor_value1== m_buf[10]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  FileIO_Read(FILE_PID_CPY2, r_buf, 11); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 10);
+  if ((r_buf[0] == 0xA5) && (r_buf[1] == 0x5A) && (xor_value2== r_buf[10]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    zxtcw_context.pid_up_type = m_buf[2];      // 上车类型状态字
+    zxtcw_context.pid_up_config1 = m_buf[3];   // 上车配置状态字1
+    zxtcw_context.pid_up_config2 = m_buf[4];   // 上车配置状态字2
+    zxtcw_context.pid_up_can = m_buf[5];       // 上车协议类型状态字
+    zxtcw_context.pid_down_type = m_buf[6];    // 底盘类型状态字
+    zxtcw_context.pid_down_config1 = m_buf[7]; // 底盘配置状态字1
+    zxtcw_context.pid_down_config2 = m_buf[8]; // 底盘配置状态字2
+    zxtcw_context.pid_down_can = m_buf[9];     // 底盘CAN协议
     if (redundant_is_ok==PARM_FALSE)
     {
-      PcDebug_SendString("ParmVin2Err!\n");
-      FileIO_Write(FILE_USER_VIN_CPY2, m_buf, 25);
+      PcDebug_SendString("ParmPid2Err!\n");
+      FileIO_Write(FILE_PID_CPY2, m_buf, 11);
     }
     return;
   }
 
   if (redundant_is_ok==PARM_TRUE) // 副备份OK
   {
-    VinValidFlag = r_buf[2]; // 激活或关闭
-    VinLen = r_buf[3];       // VIN长度
-    memcpy(Vin, &r_buf[4], VIN_SIZE); // 17个字节VIN码
+    zxtcw_context.pid_up_type = r_buf[2];      // 上车类型状态字
+    zxtcw_context.pid_up_config1 = r_buf[3];   // 上车配置状态字1
+    zxtcw_context.pid_up_config2 = r_buf[4];   // 上车配置状态字2
+    zxtcw_context.pid_up_can = r_buf[5];       // 上车协议类型状态字
+    zxtcw_context.pid_down_type = r_buf[6];    // 底盘类型状态字
+    zxtcw_context.pid_down_config1 = r_buf[7]; // 底盘配置状态字1
+    zxtcw_context.pid_down_config2 = r_buf[8]; // 底盘配置状态字2
+    zxtcw_context.pid_down_can = r_buf[9];     // 底盘CAN协议
     if (main_is_ok==PARM_FALSE)
     {
-      PcDebug_SendString("ParmVin1Err!\n");
-      FileIO_Write(FILE_USER_VIN_CPY1, r_buf, 25);
+      PcDebug_SendString("ParmPid1Err!\n");
+      FileIO_Write(FILE_PID_CPY1, r_buf, 11);
     }
     return;
   }
 
-  PcDebug_SendString("ParmVin1_2Err!\n"); // 存储都出错
-#endif
+  PcDebug_SendString("ParmPid1_2Err!\n"); // 存储都出错
 }
+
 
 /******************************************************************************
 * 累计不上线时间
@@ -510,7 +905,7 @@ void Parm_SaveM2mAssetData(void)
   usleep(10); // 延时10us
   FileIO_Write(FILE_M2M_PARA_CPY2, pbuf, len);
   usleep(10); // 延时10us
-  system("sync");
+  //system("sync");
 }
 
 //============================================================================

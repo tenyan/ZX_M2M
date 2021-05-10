@@ -23,5 +23,7 @@ uint8_t RTC_ConvertBjToUtc(rtc_date_t *bj, rtc_date_t *utc);
 void RTC_ConvertDataTimeToSeconds(rtc_date_t* time, uint32_t* seconds);
 void RTC_ConvertSecondsToDateTime(uint32_t seconds, date_time_t* p_date_time);
 
+void RTC_ConvertDataTimeToDays(rtc_date_t* time, uint16_t* days);
+
 #endif /* _RTC_H_ */
 

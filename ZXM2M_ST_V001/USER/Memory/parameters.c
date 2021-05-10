@@ -3,9 +3,9 @@
 * @FileName: parameters.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-31
-* @brief     参数存储管理
+* @brief:    参数存储管理
 ******************************************************************************/
 #include "config.h"
 
@@ -81,68 +81,6 @@ int32_t Parm_FlashDbInit(void)
   return 0;
 }
 
-#if 0
-static uint32_t boot_count = 0;
-static uint32_t boot_time[10] = {0, 1, 2, 3};
-//==default KV nodes======
-static struct fdb_default_kv_node default_kv_table[] = {
-  {"username", "armink", 0}, // string KV
-  {"password", "123456", 0}, // string KV
-  {"boot_count", &boot_count, sizeof(boot_count)}, // int type KV
-  {"boot_time", &boot_time, sizeof(boot_time)},    // int array type KV
-};
-
-#define FDB_LOG_TAG "[sample][kvdb][blob]"
-void kvdb_type_blob_sample(fdb_kvdb_t kvdb)
-{
-  fdb_blob_t blob;
-  fdb_blob_t* p_blob;
-
-
-  FDB_INFO("==================== kvdb_type_blob_sample ====================\n");
-
-  { // CREATE new Key-Value
-    int temp_data = 36;
-
-    /* It will create new KV node when "temp" KV not in database.
-     * fdb_blob_make: It's a blob make function, and it will return the blob when make finish.
-     */
-    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
-    FlashDB_KvSetBlob(kvdb, "temp", p_blob);
-    FDB_INFO("create the 'temp' blob KV, value is: %d\n", temp_data);
-  }
-
-  { // GET the KV value
-    int temp_data = 0;
-
-    /* get the "temp" KV value */
-    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
-    FalshDB_KvGetBlob(kvdb, "temp", p_blob);
-    /* the blob.saved.len is more than 0 when get the value successful */
-    if (blob.saved.len > 0)
-    {
-      FDB_INFO("get the 'temp' value is: %d\n", temp_data);
-    }
-  }
-
-  { // CHANGE the KV value
-    int temp_data = 38;
-
-    /* change the "temp" KV's value to 38 */
-    p_blob = FlashDB_BlobMake(&blob, &temp_data, sizeof(temp_data));
-    FlashDB_KvSetBlob(kvdb, "temp", p_blob);
-    FDB_INFO("set 'temp' value to %d\n", temp_data);
-  }
-
-  { // DELETE the KV by name
-    FlashDB_KvDel(kvdb, "temp");
-    FDB_INFO("delete the 'temp' finish\n");
-  }
-
-  FDB_INFO("===========================================================\n");
-}
-#endif /* FDB_USING_KVDB */
-
 /******************************************************************************
 * 作业统计类3MIN定时器
 ******************************************************************************/
@@ -194,7 +132,6 @@ void Parm_ReadZxStsInfo(void)
     //FDB_INFO("get the 'temp' value is: %d\n", temp_data);
   }
 }
-
 
 /******************************************************************************
 * 终端休眠统计
@@ -277,7 +214,7 @@ void Parm_ReadZxEngineDwStsInfo(void)
 /******************************************************************************
  * 计算异或校验值
 ******************************************************************************/
-uint8_t iParm_CalcXorValue(uint8_t *p, uint16_t len)
+uint8_t Parm_CalcXorValue(uint8_t *p, uint16_t len)
 {
   uint8_t sum = 0;
   uint16_t i;
@@ -295,67 +232,318 @@ uint8_t iParm_CalcXorValue(uint8_t *p, uint16_t len)
 ******************************************************************************/
 void Parm_SaveLvcInfo(void)
 {
-  sfud_erase(&sfud_mx25l3206e,EMAP_LVC_INFO1_ADDRESS,EMAP_LVC_INFO1_SIZE); // 擦除
+  uint8_t buf[40];
+  uint8_t len = 0;
+  uint8_t check_sum;
+
+  sfud_erase(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, EMAP_LVC_INFO1_SIZE); // 擦除
   PARM_DELAY(2); // 延时2ms
-  sfud_erase(&sfud_mx25l3206e,EMAP_LVC_INFO2_ADDRESS,EMAP_LVC_INFO2_SIZE); // 擦除
+  sfud_erase(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, EMAP_LVC_INFO2_SIZE); // 擦除
   PARM_DELAY(2); // 延时2ms
 
-  //Calculate the Xor value so it is stored into memory
-  lvc_context.xor_value = iParm_CalcXorValue((uint8_t *) &lvc_context, (SIZEOF_LVC_CONTEXT - 1));
+  buf[len++] =  0x5A;  //  校验头
+  buf[len++] =  0xA5;
+  buf[len++] = lvc_context.protocol;  // 锁车协议
+  buf[len++] = lvc_context.usr_command;  // 服务器下发的指令
+  buf[len++] = lvc_context.binded_flag;  // 已绑定标志
+  buf[len++] = lvc_context.shake_hand_flag;  // 握手标志
+  buf[len++] = lvc_context.remove_bind_pwd[0];  // 强制解绑密码
+  buf[len++] = lvc_context.remove_bind_pwd[1];
+  buf[len++] = lvc_context.remove_bind_pwd[2];
+  buf[len++] = lvc_context.remove_bind_pwd[3];
+  buf[len++] = lvc_context.gps_bind_status; // GPS绑定状态
+  buf[len++] = lvc_context.gps_lock_status; // GPS锁车状态
+  buf[len++] = lvc_context.ecu_bind_status; // ECU绑定状态
+  buf[len++] = lvc_context.ecu_lock_status; // ECU锁车状态
+  memcpy(&buf[len], lvc_context.bkup_vin, 17); // VIN码
+  len += 17; 
+  check_sum = Parm_CalcXorValue(buf, len);
+  buf[len++] = check_sum; // 校验和
 
-  sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_context);
+  sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, len, buf);
   PARM_DELAY(2); // 延时2ms
-  sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_context);
+  sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, len, buf);
+
+  PcDebug_SendString("ParmSaveLvc!\n");
 }
 
 //============================================================================
 void Parm_ReadLvcInfo(void)
 {
-  lvc_context_t lvc_ctx1;
-  lvc_context_t lvc_ctx2;
+  uint8_t m_buf[40];
+  uint8_t xor_value1;
+  uint8_t r_buf[40];
+  uint8_t xor_value2;
   uint8_t main_is_ok = PARM_FALSE;
   uint8_t redundant_is_ok = PARM_FALSE;
 
-  sfud_read(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_ctx1); // 读取主备份
-  if (iParm_CalcXorValue((uint8_t *) &lvc_ctx1, (SIZEOF_LVC_CONTEXT-1)) == lvc_ctx1.xor_value && (lvc_ctx1.header == PARM_DATA_HEADER))
+  sfud_read(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, 32, m_buf); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 31);
+  if ((m_buf[0]==0x5A) && (m_buf[1]==0xA5) && (xor_value1==m_buf[31]))
   {
     main_is_ok = PARM_TRUE;
   }
 
-  sfud_read(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_ctx2); // 读取副备份
-  if (iParm_CalcXorValue((uint8_t *) &lvc_ctx2, (SIZEOF_LVC_CONTEXT-1)) == lvc_ctx2.xor_value && (lvc_ctx2.header == PARM_DATA_HEADER))
+  sfud_read(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, 32, r_buf); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 31);
+  if ((r_buf[0]==0x5A) && (r_buf[1]==0xA5) && (xor_value2==r_buf[31]))
   {
     redundant_is_ok = PARM_TRUE;
   }
 
   if (main_is_ok==PARM_TRUE) // 主备份OK
   {
-    memcpy(&lvc_context, &lvc_ctx1, SIZEOF_LVC_CONTEXT);
+    lvc_context.protocol = m_buf[2];  // 锁车协议
+    lvc_context.usr_command = m_buf[3];  // 服务器下发的指令
+    lvc_context.binded_flag = m_buf[4];  // 已绑定标志
+    lvc_context.shake_hand_flag = m_buf[5];  // 握手标志
+    lvc_context.remove_bind_pwd[0] = m_buf[6];  // 强制解绑密码
+    lvc_context.remove_bind_pwd[1] = m_buf[7];
+    lvc_context.remove_bind_pwd[2] = m_buf[8];
+    lvc_context.remove_bind_pwd[3] = m_buf[9];
+    lvc_context.gps_bind_status = m_buf[10]; // GPS绑定状态
+    lvc_context.gps_lock_status = m_buf[11]; // GPS锁车状态
+    lvc_context.ecu_bind_status = m_buf[12]; // ECU绑定状态
+    lvc_context.ecu_lock_status = m_buf[13]; // ECU锁车状态
+    memcpy(lvc_context.bkup_vin, &m_buf[14], 17); // VIN码
+
     if (redundant_is_ok==PARM_FALSE)
     {
       PcDebug_SendString("ParmLvc2Err!\n");
-      sfud_erase(&sfud_mx25l3206e,EMAP_LVC_INFO2_ADDRESS,EMAP_LVC_INFO2_SIZE); // 擦除
+      sfud_erase(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, EMAP_LVC_INFO2_SIZE); // 擦除
       PARM_DELAY(1); // 延时1ms
-      sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_context);
+      sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO2_ADDRESS, 32, m_buf);
     }
-
     return;
   }
 
   if (redundant_is_ok==PARM_TRUE) // 副备份OK
   {
-    memcpy(&lvc_context, &lvc_ctx2, SIZEOF_LVC_CONTEXT);
+    lvc_context.protocol = r_buf[2];  // 锁车协议
+    lvc_context.usr_command = r_buf[3];  // 服务器下发的指令
+    lvc_context.binded_flag = r_buf[4];  // 已绑定标志
+    lvc_context.shake_hand_flag = r_buf[5];  // 握手标志
+    lvc_context.remove_bind_pwd[0] = r_buf[6];  // 强制解绑密码
+    lvc_context.remove_bind_pwd[1] = r_buf[7];
+    lvc_context.remove_bind_pwd[2] = r_buf[8];
+    lvc_context.remove_bind_pwd[3] = r_buf[9];
+    lvc_context.gps_bind_status = r_buf[10]; // GPS绑定状态
+    lvc_context.gps_lock_status = r_buf[11]; // GPS锁车状态
+    lvc_context.ecu_bind_status = r_buf[12]; // ECU绑定状态
+    lvc_context.ecu_lock_status = r_buf[13]; // ECU锁车状态
+    memcpy(lvc_context.bkup_vin, &r_buf[14], 17); // VIN码
+
     if (main_is_ok==PARM_FALSE)
     {
       PcDebug_SendString("ParmLvc1Err!\n");
-      sfud_erase(&sfud_mx25l3206e,EMAP_LVC_INFO1_ADDRESS,EMAP_LVC_INFO1_SIZE); // 擦除
+      sfud_erase(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, EMAP_LVC_INFO1_SIZE); // 擦除
       PARM_DELAY(1); // 延时1ms
-      sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, SIZEOF_LVC_CONTEXT, (uint8_t *)&lvc_context);
+      sfud_write(&sfud_mx25l3206e, EMAP_LVC_INFO1_ADDRESS, 32, r_buf);
     }
     return;
   }
 
   PcDebug_SendString("ParmLvc1_2Err!\n"); // 存储都出错
+}
+
+/******************************************************************************
+* 不上线时间
+******************************************************************************/
+void Parm_SaveTboxOfflineTime(void)
+{
+  uint8_t buf[10];
+  uint8_t len = 0;
+  uint8_t check_sum;
+
+  sfud_erase(&sfud_mx25l3206e, EMAP_OFFLINE_INFO1_ADDRESS, EMAP_OFFLINE_INFO1_SIZE); // 擦除
+  PARM_DELAY(2); // 延时2ms
+  sfud_erase(&sfud_mx25l3206e, EMAP_OFFLINE_INFO2_ADDRESS, EMAP_OFFLINE_INFO2_SIZE); // 擦除
+  PARM_DELAY(2); // 延时2ms
+
+  buf[len++] =  0x5A;  //  校验头
+  buf[len++] =  0xA5;
+
+  buf[len++] =  (uint8_t)(colt_info.total_offline_time>>24);  // 终端不上线累计时间
+  buf[len++] =  (uint8_t)(colt_info.total_offline_time>>16);
+  buf[len++] =  (uint8_t)(colt_info.total_offline_time>>8);
+  buf[len++] =  (uint8_t)(colt_info.total_offline_time);
+
+  check_sum = Parm_CalcXorValue(buf, len);
+  buf[len++] = check_sum; // 校验和
+
+  sfud_write(&sfud_mx25l3206e, EMAP_OFFLINE_INFO1_ADDRESS, len, buf);
+  PARM_DELAY(2); // 延时2ms
+  sfud_write(&sfud_mx25l3206e, EMAP_OFFLINE_INFO2_ADDRESS, len, buf);
+
+  PcDebug_SendString("ParmSaveOfflineTime!\n");
+}
+
+//============================================================================
+void Parm_ReadTboxOfflineTime(void)
+{
+  uint8_t m_buf[10];
+  uint8_t xor_value1;
+  uint8_t r_buf[10];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  sfud_read(&sfud_mx25l3206e, EMAP_OFFLINE_INFO1_ADDRESS, 7, m_buf); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 6);
+  if ((m_buf[0]==0x5A) && (m_buf[1]==0xA5) && (xor_value1==m_buf[6]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  sfud_read(&sfud_mx25l3206e, EMAP_OFFLINE_INFO2_ADDRESS, 7, r_buf); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 6);
+  if ((r_buf[0]==0x5A) && (r_buf[1]==0xA5) && (xor_value2==r_buf[6]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    colt_info.total_offline_time = m_buf[2];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += m_buf[3];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += m_buf[4];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += m_buf[5];
+
+    if (redundant_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmOfflineTimeErr!\n");
+      sfud_erase(&sfud_mx25l3206e, EMAP_OFFLINE_INFO2_ADDRESS, EMAP_OFFLINE_INFO2_SIZE); // 擦除
+      PARM_DELAY(1); // 延时1ms
+      sfud_write(&sfud_mx25l3206e, EMAP_OFFLINE_INFO2_ADDRESS, 7, m_buf);
+    }
+    return;
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    colt_info.total_offline_time = r_buf[2];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += r_buf[3];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += r_buf[4];
+    colt_info.total_offline_time <<= 8;
+    colt_info.total_offline_time += r_buf[5];
+
+    if (main_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmOfflineTime1Err!\n");
+      sfud_erase(&sfud_mx25l3206e, EMAP_OFFLINE_INFO1_ADDRESS, EMAP_OFFLINE_INFO1_SIZE); // 擦除
+      PARM_DELAY(1); // 延时1ms
+      sfud_write(&sfud_mx25l3206e, EMAP_OFFLINE_INFO1_ADDRESS, 7, r_buf);
+    }
+    return;
+  }
+
+  PcDebug_SendString("ParmOfflineTime1_2Err!\n"); // 存储都出错
+}
+
+/*************************************************************************
+ * 车型配置信息
+*************************************************************************/
+void Parm_SavePidInfo(void)
+{
+  uint8_t buf[20];
+  uint8_t len = 0;
+  uint8_t check_sum;
+
+  sfud_erase(&sfud_mx25l3206e, EMAP_PID_INFO1_ADDRESS, EMAP_PID_INFO1_SIZE); // 擦除
+  PARM_DELAY(2); // 延时2ms
+  sfud_erase(&sfud_mx25l3206e, EMAP_PID_INFO2_ADDRESS, EMAP_PID_INFO2_SIZE); // 擦除
+  PARM_DELAY(2); // 延时2ms
+
+  buf[len++] = 0x5A;  //  校验头
+  buf[len++] = 0xA5;
+  buf[len++] = can_context.pid_up_type;       // 上车类型状态字
+  buf[len++] = can_context.pid_up_config1;    // 上车配置状态字1
+  buf[len++] = can_context.pid_up_config2;    // 上车配置状态字2
+  buf[len++] = can_context.pid_up_can;        // 上车协议类型状态字
+  buf[len++] = can_context.pid_down_type;     // 底盘类型状态字
+  buf[len++] = can_context.pid_down_config1;  // 底盘配置状态字1
+  buf[len++] = can_context.pid_down_config2;  // 底盘配置状态字2
+  buf[len++] = can_context.pid_down_can;      // 底盘CAN协议
+  check_sum = Parm_CalcXorValue(buf, len);
+  buf[len++] = check_sum; // 校验和
+
+  sfud_write(&sfud_mx25l3206e, EMAP_PID_INFO1_ADDRESS, len, buf);
+  PARM_DELAY(2); // 延时2ms
+  sfud_write(&sfud_mx25l3206e, EMAP_PID_INFO2_ADDRESS, len, buf);
+
+  PcDebug_SendString("ParmSavePid!\n");
+}
+
+//============================================================================
+void Parm_ReadPidInfo(void)
+{
+  uint8_t m_buf[20];
+  uint8_t xor_value1;
+  uint8_t r_buf[20];
+  uint8_t xor_value2;
+  uint8_t main_is_ok = PARM_FALSE;
+  uint8_t redundant_is_ok = PARM_FALSE;
+
+  sfud_read(&sfud_mx25l3206e, EMAP_PID_INFO1_ADDRESS, 11, m_buf); // 读取主备份
+  xor_value1 = Parm_CalcXorValue(m_buf, 10);
+  if ((m_buf[0] == 0x5A) && (m_buf[1] == 0xA5) && (xor_value1== m_buf[10]))
+  {
+    main_is_ok = PARM_TRUE;
+  }
+
+  sfud_read(&sfud_mx25l3206e, EMAP_PID_INFO2_ADDRESS, 11, r_buf); // 读取副备份
+  xor_value2 = Parm_CalcXorValue(r_buf, 10);
+  if ((r_buf[0] == 0x5A) && (r_buf[1] == 0xA5) && (xor_value2== r_buf[10]))
+  {
+    redundant_is_ok = PARM_TRUE;
+  }
+
+  if (main_is_ok==PARM_TRUE) // 主备份OK
+  {
+    can_context.pid_up_type = m_buf[2];       // 上车类型状态字
+    can_context.pid_up_config1 = m_buf[3];    // 上车配置状态字1
+    can_context.pid_up_config2 = m_buf[4];    // 上车配置状态字2
+    can_context.pid_up_can = m_buf[5];        // 上车协议类型状态字
+    can_context.pid_down_type = m_buf[6];     // 底盘类型状态字
+    can_context.pid_down_config1 = m_buf[7];  // 底盘配置状态字1
+    can_context.pid_down_config2 = m_buf[8];  // 底盘配置状态字2
+    can_context.pid_down_can = m_buf[9];      // 底盘CAN协议
+    if (redundant_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmPid2Err!\n");
+      sfud_erase(&sfud_mx25l3206e, EMAP_PID_INFO2_ADDRESS, EMAP_PID_INFO2_SIZE); // 擦除
+      PARM_DELAY(1); // 延时1ms
+      sfud_write(&sfud_mx25l3206e, EMAP_PID_INFO2_ADDRESS, 11, m_buf);
+    }
+    return;
+  }
+
+  if (redundant_is_ok==PARM_TRUE) // 副备份OK
+  {
+    can_context.pid_up_type = r_buf[2];       // 上车类型状态字
+    can_context.pid_up_config1 = r_buf[3];    // 上车配置状态字1
+    can_context.pid_up_config2 = r_buf[4];    // 上车配置状态字2
+    can_context.pid_up_can = r_buf[5];        // 上车协议类型状态字
+    can_context.pid_down_type = r_buf[6];     // 底盘类型状态字
+    can_context.pid_down_config1 = r_buf[7];  // 底盘配置状态字1
+    can_context.pid_down_config2 = r_buf[8];  // 底盘配置状态字2
+    can_context.pid_down_can = r_buf[9];      // 底盘CAN协议
+    if (main_is_ok==PARM_FALSE)
+    {
+      PcDebug_SendString("ParmPid1Err!\n");
+      sfud_erase(&sfud_mx25l3206e, EMAP_PID_INFO1_ADDRESS, EMAP_PID_INFO1_SIZE); // 擦除
+      PARM_DELAY(1); // 延时1ms
+      sfud_write(&sfud_mx25l3206e, EMAP_PID_INFO1_ADDRESS, 11, r_buf);
+    }
+    return;
+  }
+
+  PcDebug_SendString("ParmPid1_2Err!\n"); // 存储都出错
 }
 
 #if 0
@@ -408,7 +596,7 @@ void Parm_SaveM2mAssetData(void)
   pbuf[3] = len & 0xFF;
   pbuf[4] = tlvNum;  // TLV个数
   //======================================
-  xor_value = iParm_CalcXorValue(pbuf, len);
+  xor_value = Parm_CalcXorValue(pbuf, len);
   pbuf[len++] = xor_value; // 校验值
 
   sfud_write(&sfud_mx25l3206e, EMAP_M2M_ASSET_DATA1_ADDRESS, len, pbuf); // 写入
@@ -440,7 +628,7 @@ void Parm_ReadM2mAssetData(void)
   tlvNum = pbuf[pos++]; // tlv数量
   if ((header==0xA55A) && (len <= 1024)) // 校验头和参数长度
   {
-    xor_value = iParm_CalcXorValue(pbuf, len);
+    xor_value = Parm_CalcXorValue(pbuf, len);
     if (xor_value==pbuf[len]) // 校验值
     {
       while (tlvNum) // TLV解析
@@ -484,7 +672,7 @@ void Parm_ReadM2mAssetData(void)
     tlvNum = pbuf[pos++]; // tlv数量
     if ((header==0xA55A) && (len <= 1024)) // 校验头和参数长度
     {
-      xor_value = iParm_CalcXorValue(pbuf, len);
+      xor_value = Parm_CalcXorValue(pbuf, len);
       if (xor_value==pbuf[len]) // 校验值
       {
         while (tlvNum) // TLV解析
@@ -568,7 +756,7 @@ void Parm_ResetM2mAssetDataToFactory(void)
   pbuf[3] = len & 0xFF;
   pbuf[4] = tlvNum;  // TLV个数
   //======================================
-  xor_value = iParm_CalcXorValue(pbuf, len);
+  xor_value = Parm_CalcXorValue(pbuf, len);
   pbuf[len++] = xor_value; // 校验值
 
   sfud_write(&sfud_mx25l3206e, EMAP_M2M_ASSET_DATA1_ADDRESS, len, pbuf); // 写入

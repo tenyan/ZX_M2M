@@ -11,7 +11,7 @@
 /******************************************************************************
  *   Macros
  ******************************************************************************/
-#define MOMI_DEBUG    1
+#define MOMI_DEBUG    0
 #define MAX_CAN_FRAME_NUM      90   // 容许接收的最大CAN帧数量
 
 // 帧头(1B)+数据长度(2B)+功能码(1B)+流水号(2B)+数据包(NB)+校验(1B)+帧尾(4B)
@@ -25,12 +25,14 @@
 
 //==MOMI TLV E001定义==================================================
 #define MOMI_E001_POS1     0                   // 网络工作状态
-#define MOMI_E001_POS2     (MOMI_E001_POS1+1)  // GPS定位状态
-#define MOMI_E001_POS3     (MOMI_E001_POS2+1)  // WIFI工作状态
-#define MOMI_E001_POS4     (MOMI_E001_POS3+1)  // ETH工作状态
-#define MOMI_E001_POS5     (MOMI_E001_POS4+1)  // 远程升级标志
-#define MOMI_E001_POS6     (MOMI_E001_POS5+1)  // GPS时间
-#define SIZE_OF_MOMI_E001  (MOMI_E001_POS6+6)  // 总字节数(6B)
+#define MOMI_E001_POS2     (MOMI_E001_POS1+1)  // SIM卡识别状态
+#define MOMI_E001_POS3     (MOMI_E001_POS2+1)  // GPS定位状态
+#define MOMI_E001_POS4     (MOMI_E001_POS3+1)  // WIFI工作状态
+#define MOMI_E001_POS5     (MOMI_E001_POS4+1)  // ETH工作状态
+#define MOMI_E001_POS6     (MOMI_E001_POS5+1)  // 远程升级标志
+#define MOMI_E001_POS7     (MOMI_E001_POS6+1)  // GPS时间
+#define SIZE_OF_MOMI_E001  (MOMI_E001_POS7+6)  // 总字节数(6B)
+
 
 /******************************************************************************
 * Macros(环保数据定义)
@@ -151,6 +153,14 @@ typedef struct
 }dtc_context_t;
 extern dtc_context_t dtc_1939;
 extern dtc_context_t dtc_27145;
+
+typedef enum
+{
+  TBOX_STATE_POWERON = 0x00,
+  TBOX_STATE_WORKING,
+  TBOX_STATE_SLEEP,
+  TBOX_STATE_IAP
+} tbox_state_t;
 
 /******************************************************************************
  *   Function prototypes

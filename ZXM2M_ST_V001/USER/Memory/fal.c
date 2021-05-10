@@ -19,7 +19,6 @@
 #define FAL_PART_MAGIC_WORD  0x45503130
 #define FAL_PART_MAGIC_WORD_H  0x4550L
 #define FAL_PART_MAGIC_WORD_L  0x3130L
-#define FAL_PART_MAGIC_WROD  0x45503130
 
 /******************************************************************************
  * FAL移植:定义flash设备
@@ -60,11 +59,10 @@ fal_flash_dev_t nor_flash0 =
 // 4-每个分区定义时,除了填写上面介绍的参数属性外,需在前面增加FAL_PART_MAGIC_WORD属性,末尾增加0(目前用于保留功能)
 #define FAL_PART_TABLE  \
 { \
-    {FAL_PART_MAGIC_WROD,  "fdb_kvdb1",  "norflash0",   EMAP_KVDB_ADDRESS, EMAP_KVDB_SIZE, 0}, \
+    {FAL_PART_MAGIC_WORD,  "fdb_kvdb1",  "norflash0",   EMAP_KVDB_ADDRESS, EMAP_KVDB_SIZE, 0}, \
 }  // flash 分区表
-
-    //{FAL_PART_MAGIC_WROD,  "fdb_tsdb1",  "norflash0",   1024*1024, 1024*1024, 0},
 #endif
+//{FAL_PART_MAGIC_WROD,  "fdb_tsdb1",  "norflash0",   1024*1024, 1024*1024, 0},
 
 /******************************************************************************
  * Data Types

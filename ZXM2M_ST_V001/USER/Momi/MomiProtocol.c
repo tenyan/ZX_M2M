@@ -3,9 +3,19 @@
 * @FileName: MomiProtocol.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-12-10
-* @brief     Modem模块和Micro通信协议实现
+* @brief:    Modem模块和Micro通信协议实现
+*  TLV说明:
+*  TAGF001--终端自身采集信息(yes)
+*  TAGF002--GPS定位信息(no)
+*  TAGF010--上车工况信息(yes)
+*  TAGF011--下车工况信息(yes)
+*  TAGF012--下车发动机信息(yes)
+*  TAGF020--故障信息(no)
+*  TAGF030--统计信息(yes)
+*  TAGF040--版本信息(yes)
+*  TAGF050--CAN帧信息(no)
 ******************************************************************************/
 //-----头文件调用------------------------------------------------------------
 #include "MomiHW.h"
@@ -22,6 +32,9 @@ typedef struct
   iMomi_BuildTlvMsgFun pfun_build;
   iMomi_AnalyzeTlvMsgFun pfun_analyze;
 }iMomi_CmdTlv_t;
+
+void iZxm2m_UpdateTlvMsg_A501(void);
+void iZxm2m_UpdateTlvMsg_A504(void);
 
 /******************************************************************************
  *   Macros
@@ -275,7 +288,7 @@ void Modem_PowerOn(void)
     }
   }
 
-  MODEM_DELAY_MS(OS_TICKS_PER_SEC*1); // 延时1s进入数据发送
+  MODEM_DELAY_MS(OS_TICKS_PER_SEC*5); // 延时1s进入数据发送
 }
 
 /******************************************************************************
@@ -346,16 +359,16 @@ void iMomi_BuildAdSwitch(void)
   zxinfo_buffer_a5ff[ZXINFO_A5FF_POS6_ADDR] = colt_info.alarm; // 防拆类开关量
 
   can_status.byte = 0;
-  if(CAN_GetRecvState(CAN_CHANNEL1))
+  if(CAN1_GetRecvState())
   {  can_status.b.bit0 = 1;}
 
-  if(CAN_GetRecvState(CAN_CHANNEL2))
+  if(CAN2_GetRecvState())
   {  can_status.b.bit1 = 1;}
 
-  if(CAN_GetCommState(CAN_CHANNEL1))
+  if(CAN1_GetCommState())
   {  can_status.b.bit2 = 1;}
 
-  if(CAN_GetCommState(CAN_CHANNEL2))
+  if(CAN2_GetCommState())
   {  can_status.b.bit3 = 1;}
   zxinfo_buffer_a5ff[ZXINFO_A5FF_POS7_ADDR] = can_status.byte; // CAN通信状态
 
@@ -372,6 +385,13 @@ void iMomi_BuildAdSwitch(void)
   zxinfo_buffer_a5ff[ZXINFO_A5FF_POS10_ADDR] = (tempVal>>8) & 0xFF;  // 版本信息
   zxinfo_buffer_a5ff[ZXINFO_A5FF_POS10_ADDR+1] = (tempVal & 0xFF);
 
+  if(lvc_context.binded_flag==LVC_BIND) // ECU绑定状态
+  {  zxinfo_buffer_a5ff[ZXINFO_A5FF_POS11_ADDR] = 0x01;}
+  else
+  {  zxinfo_buffer_a5ff[ZXINFO_A5FF_POS11_ADDR] = 0x00;}
+
+  zxinfo_buffer_a5ff[ZXINFO_A5FF_POS12_ADDR] = Tbox_GetMachineState(); // ST工作状态
+
   tlv_a5ff_valid_flag = 1;
 }
 
@@ -381,6 +401,8 @@ static uint16_t iMomi_BuildTlvMsg_F001(uint8_t *pbuf)
   uint16_t len = 0;
   uint16_t tlv_length = SIZE_OF_ZXINFO_BUFFER+2;
 
+  iZxm2m_UpdateTlvMsg_A501();  // 赋值通用状态字2(重型专用)
+  iZxm2m_UpdateTlvMsg_A504();  // 采集协议信息
   iMomi_BuildAdSwitch();  // 赋值终端自身采集信息
 
   pbuf[len++] = 0xF0; // TAG
@@ -858,7 +880,7 @@ void Momi_ProduceSendMsg(void)
   static uint8_t divide_for_1second = 100;
   static uint8_t divide_for_1min = 60;
   uint8_t acc_state;
-  static uint16_t acc_on_timer = 30;
+  static uint16_t acc_on_timer = 50;
   static uint8_t send_version_flag = 1;
 
   if(Modem_GetState()==MODEM_STATE_DATA_READY) // 模块处于已开机状态
@@ -893,9 +915,16 @@ void Momi_ProduceSendMsg(void)
       if(divide_for_1min)
       {  divide_for_1min--;}
 
-      if(acc_on_timer)
-      {  acc_on_timer--;}
-
+      if(acc_state)  // ACC开
+      {
+        if(acc_on_timer)
+        {  acc_on_timer--;}
+      }
+      else
+      {
+        acc_on_timer = 50;
+        send_version_flag = 1;
+      }
       //iMomi_SendGpsMsg();
     }
 
@@ -982,18 +1011,19 @@ static uint8_t iMomi_AnalyzeTlvMsg_E001(uint8_t* pValue, uint16_t len)
 //#endif
     retVal = 1;
     colt_info.net_4g_status = pValue[MOMI_E001_POS1];  // 网络工作状态
-    colt_info.gps_4g_status = pValue[MOMI_E001_POS2];  // GPS定位状态
-    colt_info.wifi_status = pValue[MOMI_E001_POS3];  // WIFI工作状态
-    colt_info.eth_status = pValue[MOMI_E001_POS4];  // ETH工作状态
-    colt_info.rfu_flag = pValue[MOMI_E001_POS5];  // 远程升级标志
+    colt_info.sim_card_status = pValue[MOMI_E001_POS2];  // SIM卡识别状态
+    colt_info.gps_4g_status = pValue[MOMI_E001_POS3];  // GPS定位状态
+    colt_info.wifi_status = pValue[MOMI_E001_POS4];  // WIFI工作状态
+    colt_info.eth_status = pValue[MOMI_E001_POS5];  // ETH工作状态
+    colt_info.rfu_flag = pValue[MOMI_E001_POS6];  // 远程升级标志
     if(colt_info.gps_4g_status)  // 4g模块上的GPS已定位
     {
-      lte_gps_time.year = pValue[MOMI_E001_POS6];  // GPS时间
-      lte_gps_time.month = pValue[MOMI_E001_POS6+1];
-      lte_gps_time.day = pValue[MOMI_E001_POS6+2];
-      lte_gps_time.hour = pValue[MOMI_E001_POS6+3];
-      lte_gps_time.minute = pValue[MOMI_E001_POS6+4];
-      lte_gps_time.second = pValue[MOMI_E001_POS6+5];
+      lte_gps_time.year = pValue[MOMI_E001_POS7];  // GPS时间
+      lte_gps_time.month = pValue[MOMI_E001_POS7+1];
+      lte_gps_time.day = pValue[MOMI_E001_POS7+2];
+      lte_gps_time.hour = pValue[MOMI_E001_POS7+3];
+      lte_gps_time.minute = pValue[MOMI_E001_POS7+4];
+      lte_gps_time.second = pValue[MOMI_E001_POS7+5];
       rtcSoft_Init(&lte_gps_time);
     }
   }
@@ -1134,6 +1164,8 @@ void Momi_ServiceInit(void)
   Modem_GpioInitialize();
   USART3_Initialize(MODEM_UART_BAUDRATE);
   Modem_SetState(MODEM_STATE_POWER_OFF);
+
+  ZxM2m_InitTlvData();
 }
 
 /*************************************************************************

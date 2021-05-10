@@ -90,10 +90,41 @@ void ConvertBytesToString(uint8_t* pstr, uint8_t* pbyte, uint16_t byte_num)
 *******************************************************************************/
 void M2M_ReInitServerAddr(void)
 {
+  //==将主机名转化为IP地址==================================================
+  zxm2m_socket.srv_protocol = M2M_CLOUD_SERVER_PROTOCOL;
+  zxm2m_socket.srv_port = M2M_CLOUD_SERVER_PORT;
+
+  char* hostname = M2M_CLOUD_SERVER_DNS;  // 重型M2M平台的域名网址
+  struct hostent* phost;
+
+  // 在多线程下面，gethostbyname会一个更严重的问题，就是如果有一个线程的gethostbyname发生阻塞，
+  // 其它线程都会在gethostbyname处发生阻塞。
+  phost = gethostbyname(hostname); // gethostbyname()是不可重入函数
+  if (phost == NULL)
+  {
+    PcDebug_Printf("ZxM2m:DnsToIpFail1!\n");
+    return;
+  }
+
+  if (AF_INET != phost->h_addrtype)
+  {
+    PcDebug_Printf("ZxM2m:DnsToIpFail2!\n");
+    return;
+  }
+
+  // 获取实际IP地址
+  sprintf((char * __restrict__)zxm2m_socket.srv_ip, "%s", inet_ntoa(*((struct in_addr*)phost->h_addr_list[0]))); 
+  PcDebug_Printf("ZxM2mSrvIp-%s:%d\n",zxm2m_socket.srv_ip, zxm2m_socket.srv_port);
+}
+
+#if 0
+void M2M_ReInitServerAddr(void)
+{
   zxm2m_socket.srv_protocol = m2m_asset_data.main_srv_protocol;
   zxm2m_socket.srv_port = m2m_asset_data.main_srv_port;
   sprintf((char *)zxm2m_socket.srv_ip, "%d.%d.%d.%d",m2m_asset_data.main_srv_ip[0],m2m_asset_data.main_srv_ip[1],m2m_asset_data.main_srv_ip[2],m2m_asset_data.main_srv_ip[3]);
 }
+#endif
 
 //==========================================================================
 void M2M_NetSocketInit(void)
@@ -113,7 +144,7 @@ void M2M_NetSocketInit(void)
   zxm2m_socket.new_tx_data_flag = 0;
 
   zxm2m_socket.reinit_server_addr = &M2M_ReInitServerAddr;
-  (*zxm2m_socket.reinit_server_addr)();
+  //(*zxm2m_socket.reinit_server_addr)();
 }
 
 //============================================================================
@@ -212,8 +243,15 @@ void ZxM2m_ServiceInit(void)
 {
   Parm_ReadM2mAssetData();
   Parm_ReadLvcInfo();
+  Parm_ReadPidInfo();
+  Parm_ReadVinInfo();
+  PcDebug_Printf("UsrVin:%s",zxtcw_context.vin);
   M2M_Initialize();
   M2M_NetSocketInit();
+  ZxM2m_ReInitTcwTlvInfo(&zxtcw_context);  // 重新初始化TLV类别
+  // 打印车辆配置信息
+  PcDebug_Printf("Pup=%d,Upcfg1=%d,Upcfg2=%d,Upcan=%d!\n", zxtcw_context.pid_up_type, zxtcw_context.pid_up_config1, zxtcw_context.pid_up_config2, zxtcw_context.pid_up_can);
+  PcDebug_Printf("Pdw=%d,Dwcfg1=%d,Dwcfg2=%d,Dwcan=%d!\n", zxtcw_context.pid_down_type, zxtcw_context.pid_down_config1, zxtcw_context.pid_down_config2, zxtcw_context.pid_down_can);
 }
 
 //============================================================================
@@ -303,7 +341,6 @@ void ReInitBjepServerAddr(void)
   PcDebug_Printf("BjepSrvIp-%s:%d\n",bjep_socket.srv_ip, bjep_socket.srv_port);
 }
 
-
 //=============================================================================================
 void BJEP_NetSocketInit(void)
 {
@@ -379,7 +416,7 @@ void* pthread_MainEpProduce(void *argument)
   while (1)
   {
     msleep(10); // 10ms周期
-    if (CAN_GetEpType()==EP_TYPE_HJ) // 环保功能开启
+    if (CAN_GetEpType()==EP_TYPE_HJ || CAN_GetEpType()==EP_TYPE_HZ) // 环保功能开启
     {
       HJEP_ProduceSendData();
     }
@@ -546,21 +583,32 @@ void* pthread_SubEpProcess(void *argument)
 void EP_ServiceInit(void)
 {
   // 测试用
-  m2m_asset_data.vin_valid_flag = 0x01;
-  m2m_asset_data.ep_type = EP_TYPE_HJ;
-  colt_info.engine_speed = 400;
-  colt_info.ep_valid_flag = 1;
+  zxtcw_context.vin_valid_flag = 0x01;
+  zxtcw_context.engine_speed = 400;
+
+  //zxtcw_context.ep_type = EP_TYPE_HJ;
+  //zxtcw_context.ep_type = EP_TYPE_NONE;
+  //zxtcw_context.ep_valid_flag = 1;
+  Parm_ReadEpTypeInfo();
 
   if (CAN_GetEpType()==EP_TYPE_HJ) // 环保功能开启
   {
     HJEP_Initialize();
     HJEP_NetSocketInit();
+    PcDebug_Printf("EpType:HJ!\n");
+  }
+  else if(CAN_GetEpType()==EP_TYPE_HZ)
+  {
+    HJEP_Initialize();
+    HJEP_NetSocketInit();
+    PcDebug_Printf("EpType:HZD!\n");
   }
   else if(CAN_GetEpType()==EP_TYPE_GB)
   {
     GBEP_Initialize();
     BJEP_NetSocketInit();
     GBEP_NetSocketInit();
+    PcDebug_Printf("EpType:GB!\n");
   }
 }
 
@@ -606,7 +654,7 @@ void Net_CheckIsModemError(void)
       zxm2m_socket.error_flag = FALSE;
       mainep_socket.error_flag = FALSE;
       subep_socket.error_flag = FALSE;
-      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+      Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
     }
   }
   else if(mainep_socket.enable_flag == SOCKET_TRUE)
@@ -615,7 +663,7 @@ void Net_CheckIsModemError(void)
     {
       zxm2m_socket.error_flag = FALSE;
       mainep_socket.error_flag = FALSE;
-      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+      Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
     }
   }
   else
@@ -623,7 +671,7 @@ void Net_CheckIsModemError(void)
     if (zxm2m_socket.error_flag==TRUE) // 平台都连接不上,重启模块
     {
       zxm2m_socket.error_flag = FALSE;
-      Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+      Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
     }
   }
 }

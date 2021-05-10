@@ -3,9 +3,9 @@
 * @FileName: icloud_machine.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-11-16
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _ICLOUD_MACHINE_H_
 #define _ICLOUD_MACHINE_H_

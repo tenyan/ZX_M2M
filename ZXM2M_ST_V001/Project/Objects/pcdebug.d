@@ -66,6 +66,7 @@
 .\project\objects\pcdebug.o: .\USER\RTC\am1805.h
 .\project\objects\pcdebug.o: .\USER\CAN\Can.h
 .\project\objects\pcdebug.o: .\USER\CAN\CanHW.h
+.\project\objects\pcdebug.o: .\USER\CAN\lvc.h
 .\project\objects\pcdebug.o: .\USER\CAN\ISO27145.h
 .\project\objects\pcdebug.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\pcdebug.o: .\USER\Momi\MomiProtocol.h

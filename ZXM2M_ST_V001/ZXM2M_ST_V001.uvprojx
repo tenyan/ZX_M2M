@@ -492,6 +492,16 @@
               <FileType>5</FileType>
               <FilePath>.\USER\CAN\tcw.h</FilePath>
             </File>
+            <File>
+              <FileName>lvc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\CAN\lvc.c</FilePath>
+            </File>
+            <File>
+              <FileName>lvc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\CAN\lvc.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

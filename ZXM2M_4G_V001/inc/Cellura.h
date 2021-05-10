@@ -35,7 +35,6 @@ typedef uint8_t  at_buf_t;
 #define TCPIP_ERROR_CODE_DNS_FAILED               11
 #define TCPIP_ERROR_CODE_UNKNOW_ERROR             255
 
-
 /******************************************************************************
  * Data Types and Globals
  ******************************************************************************/
@@ -45,6 +44,7 @@ typedef enum
   AT_CMD_IDLE = 0,    //!< 空闲模式
   AT_CMD_CRESET,      //!< 模块软件复位
   AT_CMD_CFUN0_SET,   //!< 模块进入MiniFun
+  AT_CMD_CFUN4_SET,   //!< 模块关闭RF电路
   AT_CMD_CFUN1_SET,   //!< 模块为全功能(online mode)
 
   AT_CMD_AT,          //!< AT测试
@@ -131,15 +131,15 @@ typedef enum
 typedef enum
 {
   MODEM_STATE_INIT = 0x00,
-  MODEM_STATE_MINI_FUN,
+  MODEM_STATE_RESTART_FUN,
   MODEM_STATE_RESET,
   MODEM_STATE_DATA_READY,
   MODEM_STATE_SILENCE
 }modem_state_t;
 extern modem_state_t modem_state;
 
-#define MAX_SIZE_ICCID           ((uint8_t) 20U)  // MAX = 32 characters
-#define MAX_SIZE_IMSI            ((uint8_t) 15U)  // MAX = 32 characters
+#define MAX_SIZE_ICCID  ((uint8_t) 20U)  // MAX = 32 characters
+#define MAX_SIZE_IMSI   ((uint8_t) 15U)  // MAX = 32 characters
 typedef struct
 {
   modem_state_t modem_state;      // 模块状态
@@ -156,7 +156,7 @@ typedef struct
   int sms_ready_flag : 1;
   int modem_err_flag : 1;  // 模块故障标志位: 0=正常,1=故障
   
-  int sim_card_ok_flag : 1; // SIM卡正常标志位: 1=正常,0=故障
+  //int sim_card_ok_flag : 1; // SIM卡正常标志位: 1=正常,0=故障
   int sim_card_suspend_flag : 1; // SIM卡欠费标志位: 1=欠费,0=未欠费
   
   int pdp_actived_flag : 1;

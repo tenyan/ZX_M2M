@@ -3,9 +3,9 @@
 * @FileName: Collect.C
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-6-4
-* @brief
+* @brief:
 ******************************************************************************/
 //-----头文件调用-------------------------------------------------------------
 #include "CollectHW.h"
@@ -163,7 +163,7 @@ void COLT_CheckMainPowerStatus(void)
     vraw_off_debounce_cnt = 0;
     if (vraw_on_debounce_cnt > MAIN_POWER_ON_DEBOUNCE_TIME_SP)
     {
-      colt_info.switch3 &= ~BIT(0);	// 外电供电
+      colt_info.switch3 &= ~BIT(0);  // 外电供电
     }
     else
       vraw_on_debounce_cnt++;
@@ -173,7 +173,7 @@ void COLT_CheckMainPowerStatus(void)
     vraw_on_debounce_cnt = 0;
     if (vraw_off_debounce_cnt > MAIN_POWER_OFF_DEBOUNCE_TIME_SP)
     {
-      colt_info.switch3 |= BIT(0); 	// 电池供电
+      colt_info.switch3 |= BIT(0);   // 电池供电
     }
     else
       vraw_off_debounce_cnt++;
@@ -260,7 +260,7 @@ void COLT_CheckAccOffEvent(void)
 }
 
 #define ACC_OFF_DEBOUNCE_TIME_SP    20  // 2秒
-#define ACC_ON_DEBOUNCE_TIME_SP     20  // 2秒
+#define ACC_ON_DEBOUNCE_TIME_SP     5   // 0.5秒
 /********************************************************************************
  * 100ms调用一次
 *********************************************************************************/
@@ -342,7 +342,7 @@ void COLT_ManageLedStatus(void)
     }
     
     //==黄灯(CAN1)=================================================
-    if(CAN_GetRecvState(CAN_CHANNEL1)==CAN_OK)
+    if(CAN1_GetRecvState()==CAN_OK)
     {
       led_control[LED_CAN1].blink = SLOW_CONTINUOUS;
     }
@@ -352,7 +352,7 @@ void COLT_ManageLedStatus(void)
     }
 
     //==黄灯(CAN2)=================================================
-    if(CAN_GetRecvState(CAN_CHANNEL2)==CAN_OK)
+    if(CAN2_GetRecvState()==CAN_OK)
     {
       led_control[LED_CAN2].blink = SLOW_CONTINUOUS;
     }
@@ -462,6 +462,44 @@ void COLT_CheckGpsAntennaIsOk(void)
   }
 }
 
+/*************************************************************************
+ * 车辆盲区超时判断函数(1s调用一次)
+*************************************************************************/
+void COLT_CumulateOfflineTimeInWork(void)
+{
+  static uint16_t save_timer = 0;
+
+  if(colt_info.net_4g_status)  // 1=已联网
+  {
+    if (colt_info.total_offline_time > 3600) // 超过一小时,则清零Flash里面的数据
+    {
+      colt_info.total_offline_time = 0x00;
+      Parm_SaveTboxOfflineTime();
+    }
+    save_timer = 0x00;
+    colt_info.total_offline_time = 0x00;  // 清零
+  }
+  else  // 未上线
+  {
+    save_timer++;
+    colt_info.total_offline_time++;
+    if(save_timer > 3600)  // 一小时存储一次
+    {
+      save_timer -= 3600;
+      Parm_SaveTboxOfflineTime();
+    }
+  }
+}
+
+//==终端休眠不上线累计====================================================
+void COLT_CumulateOfflineTimeInSleep(void)
+{
+  uint32_t sleep_time; // 唤醒间隔定时器
+
+  sleep_time = m2m_asset_data.sleep_time_sp * 60;
+  colt_info.total_offline_time += sleep_time;
+}
+
 /**********************************************************************************
  *
 *********************************************************************************/
@@ -504,13 +542,23 @@ uint8_t COLT_GetAccStatus(void)
 //==获取主电源状态============================================================
 uint8_t COLT_GetMainPowerStatus(void)
 {
-  return (colt_info.switch3 & BIT(0)) ? 1 : 0; // 0=外电供电；1=电池供电
+  return (colt_info.switch3 & BIT(0)) ? 1 : 0; // 0=外电供电, 1=电池供电
 }
 
 //==获取主电源馈电状态========================================================
 uint8_t COLT_GetMainPowerLowStatus(void)
 {
   return (colt_info.switch3 & BIT(1)) ? 1 : 0; // 0=未馈电, 1=馈电
+}
+
+//==获取主电源满电状态========================================================
+uint8_t COLT_GetMainPowerFullStatus(void)
+{
+  if(((colt_info.vraw>130) && (colt_info.vraw<151)) || (colt_info.vraw>265))
+  {
+    return 1; // 1=满电
+  }
+  return 0; // 0=未满电
 }
 
 //==获取4G模块上GPS模块定位状态(1=定位,0=未定位)=======================================
@@ -541,6 +589,12 @@ uint8_t COLT_GetGpsAntShortStatus(void)
 uint8_t COLT_GetGpsAntOpenStatus(void)
 {
   return colt_info.gpsAntOpenStatus;
+}
+
+//==获取SIM卡识别状态=======================================================
+uint8_t COLT_GetSimCardStatus(void)
+{
+  return colt_info.sim_card_status;
 }
 
 //=============================================================================
@@ -708,6 +762,9 @@ void CTL_Do1sTasks(void)
       am18x5_PswControl(1);
     }
   }
+
+  //==离线时间统计=======================
+  COLT_CumulateOfflineTimeInWork();
 }
 
 /******************************************************************************
@@ -797,17 +854,17 @@ void do_10ms(void)
   /**************** Do10msTasks();****************/
   DO_10MS_FLAG = 1;
 
-  if (!divide_for_100ms)	// Schedule 100msec
+  if (!divide_for_100ms)  // Schedule 100msec
   {
     DO_100MS_FLAG = 1;
     divide_for_100ms = DIVIDER_FOR_100MS;
 
-    if (!divide_for_1second) 	// Schedule 1 sec
+    if (!divide_for_1second)   // Schedule 1 sec
     {
       DO_1SECOND_FLAG = 1;
       divide_for_1second = DIVIDER_FOR_1SECOND;
 
-      if (!divide_for_5second) 	// Schedule 5 sec
+      if (!divide_for_5second)   // Schedule 5 sec
       {
         DO_5SECOND_FLAG = 1;
         divide_for_5second = DIVIDER_FOR_5SECOND;
@@ -834,7 +891,7 @@ void do_10ms(void)
 }
 
 /*******************************************************************************
- *	check_timer_tasks() Checks timer flags and executes routines
+ *  check_timer_tasks() Checks timer flags and executes routines
  *******************************************************************************/
 void check_timer_tasks(void)
 {
@@ -901,6 +958,7 @@ void Do10msTasks(void)
 {
   led_state_machine();
   rtcSoft_Run();
+  Can_Do10msTasks();
 }
 
 /* ========================================================== */
@@ -927,7 +985,7 @@ extern uint8_t rtc_GetRegister(uint8_t reg_addr);
 /* ========================================================== */
 void Do5sTasks(void)
 {
-
+  //PcDebug_Printf("Toffline=%d",colt_info.total_offline_time);
 }
 
 /* ========================================================== */
@@ -964,6 +1022,7 @@ void Collect_ServiceInit(void)
   colt_info.switch1 = 0;    // 用于报警开关、ACC开关、小时计开关、搭铁等状态标识
   colt_info.switch2 = 0;    // 用于继电器锁车、开盒报警、CAN、RS23通信状态标识
   colt_info.switch3 = 0;    // 用于供电方式、外电和内部电池状态、行驶速度、位置越界等状态标识
+  Parm_ReadTboxOfflineTime();
 }
 
 /*************************************************************************

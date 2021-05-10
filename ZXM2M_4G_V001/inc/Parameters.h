@@ -28,6 +28,10 @@
 #define FILE_ODO_CPY2    "/data/odograph.txt"       // 里程
 #define FILE_USER_VIN_CPY1    "/media/card/user_vin.txt"  // 用户下发的车辆识别码(VIN)
 #define FILE_USER_VIN_CPY2    "/data/user_vin.txt"        // 用户下发的车辆识别码(VIN)
+#define FILE_USER_EP_TYPE_CPY1    "/media/card/user_ep_type.txt"  // 用户下发的环保类型
+#define FILE_USER_EP_TYPE_CPY2    "/data/user_ep_type.txt"        // 用户下发的环保类型
+#define FILE_GPS_NAV_INFO_CPY1    "/media/card/gps_nav_info.txt"  // GPS导航信息
+#define FILE_GPS_NAV_INFO_CPY2    "/data/gps_nav_info.txt"        // GPS导航信息
 #define FILE_WORKTIME_CPY1    "/media/card/worktime.txt"  // 设备累积工作时间(ACC ON)
 #define FILE_WORKTIME_CPY2    "/data/worktime.txt"        // 设备累积工作时间(ACC ON)
 #define FILE_OFFLINE_TIME_CPY1    "/media/card/offline_time.txt"  // 终端不上线累积时间
@@ -86,11 +90,23 @@ void Parm_ResetM2mAssetDataToFactory(void);
 void Parm_SaveM2mAssetData(void);
 void Parm_ReadM2mAssetData(void);
 
+void Parm_ReadEpTypeInfo(void);
+void Parm_SaveEpTypeInfo(void);
+
 void Parm_ReadVinInfo(void);
 void Parm_SaveVinInfo(void);
 
+void Parm_ReadSnInfo(void);
+void Parm_SaveSnInfo(void);
+
+void Parm_SavePidInfo(void);
+void Parm_ReadPidInfo(void);
+
 void Parm_SaveLvcInfo(void);
 void Parm_ReadLvcInfo(void);
+
+void Parm_SaveGpsNavInfo(void);
+void Parm_ReadGpsNavInfo(void);
 
 void Parm_SaveOfflineTimeInfo(void);
 void Parm_ReadOfflineTimeInfo(void);

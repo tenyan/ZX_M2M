@@ -3,9 +3,9 @@
 * @FileName: MomiProtocol.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-12-10
-* @brief     Modem模块和Micro通信协议头文件
+* @brief:    Modem模块和Micro通信协议头文件
 ******************************************************************************/
 #ifndef _MOMI_PROTOCOL_H_
 #define _MOMI_PROTOCOL_H_
@@ -27,12 +27,13 @@
 
 //==MOMI TLV E001定义==================================================
 #define MOMI_E001_POS1     0                   // 网络工作状态
-#define MOMI_E001_POS2     (MOMI_E001_POS1+1)  // GPS定位状态
-#define MOMI_E001_POS3     (MOMI_E001_POS2+1)  // WIFI工作状态
-#define MOMI_E001_POS4     (MOMI_E001_POS3+1)  // ETH工作状态
-#define MOMI_E001_POS5     (MOMI_E001_POS4+1)  // 远程升级标志
-#define MOMI_E001_POS6     (MOMI_E001_POS5+1)  // GPS时间
-#define SIZE_OF_MOMI_E001  (MOMI_E001_POS6+6)  // 总字节数(6B)
+#define MOMI_E001_POS2     (MOMI_E001_POS1+1)  // SIM卡识别状态
+#define MOMI_E001_POS3     (MOMI_E001_POS2+1)  // GPS定位状态
+#define MOMI_E001_POS4     (MOMI_E001_POS3+1)  // WIFI工作状态
+#define MOMI_E001_POS5     (MOMI_E001_POS4+1)  // ETH工作状态
+#define MOMI_E001_POS6     (MOMI_E001_POS5+1)  // 远程升级标志
+#define MOMI_E001_POS7     (MOMI_E001_POS6+1)  // GPS时间
+#define SIZE_OF_MOMI_E001  (MOMI_E001_POS7+6)  // 总字节数(6B)
 
 /******************************************************************************
  *   Data Types
@@ -66,3 +67,4 @@ void Momi_ServiceInit(void);
 void Momi_ServiceStart(void);
 
 #endif  /* _MOMI_PROTOCOL_H_ */
+

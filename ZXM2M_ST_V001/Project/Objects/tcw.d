@@ -65,6 +65,7 @@
 .\project\objects\tcw.o: .\USER\RTC\am1805.h
 .\project\objects\tcw.o: .\USER\CAN\Can.h
 .\project\objects\tcw.o: .\USER\CAN\CanHW.h
+.\project\objects\tcw.o: .\USER\CAN\lvc.h
 .\project\objects\tcw.o: .\USER\CAN\ISO27145.h
 .\project\objects\tcw.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\tcw.o: .\USER\Momi\MomiProtocol.h

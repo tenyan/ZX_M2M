@@ -1,4 +1,8 @@
----- M2M_ProduceSendMsg Matches (3 in 3 files) ----
-pthread_ZxM2mProduce in iCloud.c (E:\ZXM2M_4G_V001\src) :     M2M_ProduceSendMsg(&m2m_context);
-M2mProtocol.c (E:\ZXM2M_4G_V001\src) line 4097 : void M2M_ProduceSendMsg(m2m_context_t* pThis)
-M2mProtocol.h (E:\ZXM2M_4G_V001\inc) line 420 : void M2M_ProduceSendMsg(m2m_context_t* pThis);
+---- iZxM2m_SendTcMsg Matches (7 in 2 files) ----
+M2mProtocol.c (E:\ZXM2M_4G_V001\src) line 18 : extern void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type);  // 发送重型数据
+M2M_ProduceSendMsg in M2mProtocol.c (E:\ZXM2M_4G_V001\src) :     iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCS);  // 发送重型终端数据
+M2M_ProduceSendMsg in M2mProtocol.c (E:\ZXM2M_4G_V001\src) :       iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCB);
+M2M_ProduceSendMsg in M2mProtocol.c (E:\ZXM2M_4G_V001\src) :       iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCT);
+M2M_ProduceSendMsg in M2mProtocol.c (E:\ZXM2M_4G_V001\src) :       iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCW);
+M2M_ProduceSendMsg in M2mProtocol.c (E:\ZXM2M_4G_V001\src) :   //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCD);  // 发送重型故障数据(有故障立即发送)
+M2mZxProtocol.c (E:\ZXM2M_4G_V001\src) line 2362 : void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type)

@@ -212,7 +212,6 @@ int main(void)
   GPS_ServiceInit();
   Cellura_ServiceInit();
   Collect_ServiceInit();
-  NetSocket_Init();
   ZxM2m_ServiceInit();
   EP_ServiceInit();
   AuxCom_ServiceInit();

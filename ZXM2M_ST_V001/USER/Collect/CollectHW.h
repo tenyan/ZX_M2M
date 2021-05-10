@@ -3,9 +3,9 @@
 * @FileName: CollectHW.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-10
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _COLLECT_HW_H_
 #define _COLLECT_HW_H_

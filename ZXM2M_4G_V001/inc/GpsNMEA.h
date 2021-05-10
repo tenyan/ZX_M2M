@@ -92,11 +92,11 @@ typedef struct
 {
   utc_time_t utc;   /// UTC 日期和时间
   uint8_t fixValid;  /// 定位状态
-  int32_t  lat;      /// 纬度 单位:百万分之一度
-  uint8_t  ns;       /// [N]orth or [S]outh
-  int32_t  lon;      /// 经度 单位:百万分之一度
-  uint8_t  ew;       /// [E]ast or [W]est
-  int16_t  alt;      /// 海拔高度(米),海平面以下为负数
+  uint32_t lat;      /// 纬度 单位:百万分之一度
+  uint8_t ns;       /// [N]orth or [S]outh
+  uint32_t lon;      /// 经度 单位:百万分之一度
+  uint8_t ew;       /// [E]ast or [W]est
+  int16_t alt;      /// 海拔高度(米),海平面以下为负数
   uint16_t speed;    /// 对地速度(0.1km/h) 0-2200
   uint16_t heading;  /// 对地真航向(单位为度) 0-360
   uint8_t numSvFix;  /// 用于定位的卫星数目

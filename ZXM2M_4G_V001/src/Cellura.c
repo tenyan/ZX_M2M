@@ -22,19 +22,19 @@
 //#define cellular_rx_size         usart3_rx_size
 
 #define AT_transaction(p_buffer,size)  do { Cellura_TransmitData(p_buffer,size); } while (0) // 通过串口DMA发送AT指令到模块
-#define AT_SET_CMD_ID(cmd)   (current_atcmd_id = cmd)
-#define AT_GET_CMD_ID()      (current_atcmd_id)
-#define ATCMD_IS_CUR(cmd)    (current_atcmd_id == (cmd))
+#define AT_SET_CMD_ID(cmd)  (current_atcmd_id = cmd)
+#define AT_GET_CMD_ID()     (current_atcmd_id)
+#define ATCMD_IS_CUR(cmd)   (current_atcmd_id == (cmd))
 
-#define AT_DELAY(ms)         msleep(ms)
-#define MODEM_DELAY_MS(ms)   msleep(ms)
-#define CELLURA_DELAY(ms)    msleep(ms)
+#define AT_DELAY(ms)        msleep(ms)
+#define MODEM_DELAY_MS(ms)  msleep(ms)
+#define CELLURA_DELAY(ms)   msleep(ms)
 
-#define CELLURA_CHARISNUM(x)        ((x) >= '0' && (x) <= '9')
-#define CELLURA_CHARTONUM(x)        ((x) - '0')
-#define CELLURA_CHARISHEXNUM(x)     (((x) >= '0' && (x) <= '9') || ((x) >= 'a' && (x) <= 'f') || ((x) >= 'A' && (x) <= 'F'))
-#define CELLURA_CHARHEXTONUM(x)     (((x) >= '0' && (x) <= '9') ? ((x) - '0') : (((x) >= 'a' && (x) <= 'f') ? ((x) - 'a' + 10) : (((x) >= 'A' && (x) <= 'F') ? ((x) - 'A' + 10) : 0)))
-#define CELLURA_ISVALIDASCII(x)     (((x) >= 32 && (x) <= 126) || (x) == '\r' || (x) == '\n')
+#define CELLURA_CHARISNUM(x)     ((x) >= '0' && (x) <= '9')
+#define CELLURA_CHARTONUM(x)     ((x) - '0')
+#define CELLURA_CHARISHEXNUM(x)  (((x) >= '0' && (x) <= '9') || ((x) >= 'a' && (x) <= 'f') || ((x) >= 'A' && (x) <= 'F'))
+#define CELLURA_CHARHEXTONUM(x)  (((x) >= '0' && (x) <= '9') ? ((x) - '0') : (((x) >= 'a' && (x) <= 'f') ? ((x) - 'a' + 10) : (((x) >= 'A' && (x) <= 'F') ? ((x) - 'A' + 10) : 0)))
+#define CELLURA_ISVALIDASCII(x)  (((x) >= 32 && (x) <= 126) || (x) == '\r' || (x) == '\n')
 
 /******************************************************************************
  * Data Types and Globals
@@ -51,10 +51,13 @@ atStatus_t atcmd_rsp_status;
 const char AT_CFUN0_SET[]="AT+CFUN=0\r\n"; // 模块进入飞行模式
 #define SIZE_OF_AT_CFUN0_SET  (sizeof(AT_CFUN0_SET)/sizeof(AT_CFUN0_SET[0]) - 1)
 
+const char AT_CFUN4_SET[]="AT+CFUN=4\r\n"; // 关闭模块射频发射和接收
+#define SIZE_OF_AT_CFUN4_SET  (sizeof(AT_CFUN4_SET)/sizeof(AT_CFUN4_SET[0]) - 1)
+
 const char AT_CFUN1_SET[]="AT+CFUN=1\r\n"; // 模块为全功能(online mode)
 #define SIZE_OF_AT_CFUN1_SET  (sizeof(AT_CFUN1_SET)/sizeof(AT_CFUN1_SET[0]) - 1)
 
-const char AT_CRESET[]="AT\r\n"; // 模块软件复位
+const char AT_CRESET[]="AT+CRESET\r\n"; // 模块软件复位
 #define SIZE_OF_AT_CRESET  (sizeof(AT_CRESET)/sizeof(AT_CRESET[0]) - 1)
 
 const char AT_AT[]="AT\r\n"; // AT测试
@@ -273,7 +276,12 @@ atStatus_t AT_SendCmd(at_cmd_t atcmdId, uint8_t retries, uint16_t timeout)
      at_buf = AT_CFUN0_SET;
      at_size = SIZE_OF_AT_CFUN0_SET;
      break;
-     
+
+   case AT_CMD_CFUN4_SET: // 模块关闭RF电路
+     at_buf = AT_CFUN4_SET;
+     at_size = SIZE_OF_AT_CFUN4_SET;
+     break;
+
    case AT_CMD_CFUN1_SET: // 模块为全功能(online mode)
      at_buf = AT_CFUN1_SET;
      at_size = SIZE_OF_AT_CFUN1_SET;
@@ -458,14 +466,22 @@ void Modem_MiniFun(void)
   atStatus_t at_rsp;
 
   PcDebug_SendString("ModemMiniFun!\n");
-  
-  at_rsp = AT_SendCmd(AT_CMD_CFUN0_SET, 3, (OS_TICKS_PER_SEC*2)); 
+  at_rsp = AT_SendCmd(AT_CMD_CFUN0_SET, 3, (OS_TICKS_PER_SEC*2));  // 模块进入飞行模式
   if (at_rsp == ATCMD_RSP_OK)
   {
   
   }
 
-  MODEM_DELAY_MS(OS_TICKS_PER_SEC*10);
+  MODEM_DELAY_MS(OS_TICKS_PER_SEC*10);  // 模块进入飞行模式10s
+
+  PcDebug_SendString("ModemFullFun!\n");
+  at_rsp = AT_SendCmd(AT_CMD_CFUN1_SET, 3, (OS_TICKS_PER_SEC*2));  // 模块进入全功能模式
+  if (at_rsp == ATCMD_RSP_OK)
+  {
+  
+  }
+
+  MODEM_DELAY_MS(OS_TICKS_PER_SEC*10);  // 模块进入全功能模式10S后,再去联网
 }
 
 //==模块自复位==============================================================
@@ -684,7 +700,7 @@ uint8_t Modem_Init(void)
     //return AT_FALSE; // 退出重试
   }
 
-  //sleep(3);   // 模块厂家建议查到IP后,等待几秒在联网
+  sleep(5);   // 模块厂家建议查到IP后,等待几秒在联网
 
   modem_info.network_ready_flag = 1;
   modem_info.modem_init_fail_cnt = 0;
@@ -770,7 +786,7 @@ void Modem_ProcessError(void)
     modem_info.at_fail_cnt = 0;
     modem_info.modem_err_flag = 1;
     PcDebug_SendString("ModemRst:AT!\n");
-    Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+    Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
   }
 
   // SIM卡故障
@@ -779,7 +795,7 @@ void Modem_ProcessError(void)
     modem_info.sim_fail_cnt = 0;
     modem_info.sim_err_flag = 1;
     PcDebug_SendString("ModemRst:SimCard!\n");
-    Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+    Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
   }
 
   // 网络未附着
@@ -788,7 +804,7 @@ void Modem_ProcessError(void)
     modem_info.cgatt_fail_cnt = 0;
     modem_info.network_attach_status = CS_PS_DETACHED;
     PcDebug_SendString("ModemRst:CGATT!\n");
-    Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+    Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
   }
   
   if(modem_info.pdpdeact_cnt > 0)
@@ -796,7 +812,7 @@ void Modem_ProcessError(void)
     modem_info.pdpdeact_cnt = 0;
     modem_info.pdp_actived_flag = 0;
     PcDebug_SendString("ModemRst:PDP!\n");
-    Modem_SetState(MODEM_STATE_MINI_FUN); // 重启模块
+    Modem_SetState(MODEM_STATE_RESTART_FUN); // 重启模块
   }
 }
 
@@ -820,13 +836,13 @@ void Modem_StateManageService(void)               /// 阻塞
     }
     else
     {
-      Modem_SetState(MODEM_STATE_MINI_FUN); // 初始化失败,转模块关机
+      Modem_SetState(MODEM_STATE_RESTART_FUN); // 初始化失败,转模块关机
     }
     break;
 
-  case MODEM_STATE_MINI_FUN:
+  case MODEM_STATE_RESTART_FUN:
     Modem_MiniFun(); // 模块进入最小功能
-    if (modem_info.modem_init_fail_cnt > 5)  // 反复入网不成功休息10分钟
+    if (modem_info.modem_init_fail_cnt > 3)  // 反复入网不成功休息10分钟
     {
       modem_info.modem_init_fail_cnt = 0;
       Modem_SetState(MODEM_STATE_SILENCE);
@@ -855,12 +871,12 @@ void Modem_StateManageService(void)               /// 阻塞
 
   case MODEM_STATE_SILENCE:  // 模块静默5分钟
     PcDebug_SendString("Modem Rest 10min\n");
-    MODEM_DELAY_MS((600*OS_TICKS_PER_SEC));
+    MODEM_DELAY_MS((300*OS_TICKS_PER_SEC));
     Modem_SetState(MODEM_STATE_RESET); // 重新开机
     break;
 
   default:
-    Modem_SetState(MODEM_STATE_MINI_FUN);
+    Modem_SetState(MODEM_STATE_RESTART_FUN);
     break;
   }
 }
@@ -1260,7 +1276,7 @@ uint8_t AT_RspAnalyze_CGPADDR(uint8_t *pdata, uint16_t size)
   // +CGPADDR: 1,“10.76.51.180”
   const char *str;
   uint8_t ip[4]; // IPv4 address
-  uint8_t buf[40];
+  //uint8_t buf[40];
 
   str = strnstr((char *)pdata, size, "+CGPADDR", 8);
   if (str!=NULL)
@@ -1287,8 +1303,9 @@ uint8_t AT_RspAnalyze_CGPADDR(uint8_t *pdata, uint16_t size)
     
     if (ip[0] || ip[1] || ip[2] || ip[3])
     {
-      snprintf((char *)buf, sizeof(buf), "IP= %d.%d.%d.%d\r\n", ip[0],ip[1],ip[2],ip[3]);
-      PcDebug_SendData(buf, strlen((const char *)buf), DBG_MSG_TYPE_AT);
+      //snprintf((char *)buf, sizeof(buf), "IP= %d.%d.%d.%d\r\n", ip[0],ip[1],ip[2],ip[3]);
+      //PcDebug_SendData(buf, strlen((const char *)buf), DBG_MSG_TYPE_AT);
+      PcDebug_Printf("ModemIP: %d.%d.%d.%d\r\n", ip[0],ip[1],ip[2],ip[3]);
       return 1;
     }
   }
@@ -1403,6 +1420,8 @@ static void Cellura_ProcessRecvData(uint8_t *pdata, uint16_t size)
   uint8_t urc_flag = 0;
   uint16_t it;
 
+  // +SIMCARD: NOT AVAILABLE
+  
   // +CGPSXD: 1  // GPS定位
   if(pdata[0]=='$')
   {
@@ -1600,7 +1619,28 @@ static void Cellura_ProcessRecvData(uint8_t *pdata, uint16_t size)
         atcmd_rsp_status = ATCMD_RSP_OK;
       }
       break;
+
+    case AT_CMD_CFUN0_SET: //!< 模块进入MiniFun
+       if (AT_RspAnalyzeURC(pdata, size, "OK"))
+       {
+         atcmd_rsp_status = ATCMD_RSP_OK;
+       }
+       break;
+       
+    case AT_CMD_CFUN4_SET: //!< 模块关闭RF电路
+      if (AT_RspAnalyzeURC(pdata, size, "OK"))
+      {
+        atcmd_rsp_status = ATCMD_RSP_OK;
+      }
+      break;
       
+    case AT_CMD_CFUN1_SET: //!< 模块为全功能(online mode)
+      if (AT_RspAnalyzeURC(pdata, size, "OK"))
+      {
+        atcmd_rsp_status = ATCMD_RSP_OK;
+      }
+      break;
+
     //====================================================================================
       /*
     case ATSEND_READSMS_CMGL:
@@ -1736,10 +1776,7 @@ uint8_t Cellura_GetModemStatus(void)
 //==获取SIM卡是否故障: 1=故障; 0,正常===========================================
 uint8_t Cellura_GetSimCardState(void)
 {
-  if(modem_info.sim_card_ok_flag)
-    return 0;
-  else
-    return 1;
+  return modem_info.sim_err_flag;
 }
 
 //==获取模块CS域注册状态========================================================

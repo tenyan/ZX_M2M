@@ -3,9 +3,9 @@
 * @FileName: config.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-12-9
-* @brief
+* @brief:    user:liuliang  password:liu111xgxx
 ******************************************************************************/
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
@@ -19,7 +19,7 @@
 #define HYCT02_VERSION_PATCH  (1)
 
 #define SW_VERSION_DATE   "20201222"
-#define SW_VERSION        "ZXM2M-ST-20201220-V001"  //软件版本号
+#define SW_VERSION        "ZXM2M-ST-20210329-V002"  //软件版本号
 #define SW_VERSION_LEN    (sizeof(SW_VERSION)-1)
 #define HW_VERSION        0x0108    //硬件版本号1.1
 
@@ -46,6 +46,7 @@
 #include "sfud.h"
 #include "rtc.h"
 #include "Can.h"
+#include "lvc.h"
 #include "ISO27145.h"
 #include "PcDebug.h"
 #include "MomiProtocol.h"

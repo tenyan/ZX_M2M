@@ -39,16 +39,21 @@ uint8_t COLT_GetBoxOpenStatus(void);
 uint8_t COLT_GetVehicleTowingStatus(void);
 void COLT_ReadInternalWdtState(void);
 uint16_t COLT_GetStVersion(void);
+uint8_t COLT_GetTboxState(void);
+
 
 // 用户API函数
 uint8_t CAN_GetCommState(uint8_t channel);
 uint8_t CAN_GetRecvState(uint8_t channel);
 uint8_t CAN_GetVinState(void);
+uint8_t CAN_GetObdVinState(void);
+uint8_t CAN_GetUserVinState(void);
 uint8_t CAN_GetEpDataState(void);
 uint8_t CAN_GetEpType(void);
 uint16_t CAN_GetEngineSpeed(void);
 uint8_t CAN_GetEngineType(void);
-uint16_t CAN_GetMilLampState(void);
+uint8_t CAN_GetMilLampState(void);
+uint8_t CAN_GetEcuBindState(void);
 
 // 周期性函数
 void CTL_Do1sTasks(void);

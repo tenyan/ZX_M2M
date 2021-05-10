@@ -3,9 +3,9 @@
 * @FileName: PcDebugHW.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-9-21
-* @brief
+* @brief:
 ******************************************************************************/
 #ifndef _PC_DEBUG_HW_H_
 #define _PC_DEBUG_HW_H_

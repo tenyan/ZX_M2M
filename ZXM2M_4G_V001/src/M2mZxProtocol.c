@@ -73,7 +73,29 @@ uint8_t zxengine_buffer[SIZE_OF_ZXENGINE_BUFFER]; /// 下车发动机数据缓存
 uint8_t zxstatistics_buffer[SIZE_OF_ZXSTATISTICS_BUFFER]; ///统计数据缓存
 uint8_t zxversion_buffer[SIZE_OF_ZXVERSION_BUFFER]; /// 版本信息缓存
 
-zxtcw_context_t zxtcw_context;
+zxtcw_context_t zxtcw_context = {
+  .pid_up_type = 0x03,      // 上车类型状态字
+  .pid_up_config1 = 0x0F,   // 上车配置状态字1
+  .pid_up_config2 = 0x00,   // 上车配置状态字2
+  .pid_up_can = 0x01,       // 上车协议类型状态字
+  .pid_down_type = 0x02,    // 底盘类型状态字
+  .pid_down_config1 = 0x01, // 底盘配置状态字1
+  .pid_down_config2 = 0x00, // 底盘配置状态字2
+  .pid_down_can = 0x00,     // 底盘CAN协议
+
+  .lvc_binded_flag = 0,  // 已绑定标志: 0=未绑定, 1=绑定
+  .tbox_state = TBOX_STATE_WORKING,  // TBOX工作状态(ST)
+
+  .vin_valid_flag = 1,            // VIN码无效
+  .vin = "LXGBPA123test0088",     // VIN码(HJ)
+  //.vin = "LXGBPA123test0036",     // VIN码(GB)
+  //.vin_valid_flag = 0,            // VIN码无效
+
+  .ecu_type = ENGINE_TYPE_WEICHAI,// 发动机类型
+
+  .ep_valid_flag = 1,  // 环保开启
+  .ep_type = EP_TYPE_HJ,  // 环保类型
+};
 
 //==盲区补偿变量==
 blind_zone_t zxm2m_blind_zone;
@@ -93,7 +115,8 @@ uint16_t zxup_jxyk_tlv_table[] = {0xA5A0, 0xA5C8};
 uint16_t zxup_dksp_tlv_table[] = {
   0xA5A0, 0xA5A3, 0xA5C8, 0xA5A6, 0xA5A7, 0xA5A9, 0xA5AB, 0xA5AC,
   0xA5AD, 0xA5AE, 0xA5AF, 0xA5B0, 0xA5B3, 0xA5B4, 0xA5B5, 0xA5BF,
-  0xA5C0, 0xA5C1 };
+  0xA5C0, 0xA5C1
+};
 #define NUM_OF_ZXUP_DKSP_TLV  (sizeof(zxup_dksp_tlv_table)/sizeof(zxup_dksp_tlv_table[0]))
 
 // 上车作业TLV--开式单缸
@@ -102,7 +125,8 @@ uint16_t zxup_ksdg_tlv_table[] = {
   0xA5AD, 0xA5AE, 0xA5AF, 0xA5B0, 0xA5B3, 0xA5B4, 0xA5B5, 0xA5B7,
   0xA5B8, 0xA5B9, 0xA5BA, 0xA5BC, 0xA5BF, 0xA5C0, 0xA5C1, 0xA5A5,
   0xA5A1, 0xA5A8, 0xA5B1, 0xA5C3, 0xA5C4, 0xA5A2, 0xA5B2, 0xA5BD,
-  0xA5BE,0xA5AA };
+  0xA5BE,0xA5AA
+};
 #define NUM_OF_ZXUP_KSDG_TLV  (sizeof(zxup_ksdg_tlv_table)/sizeof(zxup_ksdg_tlv_table[0]))
 
 // 上车作业TLV--闭式单缸
@@ -111,7 +135,8 @@ uint16_t zxup_bsdg_tlv_table[] = {
   0xA5AC, 0xA5AD, 0xA5AE, 0xA5AF, 0xA5B3, 0xA5B4, 0xA5B6, 0xA5B7,
   0xA5B8, 0xA5B9, 0xA5BA, 0xA5BB, 0xA5BC, 0xA5BF, 0xA5C0, 0xA5C2,
   0xA5A5, 0xA5A1, 0xA5A8, 0xA5B1, 0xA5C3, 0xA5C4, 0xA5A2, 0xA5B2,
-  0xA5BD, 0xA5BE, 0xA5AA };
+  0xA5BD, 0xA5BE, 0xA5AA
+};
 #define NUM_OF_ZXUP_BSDG_TLV  (sizeof(zxup_bsdg_tlv_table)/sizeof(zxup_bsdg_tlv_table[0]))
 
 //============================================================================================
@@ -119,15 +144,16 @@ uint16_t zxup_bsdg_tlv_table[] = {
 uint16_t zxdown_ag_tlv_table[] = {
   0xA5EF, 0xA5F0, 0xA5F1, 0xA5F2, 0xA5E0, 0xA5E1, 0xA5E4, 0xA5E6,
   0xA5E7, 0xA5E9, 0xA5E8, 0xA5E2, 0xA5E3, 0xA5EC, 0xA5ED, 0xA5EE,
-  0xA5EA, 0xA5EB, 0xA502 };
+  0xA5EA, 0xA502
+};
 #define NUM_OF_ZXDOWN_AG_TLV  (sizeof(zxdown_ag_tlv_table)/sizeof(zxdown_ag_tlv_table[0]))
 
 // 下车作业TLV--汽车底盘
 uint16_t zxdown_ac_tlv_table[] = {
   0xA5EF, 0xA5F0, 0xA5F1, 0xA5F2, 0xA5E0, 0xA5E1, 0xA5E5, 0xA5E6,
-  0xA5E7, 0xA5E9, 0xA5EB, 0xA502 };
+  0xA5E7, 0xA5E9, 0xA502
+};
 #define NUM_OF_ZXDOWN_AC_TLV  (sizeof(zxdown_ac_tlv_table)/sizeof(zxdown_ac_tlv_table[0]))
-
 
 /******************************************************************************
 * 创建TLV, 返回信息长度
@@ -156,6 +182,31 @@ uint16_t iZxM2m_BuildTlvMsg(uint8_t *pbuf, uint8_t tlv_valid_flag, uint16_t tag,
 uint16_t iZxM2m_BuildTlvMsg_A501(uint8_t *pbuf)
 {
   uint16_t len = 0;
+  uint8_t tempVal;
+
+  tempVal = CAN_GetEpType();  //  环保数据类型
+  if(tempVal==EP_TYPE_HJ)
+  {
+    zxinfo_buffer_a501[ZXINFO_A501_POS2_ADDR] = 0x01;
+  }
+  else if(tempVal==EP_TYPE_HZ)
+  {
+    zxinfo_buffer_a501[ZXINFO_A501_POS2_ADDR] = 0x05;
+  }
+  else if(tempVal==EP_TYPE_GB)
+  {
+    zxinfo_buffer_a501[ZXINFO_A501_POS2_ADDR] = 0x02;
+  }
+
+  tempVal = CAN_GetUserVinState();  // VIN码平台设置状态
+  if(tempVal)
+  {
+    zxinfo_buffer_a501[ZXINFO_A501_POS4_ADDR] |= 0x10;
+  }
+  else
+  {
+    zxinfo_buffer_a501[ZXINFO_A501_POS4_ADDR] &= 0xEF;
+  }
 
   if (tlv_a501_valid_flag)
   {
@@ -1330,6 +1381,25 @@ uint16_t iZxM2m_BuildTlvMsg_A506(uint8_t *pbuf)
 
   return len;
 }
+
+//==TLV-A50A 整车VIN码=========================================================
+uint16_t iZxM2m_BuildTlvMsg_A50A(uint8_t *pbuf)
+{
+  uint16_t len = 0;
+
+  if (tlv_a50a_valid_flag)
+  {
+    pbuf[len++] = 0xA5; // TAG
+    pbuf[len++] = 0x0A;
+    pbuf[len++] = (SIZE_OF_ZXVERSION_A50A>>8) & 0xFF; // LENGTH
+    pbuf[len++] = SIZE_OF_ZXVERSION_A50A & 0xFF;
+    memcpy(&pbuf[len], zxversion_buffer_a50a, SIZE_OF_ZXVERSION_A50A); // VALUE
+    len += SIZE_OF_ZXVERSION_A50A;
+  }
+
+  return len;
+}
+
 #endif
 #if (PART("ZxM2m频次统计TLV信息"))
 /******************************************************************************
@@ -1416,30 +1486,30 @@ iZxm2m_CmdTlv_t iZxm2m_CmdDealTbl[]=
   {0xA5AA, iZxM2m_BuildTlvMsg_A5AA},// TLV-A5AA无线操控信息
   {0xA5AB, iZxM2m_BuildTlvMsg_A5AB},// TLV-A5AB网络拓扑信息
   {0xA5AC, iZxM2m_BuildTlvMsg_A5AC},// TLV-A5AC伸缩逻辑信息
-  {0xA5AD, iZxM2m_BuildTlvMsg_A5AD},// TLV-A5AD变幅逻辑信息  
+  {0xA5AD, iZxM2m_BuildTlvMsg_A5AD},// TLV-A5AD变幅逻辑信息
   {0xA5AE, iZxM2m_BuildTlvMsg_A5AE},// TLV-A5AE回转逻辑信息
   {0xA5AF, iZxM2m_BuildTlvMsg_A5AF},// TLV-A5AF主卷扬逻辑信息
   {0xA5B0, iZxM2m_BuildTlvMsg_A5B0},// TLV-A5B0副卷扬逻辑信息
   {0xA5B1, iZxM2m_BuildTlvMsg_A5B1},// TLV-A5B1超起逻辑信息
   {0xA5B2, iZxM2m_BuildTlvMsg_A5B2},// TLV-A5B2塔臂逻辑信息
-  {0xA5B3, iZxM2m_BuildTlvMsg_A5B3},// TLV-A5B3液压油温度  
+  {0xA5B3, iZxM2m_BuildTlvMsg_A5B3},// TLV-A5B3液压油温度
   {0xA5B4, iZxM2m_BuildTlvMsg_A5B4},// TLV-A5B4主泵信息
   {0xA5B5, iZxM2m_BuildTlvMsg_A5B5},// TLV-A5B5主阀1 XHVME4400P1
   {0xA5B6, iZxM2m_BuildTlvMsg_A5B6},// TLV-A5B6主阀3 大吨位
   {0xA5B7, iZxM2m_BuildTlvMsg_A5B7},// TLV-A5B7主泵信息
   {0xA5B8, iZxM2m_BuildTlvMsg_A5B8},// TLV-A5B8塔臂逻辑信息
-  {0xA5B9, iZxM2m_BuildTlvMsg_A5B9},// TLV-A5B9缸臂销控制阀  
+  {0xA5B9, iZxM2m_BuildTlvMsg_A5B9},// TLV-A5B9缸臂销控制阀
   {0xA5BA, iZxM2m_BuildTlvMsg_A5BA},// TLV-A5BA变幅平衡阀
   {0xA5BB, iZxM2m_BuildTlvMsg_A5BB},// TLV-A5BB主卷泵
   {0xA5BC, iZxM2m_BuildTlvMsg_A5BC},// TLV-A5BC主卷马达
   {0xA5BD, iZxM2m_BuildTlvMsg_A5BD},// TLV-A5BD塔卷泵
-  {0xA5BE, iZxM2m_BuildTlvMsg_A5BE},// TLV-A5BE塔卷马达 
+  {0xA5BE, iZxM2m_BuildTlvMsg_A5BE},// TLV-A5BE塔卷马达
   {0xA5BF, iZxM2m_BuildTlvMsg_A5BF},// TLV-A5BF回转泵
   {0xA5C0, iZxM2m_BuildTlvMsg_A5C0},// TLV-A5C0回转制动阀
   {0xA5C1, iZxM2m_BuildTlvMsg_A5C1},// TLV-A5C1辅助阀1
   {0xA5C2, iZxM2m_BuildTlvMsg_A5C2},// TLV-A5C2辅助阀2(超大吨位)
   {0xA5C3, iZxM2m_BuildTlvMsg_A5C3},// TLV-A5C3左超起阀组
-  {0xA5C4, iZxM2m_BuildTlvMsg_A5C4},// TLV-A5C4右超起阀组  
+  {0xA5C4, iZxM2m_BuildTlvMsg_A5C4},// TLV-A5C4右超起阀组
   {0xA5C8, iZxM2m_BuildTlvMsg_A5C8},// TLV-A5C8作业油耗信息
   {0xA5C9, iZxM2m_BuildTlvMsg_A5C9},// TLV-A5C9 ECU响应锁车CAN帧
 
@@ -1447,7 +1517,7 @@ iZxm2m_CmdTlv_t iZxm2m_CmdDealTbl[]=
   {0xA5E0, iZxM2m_BuildTlvMsg_A5E0},// TLV-A5E0节点状态
   {0xA5E1, iZxM2m_BuildTlvMsg_A5E1},// TLV-A5E1传动系统
   {0xA5E2, iZxM2m_BuildTlvMsg_A5E2},// TLV-A5E2支腿相关信息
-  {0xA5E3, iZxM2m_BuildTlvMsg_A5E3},// TLV-A5E3悬挂系统  
+  {0xA5E3, iZxM2m_BuildTlvMsg_A5E3},// TLV-A5E3悬挂系统
   {0xA5E4, iZxM2m_BuildTlvMsg_A5E4},// TLV-A5E4转向系统(全地面)
   {0xA5E5, iZxM2m_BuildTlvMsg_A5E5},// TLV-A5E5转向系统(汽车)
   {0xA5E6, iZxM2m_BuildTlvMsg_A5E6},// TLV-A5E6制动系统
@@ -1472,13 +1542,154 @@ iZxm2m_CmdTlv_t iZxm2m_CmdDealTbl[]=
   /*****************创建版本信息TLV*********************************/
   {0xA505, iZxM2m_BuildTlvMsg_A505},// TLV-A505 上车系统版本
   {0xA506, iZxM2m_BuildTlvMsg_A506},// TLV-A506 下车系统版本
+  {0xA50A, iZxM2m_BuildTlvMsg_A50A},// TLV-A506 下车系统版本
 
   /*****************创建频次统计TLV*********************************/
   {0xA5C5, iZxM2m_BuildTlvMsg_A5C5},// TLV-A5C5 动作频次统计1
   {0xA5C6, iZxM2m_BuildTlvMsg_A5C6},// TLV-A5C6 动作频次统计2
   {0xA5C7, iZxM2m_BuildTlvMsg_A5C7},// TLV-A5C7 安全统计
 };
-#define NUM_OF_ZXM2M_CMD_DEAL   (sizeof(iZxm2m_CmdDealTbl)/sizeof(iZxm2m_CmdDealTbl))
+#define NUM_OF_ZXM2M_CMD_DEAL   (sizeof(iZxm2m_CmdDealTbl)/sizeof(iZxm2m_CmdDealTbl[0]))
+
+/******************************************************************************
+*
+******************************************************************************/
+void ZxM2m_ReInitTcwTlvInfo(zxtcw_context_t* pThis)
+{
+  uint8_t it;
+
+  //==上车配置=================================================
+  if (pThis->pid_up_type==1) // 机械/液控
+  {
+    pThis->zxup_tlv_num = NUM_OF_ZXUP_JXYK_TLV;
+    for (it=0; it< pThis->zxup_tlv_num; it++)
+    {
+      pThis->zxup_tlv_table[it] = zxup_jxyk_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidUp:JXYK!\n");
+  }
+  else if (pThis->pid_up_type==2) // 电控绳排
+  {
+    pThis->zxup_tlv_num = NUM_OF_ZXUP_DKSP_TLV;
+    for (it=0; it< pThis->zxup_tlv_num; it++)
+    {
+      pThis->zxup_tlv_table[it] = zxup_dksp_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidUp:DKSP!\n");
+  }
+  else if (pThis->pid_up_type==3) // 开式单缸
+  {
+    pThis->zxup_tlv_num = NUM_OF_ZXUP_KSDG_TLV;
+    for (it=0; it< pThis->zxup_tlv_num; it++)
+    {
+      pThis->zxup_tlv_table[it] = zxup_ksdg_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidUp:KSDG!\n");
+  }
+  else if (pThis->pid_up_type==4) // 闭式单缸
+  {
+    pThis->zxup_tlv_num = NUM_OF_ZXUP_BSDG_TLV;
+    for (it=0; it< pThis->zxup_tlv_num; it++)
+    {
+      pThis->zxup_tlv_table[it] = zxup_bsdg_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidUp:BSDG!\n");
+  }
+
+  //==下车配置=================================================
+  if (pThis->pid_down_type==1) // 全地面底盘
+  {
+    pThis->zxdown_tlv_num = NUM_OF_ZXDOWN_AG_TLV;
+    for (it=0; it< pThis->zxdown_tlv_num; it++)
+    {
+      pThis->zxdown_tlv_table[it] = zxdown_ag_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidDw:AG!\n");
+  }
+  else if (pThis->pid_down_type==2) // 汽车底盘
+  {
+    pThis->zxdown_tlv_num = NUM_OF_ZXDOWN_AC_TLV;
+    for (it=0; it< pThis->zxdown_tlv_num; it++)
+    {
+      pThis->zxdown_tlv_table[it] = zxdown_ac_tlv_table[it];
+    }
+    PcDebug_SendString("ZxTcwPidDw:AC!\n");
+  }
+}
+
+/******************************************************************************
+* 更新车辆配置信息
+******************************************************************************/
+void ZxM2m_UpdatePidInfo(void)
+{
+  uint8_t pid_save_flag = 0;
+
+  if (tlv_a504_valid_flag) // 车辆采集协议信息
+  {
+    if(zxtcw_context.pid_up_type != zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR])  // 上车类型状态字
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_up_type = zxinfo_buffer_a504[ZXINFO_A504_POS1_ADDR];
+    }
+
+    if(zxtcw_context.pid_up_config1 != zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR])  // 上车配置状态字1
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_up_config1 = zxinfo_buffer_a504[ZXINFO_A504_POS2_ADDR];
+    }
+
+    if(zxtcw_context.pid_up_config2 != zxinfo_buffer_a504[ZXINFO_A504_POS3_ADDR])  // 上车配置状态字2
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_up_config2 = zxinfo_buffer_a504[ZXINFO_A504_POS3_ADDR];
+    }
+
+    if(zxtcw_context.pid_up_can != zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR])  // 上车协议类型状态字
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_up_can = zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR];
+    }
+
+    if(zxtcw_context.pid_up_can != zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR])  // 上车协议类型状态字
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_up_can = zxinfo_buffer_a504[ZXINFO_A504_POS4_ADDR];
+    }
+
+    if(zxtcw_context.pid_down_type != zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR])  // 底盘类型状态字
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_down_type = zxinfo_buffer_a504[ZXINFO_A504_POS5_ADDR];
+    }
+
+    if(zxtcw_context.pid_down_config1 != zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR])  // 底盘配置状态字1
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_down_config1 = zxinfo_buffer_a504[ZXINFO_A504_POS6_ADDR];
+    }
+
+    if(zxtcw_context.pid_down_config2 != zxinfo_buffer_a504[ZXINFO_A504_POS7_ADDR])  // 底盘配置状态字2
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_down_config2 = zxinfo_buffer_a504[ZXINFO_A504_POS7_ADDR];
+    }
+
+    if(zxtcw_context.pid_down_can != zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR])  // 底盘CAN协议
+    {
+      pid_save_flag = 1;
+      zxtcw_context.pid_down_can = zxinfo_buffer_a504[ZXINFO_A504_POS8_ADDR];
+    }
+
+    if(pid_save_flag)
+    {
+      ZxM2m_ReInitTcwTlvInfo(&zxtcw_context);  // 重新初始化TLV类别
+      // 获取CAN处理函数
+      Parm_SavePidInfo();
+      PcDebug_Printf("Pup=%d,Upcfg1=%d,Upcfg2=%d,Upcan=%d!\n", zxtcw_context.pid_up_type, zxtcw_context.pid_up_config1, zxtcw_context.pid_up_config2, zxtcw_context.pid_up_can);
+      PcDebug_Printf("Pdw=%d,Dwcfg1=%d,Dwcfg2=%d,Dwcan=%d!\n", zxtcw_context.pid_down_type, zxtcw_context.pid_down_config1, zxtcw_context.pid_down_config2, zxtcw_context.pid_down_can);
+    }
+  }
+}
 
 #if (PART("ZxM2m解析RC控制命令"))
 //==重型专用:绑定与解绑======================================================
@@ -1487,10 +1698,15 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A510(uint8_t* pValue, uint16_t len)
   uint16_t retVal = 0;
   //uint8_t tempVal;
 
-  if (0==len)
+  if (1==len) // 1=解绑/绑定
   {
-    retVal = 1;
 
+    retVal = 1;
+  }
+  else if (5==len) // 5=强制解绑
+  {
+
+    retVal = 1;
   }
 
   return retVal;
@@ -1502,10 +1718,12 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A511(uint8_t* pValue, uint16_t len)
   uint16_t retVal = 0;
   //uint8_t tempVal;
 
-  if (0==len)
+  if (1==len)
   {
-    retVal = 1;
-
+    if(CAN_GetEcuBindState()==0x01)  // 已绑定
+    {
+      retVal = 1;
+    }
   }
 
   return retVal;
@@ -1517,10 +1735,50 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A512(uint8_t* pValue, uint16_t len)
   uint16_t retVal = 0;
   //uint8_t tempVal;
 
-  if (0==len)
+  if (2==len)
   {
-    retVal = 1;
-
+    if (pValue[0]==0x01) // 0x01=HZ协议
+    {
+      if(pValue[1]==0)  // 关闭
+      {
+        zxtcw_context.bk_ep_valid_flag = EP_ENABLE; // 环保数据有效标志
+        zxtcw_context.bk_ep_type = EP_TYPE_HJ; // 环保类型
+        retVal = 1;
+        Parm_SaveEpTypeInfo();
+        //CTL_SetRestartDelayTime(5);  // 5秒后重启
+        PcDebug_Printf("UsrDisHzep!\n");
+      }
+      else if(pValue[1]==1)  // 开启
+      {
+        zxtcw_context.bk_ep_valid_flag = EP_ENABLE; // 环保数据有效标志
+        zxtcw_context.bk_ep_type = EP_TYPE_HZ; // 环保类型
+        retVal = 1;
+        Parm_SaveEpTypeInfo();
+        //CTL_SetRestartDelayTime(5);  // 5秒后重启
+        PcDebug_Printf("UsrEnHzep!\n");
+      }
+    }
+    else if (pValue[0]==0x02) // 0x02=GB协议
+    {
+      if(pValue[1]==0)  // 关闭
+      {
+        zxtcw_context.bk_ep_valid_flag = EP_ENABLE; // 环保数据有效标志
+        zxtcw_context.bk_ep_type = EP_TYPE_HJ; // 环保类型
+        retVal = 1;
+        Parm_SaveEpTypeInfo();
+        CTL_SetRestartDelayTime(5);  // 5秒后重启
+        PcDebug_Printf("UsrDisGbep!\n");
+      }
+      else if(pValue[1]==1)  // 开启
+      {
+        zxtcw_context.bk_ep_valid_flag = EP_ENABLE; // 环保数据有效标志
+        zxtcw_context.bk_ep_type = EP_TYPE_GB; // 环保类型
+        retVal = 1;
+        Parm_SaveEpTypeInfo();
+        CTL_SetRestartDelayTime(5);  // 5秒后重启
+        PcDebug_Printf("UsrEnGbep!\n");
+      }
+    }
   }
 
   return retVal;
@@ -1532,7 +1790,41 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A513(uint8_t* pValue, uint16_t len)
   uint16_t retVal = 0;
   //uint8_t tempVal;
 
-  if (0==len)
+  if (1==len)  // 1=关闭VIN码
+  {
+    if (pValue[0]==0x00) // 0=VIN平台设置关闭
+    {
+      zxtcw_context.vin_valid_flag = 0x00;  // VIN码有效标识
+      zxtcw_context.vin_size = 0x00;  // VIN码长度
+      memset(zxtcw_context.vin, 0x00, VIN_BUFFER_SIZE);  // 车辆识别号码或车架号码
+      retVal = 1;
+      Parm_SaveVinInfo();
+      PcDebug_Printf("UsrDelVin!\n");
+    }
+  }
+  else if (19==len)  // 19=激活VIN码
+  {
+    if (pValue[0]==0x01 && pValue[1]==VIN_BUFFER_SIZE) // 1=VIN平台设置激活
+    {
+      zxtcw_context.vin_valid_flag = 0x01;  // VIN码有效标识
+      zxtcw_context.vin_size = VIN_BUFFER_SIZE;  // VIN码长度
+      memcpy(zxtcw_context.vin, &pValue[2], VIN_BUFFER_SIZE);  // 车辆识别号码或车架号码
+      retVal = 1;
+      Parm_SaveVinInfo();
+      PcDebug_Printf("UsrSetVin:%s!\n",zxtcw_context.vin);
+    }
+  }
+
+  return retVal;
+}
+
+//==重型专用:强制、故障救援指令=======================================================
+uint16_t iZxM2m_AnalyzeTlvMsg_A514(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  //uint8_t tempVal;
+
+  if (2==len)
   {
     retVal = 1;
 
@@ -1540,6 +1832,7 @@ uint16_t iZxM2m_AnalyzeTlvMsg_A513(uint8_t* pValue, uint16_t len)
 
   return retVal;
 }
+
 #endif
 
 //==TLV-0x100F 协处理器版本===================================================
@@ -1771,12 +2064,12 @@ uint16_t iZxM2m_BuildTcsBody(uint8_t *pbuf)
   temp_val = iZxM2m_BuildTlvMsg_A501(&pbuf[len]);
   len += temp_val;
   tlv_num += ((temp_val == 0)? 0: 1);
-  
+
   /// 填充TCS数据内容长度及tlv计数
   temp_val = len - 6;
-  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
-  pbuf[5] = temp_val & 0xFF;
-  pbuf[6] = tlv_num; // TLV个数
+  pbuf[5] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[6] = temp_val & 0xFF;
+  pbuf[7] = tlv_num; // TLV个数
 
   return len;
 }
@@ -1811,6 +2104,11 @@ uint16_t iZxM2m_BuildTcwBody(uint8_t *pbuf)
   len += temp_val;
   tlv_num++;
 
+  /// 通用状态字2(重型专用)--2021-3-4重型王工要求加入
+  temp_val = iZxM2m_BuildTlvMsg_A501(&pbuf[len]);
+  len += temp_val;
+  tlv_num++;
+
   /// 重型工况数据
   temp_val = iZxM2m_BuildTlvMsg_TCW(&pbuf[len], &zxtcw_context);
   len += temp_val;
@@ -1818,9 +2116,9 @@ uint16_t iZxM2m_BuildTcwBody(uint8_t *pbuf)
 
   /// 填充TCB数据内容长度及tlv计数
   temp_val = len - 6;
-  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
-  pbuf[5] = temp_val & 0xFF;
-  pbuf[6] = tlv_num; // TLV个数
+  pbuf[5] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[6] = temp_val & 0xFF;
+  pbuf[7] = tlv_num; // TLV个数
 
   return len;
 }
@@ -1857,7 +2155,7 @@ uint16_t iZxM2m_BuildTcbBody(uint8_t *pbuf)
 
   /// 采集协议信息(0xA504)
   temp_val = iZxM2m_BuildTlvMsg_A504(&pbuf[len]);
-  if(temp_val!=0)
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
@@ -1865,15 +2163,23 @@ uint16_t iZxM2m_BuildTcbBody(uint8_t *pbuf)
 
   /// 上车系统版本(0xA505)
   temp_val = iZxM2m_BuildTlvMsg_A505(&pbuf[len]);
-  if(temp_val!=0)
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
   }
 
   /// 下车系统版本(0xA506)
-  temp_val = iZxM2m_BuildTlvMsg_A5C6(&pbuf[len]);
-  if(temp_val!=0)
+  temp_val = iZxM2m_BuildTlvMsg_A506(&pbuf[len]);
+  if (temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 整车VIN码(0xA50A)
+  temp_val = iZxM2m_BuildTlvMsg_A50A(&pbuf[len]);
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
@@ -1881,9 +2187,9 @@ uint16_t iZxM2m_BuildTcbBody(uint8_t *pbuf)
 
   /// 填充TCB数据内容长度及tlv计数
   temp_val = len - 6;
-  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
-  pbuf[5] = temp_val & 0xFF;
-  pbuf[6] = tlv_num; // TLV个数
+  pbuf[5] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[6] = temp_val & 0xFF;
+  pbuf[7] = tlv_num; // TLV个数
 
   return len;
 }
@@ -1920,7 +2226,7 @@ uint16_t iZxM2m_BuildTctBody(uint8_t *pbuf)
 
   /// 动作频次统计1(0xA5C5)
   temp_val = iZxM2m_BuildTlvMsg_A5C5(&pbuf[len]);
-  if(temp_val!=0)
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
@@ -1928,7 +2234,7 @@ uint16_t iZxM2m_BuildTctBody(uint8_t *pbuf)
 
   /// 动作频次统计2(0xA5C6)
   temp_val = iZxM2m_BuildTlvMsg_A5C6(&pbuf[len]);
-  if(temp_val!=0)
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
@@ -1936,7 +2242,15 @@ uint16_t iZxM2m_BuildTctBody(uint8_t *pbuf)
 
   /// 安全统计(0xA5C7)
   temp_val = iZxM2m_BuildTlvMsg_A5C7(&pbuf[len]);
-  if(temp_val!=0)
+  if (temp_val!=0)
+  {
+    len += temp_val;
+    tlv_num++;
+  }
+
+  /// 整车VIN码(0xA50A)
+  temp_val = iZxM2m_BuildTlvMsg_A50A(&pbuf[len]);
+  if (temp_val!=0)
   {
     len += temp_val;
     tlv_num++;
@@ -1944,9 +2258,9 @@ uint16_t iZxM2m_BuildTctBody(uint8_t *pbuf)
 
   /// 填充TCT数据内容长度及tlv计数
   temp_val = len - 6;
-  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
-  pbuf[5] = temp_val & 0xFF;
-  pbuf[6] = tlv_num; // TLV个数
+  pbuf[5] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[6] = temp_val & 0xFF;
+  pbuf[7] = tlv_num; // TLV个数
 
   return len;
 }
@@ -1983,9 +2297,9 @@ uint16_t iZxM2m_BuildTcdBody(uint8_t *pbuf)
 
   /// 填充TCD数据内容长度及tlv计数
   temp_val = len - 6;
-  pbuf[4] = (temp_val >> 8) & 0xFF; // 数据内容长度
-  pbuf[5] = temp_val & 0xFF;
-  pbuf[6] = tlv_num; // TLV个数
+  pbuf[5] = (temp_val >> 8) & 0xFF; // 数据内容长度
+  pbuf[6] = temp_val & 0xFF;
+  pbuf[7] = tlv_num; // TLV个数
 
   return len;
 }
@@ -2052,24 +2366,24 @@ void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type)
   uint8_t* pbuf = pThis->tx_data;
 
   //==创建报文体==========================================
-  if(msg_type==ZXTC_MSG_TYPE_TCW)
+  if (msg_type==ZXTC_MSG_TYPE_TCW)
   {
     msg_body_len = iZxM2m_BuildTcwBody(&pbuf[M2M_MSG_HEAD_LEN]);
   }
-  else if(msg_type==ZXTC_MSG_TYPE_TCS)
+  else if (msg_type==ZXTC_MSG_TYPE_TCS)
   {
     msg_body_len = iZxM2m_BuildTcsBody(&pbuf[M2M_MSG_HEAD_LEN]);
   }
-  else if(msg_type==ZXTC_MSG_TYPE_TCB)
+  else if (msg_type==ZXTC_MSG_TYPE_TCB)
   {
     msg_body_len = iZxM2m_BuildTcbBody(&pbuf[M2M_MSG_HEAD_LEN]);
   }
-  else if(msg_type==ZXTC_MSG_TYPE_TCT)
+  else if (msg_type==ZXTC_MSG_TYPE_TCT)
   {
     msg_body_len = iZxM2m_BuildTctBody(&pbuf[M2M_MSG_HEAD_LEN]);
   }
 
-  else if(msg_type==ZXTC_MSG_TYPE_TCD)
+  else if (msg_type==ZXTC_MSG_TYPE_TCD)
   {
     msg_body_len = iZxM2m_BuildTcdBody(&pbuf[M2M_MSG_HEAD_LEN]);
   }
@@ -2078,14 +2392,21 @@ void iZxM2m_SendTcMsg(m2m_context_t* pThis, uint8_t msg_type)
     msg_body_len = 0;
   }
 
-  if(msg_body_len==0)  // 空消息
+  if (msg_body_len==0) // 空消息
   {
     return;
   }
 
   //==创建报文头==========================================
   pThis->upload_sn++;
-  pThis->ss_req.sn = pThis->upload_sn;
+  if (msg_type==ZXTC_MSG_TYPE_TCS)
+  {
+    pThis->ss_req.sn = pThis->upload_sn;
+  }
+  else
+  {
+    pThis->tc_req.sn = pThis->upload_sn;
+  }
   msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_PUSH_DATA, msg_body_len, 0, pThis->upload_sn); // M2mUploadSN
 
   //==计算校验字==========================================
@@ -2122,7 +2443,7 @@ void iZxM2m_SendBzData(m2m_context_t* pThis)
 
     //==创建报文头==========================================
     pThis->upload_sn++;
-    pThis->ss_req.sn = pThis->upload_sn;
+    pThis->bz_req.sn = pThis->upload_sn;
     msg_header_len = im2m_BuildMsgHead(pbuf, M2M_MSG_TYPE_PUSH_DATA, msg_body_len, 0x08, pThis->upload_sn); // 盲区补偿数据
 
     //==计算校验字==========================================
@@ -2130,7 +2451,7 @@ void iZxM2m_SendBzData(m2m_context_t* pThis)
     check_sum = im2m_CalcSumCheck(pbuf, msg_len);
     pbuf[msg_len++] = check_sum;
     pThis->tx_size = msg_len;
-    
+
     im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
 
 #if ZXM2M_BZ_DEBUG

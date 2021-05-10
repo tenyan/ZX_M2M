@@ -16,7 +16,7 @@
 * Macros
 ******************************************************************************/
 // 网络接口定义
-#define gbep_send_buffer              gbep_data_buffer
+#define gbep_send_buffer  gbep_data_buffer
 
 #define GBEP_GetMainLinkState()           NetSocket_GetLinkState(&gbep_socket)
 #define GBEP_DisableMainLink()            NetSocket_Disable(&gbep_socket)
@@ -28,8 +28,8 @@
 #define GBEP_EnableSubLink()             NetSocket_Enable(&bjep_socket)
 #define GBEP_SendSubNetData(pData, len)  NetSocket_Send(&bjep_socket, pData, len)  // 发到重型环保平台
 
-#define GBEP_DisableLink()            do{GBEP_DisableMainLink();GBEP_DisableSubLink();}while(0)
-#define GBEP_EnableLink()             do{GBEP_EnableMainLink();GBEP_EnableSubLink();}while(0)
+#define GBEP_DisableLink()  do{GBEP_DisableMainLink();GBEP_DisableSubLink();}while(0)
+#define GBEP_EnableLink()   do{GBEP_EnableMainLink();GBEP_EnableSubLink();}while(0)
 
 // GB数据发送周期定义
 #define GBEP_SEND_ENG_DATA_TIME_SP    90   //发送周期10秒
@@ -132,9 +132,9 @@ int32_t GBEP_BuildMsgHead(uint8_t cmdType, uint8_t *pdata)
   {
     memcpy(&pdata[GBEP_POS3_ADDRESS],obd_info.vin,17);// 车辆识别号VIN
   }
-  else if (m2m_asset_data.vin_valid_flag)
+  else if (zxtcw_context.vin_valid_flag)
   {
-    memcpy(&pdata[GBEP_POS3_ADDRESS],m2m_asset_data.vin,17);// 车辆识别号VIN
+    memcpy(&pdata[GBEP_POS3_ADDRESS],zxtcw_context.vin,17);// 车辆识别号VIN
   }
   else
   {
@@ -487,9 +487,9 @@ uint16_t GBEP_BuildObdData(uint8_t* pdata)
   {
     memcpy(&pdata[len], obd_info.vin, 17);// 车辆识别号VIN(17B)
   }
-  else if (m2m_asset_data.vin_valid_flag)
+  else if (zxtcw_context.vin_valid_flag)
   {
-    memcpy(&pdata[len], m2m_asset_data.vin, 17);// 车辆识别号VIN(17B)
+    memcpy(&pdata[len], zxtcw_context.vin, 17);// 车辆识别号VIN(17B)
   }
   len += 17;
 
@@ -714,7 +714,7 @@ void GbepBlindZone_Service(void)
   else // ACC关闭
   {
     obd_data_report_timer = 20;
-    gbep_blind_zone.timer_100ms = GBEP_BZ_SAVE_PERIOD_SP; // 不存储
+    gbep_blind_zone.timer_100ms = GBEP_BZ_SAVE_PERIOD_SP*3; // 不存储
   }
 
   // 出现读写错误,复位栈为0

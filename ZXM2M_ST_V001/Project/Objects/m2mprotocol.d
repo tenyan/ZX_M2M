@@ -65,6 +65,7 @@
 .\project\objects\m2mprotocol.o: .\USER\RTC\am1805.h
 .\project\objects\m2mprotocol.o: .\USER\CAN\Can.h
 .\project\objects\m2mprotocol.o: .\USER\CAN\CanHW.h
+.\project\objects\m2mprotocol.o: .\USER\CAN\lvc.h
 .\project\objects\m2mprotocol.o: .\USER\CAN\ISO27145.h
 .\project\objects\m2mprotocol.o: .\USER\PcDebug\PcDebug.h
 .\project\objects\m2mprotocol.o: .\USER\Momi\MomiProtocol.h

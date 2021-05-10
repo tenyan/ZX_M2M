@@ -275,39 +275,49 @@ void nmea_utc_to_date_time(utc_time_t* data_time, token_t utcDate, token_t utcTi
 }
 
 //=======================================================================
-int32_t nmae_parse_lat_lon(token_t value, token_t sign)
+// $GNRMC,072639.00,A,3000.20671,N,11957.73935,E,51.492,81.84,290716,,,A,V*07
+uint32_t nmae_parse_lat_lon(token_t value)
 {
   // lat纬度:ddmm.mmmm
   // lon经度:dddmm.mmmm
-  int ddmm;
-  int dd;
-  int mm;
-  int mmmmm;
+  uint32_t ddmm;
+  uint32_t dd;
+  uint32_t mm;
   uint8_t str_size;
-  uint8_t i=0;
-
-  ddmm = nmea_parse_number(value);
-  dd = (int)(ddmm / 100);
-  mm = ddmm % 100;
+  char mm_value[8];
+  uint8_t point_pos = 0;
 
   str_size = strlen(value); // 获取字符串大小
-  while (value[i] != '.')
+  while (value[point_pos] != '.')
   {
-    i++;
-    if (i >= str_size)
+    point_pos++;
+    if (point_pos >= str_size)
     {
       return 0xFFFFFFFF;
     }
   }
 
-  mmmmm = nmea_parse_number((value+i+1));
-  ddmm = dd*1000000;
-  ddmm += (mm*100000+mmmmm)/6;
+  if(point_pos < 2)  // 长度错误
+  {  return 0xFFFFFFFF;}
 
-  if (strcmp(sign, "W") == 0 || strcmp(sign, "S") == 0)
-  {
-    ddmm = -ddmm;
-  }
+  // 已找到小数点位置,组建mmmmmm
+  mm_value[0] = value[point_pos-2]; // 前2个mm
+  mm_value[1] = value[point_pos-1];
+  mm_value[2] = value[point_pos+1]; // 后5个mm
+  mm_value[3] = value[point_pos+2];
+  mm_value[4] = value[point_pos+3];
+  mm_value[5] = value[point_pos+4];
+  mm_value[6] = value[point_pos+5];
+  mm_value[7] = 0x00;
+  
+  ddmm = nmea_parse_number(value); // 获取dd
+  dd = (uint32_t)(ddmm / 100);
+  
+  mm = nmea_parse_number(mm_value); // 获取mmmmmmm
+  mm = (mm / 6);  // (mm * 10 / 60)
+  
+  ddmm = dd*1000000; // 组建dd.ddddd(放大一百万倍)
+  ddmm += mm; // mm已放大10万倍
 
   return ddmm;
 }
@@ -462,8 +472,8 @@ uint8_t nmea_parse_rmc(nmea_tokenizer_t *tokenizer, nav_info_t *navdata)
       navdata->ew = 'E';
     }
 
-    navdata->lon = nmae_parse_lat_lon(lonToken, ewToken);
-    navdata->lat = nmae_parse_lat_lon(latToken ,nsToken);
+    navdata->lon = nmae_parse_lat_lon(lonToken);
+    navdata->lat = nmae_parse_lat_lon(latToken);
     navdata->speed = nmae_parse_speed(speedToken);
     navdata->heading = nmea_parse_number(headingToken);
   }
@@ -674,8 +684,10 @@ void nmea_zero_info(nav_info_t *info)
 {
   memset(info, 0, sizeof(nav_info_t));
   info->fixValid = 0;
-  info->ns = 'N';
-  info->ew = 'E';
+  //info->ns = 'N';
+  //info->ew = 'E';
+  //info->lon = 0xFFFFFFFF;
+  //info->lat = 0xFFFFFFFF;
 }
 
 /*********************************************************************************
@@ -836,6 +848,33 @@ void GPS_CheckModuleIsOk(void)
   //}
 }
 
+/*************************************************************************
+ * 备份有效定位
+*************************************************************************/
+void GPS_BackUpNavInfo(void)
+{
+  static uint8_t save_nav_info_flag = NMEA_FALSE;
+  uint8_t tbox_state;
+
+  tbox_state = COLT_GetTboxState();  // 获取工作状态
+  if((tbox_state==TBOX_STATE_SLEEP) || (tbox_state==TBOX_STATE_IAP))
+  {
+    if(save_nav_info_flag==NMEA_TRUE)
+    {
+      save_nav_info_flag = NMEA_FALSE;
+      Parm_SaveGpsNavInfo();  // 存储定位
+      PcDebug_Printf("GPS:BackUpNavInfo!\n");
+    }
+  }
+  else
+  {
+    if(nav_data.fixValid)
+    {
+      save_nav_info_flag = NMEA_TRUE;
+    }
+  }
+}
+
 /******************************************************************************
  * GPS周期性调用函数,1S调用一次,无阻塞
 *******************************************************************************/
@@ -844,6 +883,7 @@ void GPS_Do1sTasks(void)
   GPS_CheckModuleIsOk();
   GPS_CheckSpeedIsOverrun();
   GPS_CheckPositioningState();
+  GPS_BackUpNavInfo();
 }
 
 /******************************************************************************
@@ -869,6 +909,7 @@ void GPS_ServiceInit(void)
   //gps_context.moduleStatus = GPS_OK;
   gps_context.speedStatus = GPS_OK;
   gps_nmea_parse_init();
+  Parm_ReadGpsNavInfo();
 }
 
 //==========================================================================

@@ -3,9 +3,9 @@
 * @FileName: main.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2018-12-20
-* @brief
+* @brief:
 *
 * 用户名:tenyan     密码:yan111xgit
 * 国六网址:http://10.80.0.108:1010/login

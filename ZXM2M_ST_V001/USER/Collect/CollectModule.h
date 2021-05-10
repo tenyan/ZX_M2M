@@ -3,9 +3,9 @@
 * @FileName: CollectModule.h
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-23
-* @brief     本文件为Collect功能模块所有对外接口层的头文件
+* @brief:    本文件为Collect功能模块所有对外接口层的头文件
 ******************************************************************************/
 #ifndef _COLLECT_MODULE_H_
 #define _COLLECT_MODULE_H_
@@ -25,13 +25,14 @@ void COLT_SetTotalWorkTime(uint32_t time);
 uint32_t COLT_GetTotalWorkTime(void);
 
 // 采集模块信息函数接口
-uint16_t COLT_GetMainPowerVoltage(void);
+uint8_t COLT_GetAccStatus(void);
 uint16_t COLT_GetBatVoltage(void);
 uint8_t COLT_GetBatLowStatus(void);
 uint8_t COLT_GetBatChargeStatus(void);
-uint8_t COLT_GetAccStatus(void);
+uint16_t COLT_GetMainPowerVoltage(void);
 uint8_t COLT_GetMainPowerStatus(void);
 uint8_t COLT_GetMainPowerLowStatus(void);
+uint8_t COLT_GetMainPowerFullStatus(void);
 uint8_t COLT_GetSwitch1Status(void);
 uint8_t COLT_GetSwitch2Status(void);
 uint8_t COLT_GetSwitch3Status(void);
@@ -44,6 +45,11 @@ uint8_t COLT_GetGpsAntShortStatus(void);
 uint8_t COLT_GetGpsAntOpenStatus(void);
 uint8_t COLT_GetGpsPositioningStatus(void);
 uint8_t COLT_Get4gGpsStatus(void);
+uint8_t COLT_GetSimCardStatus(void);
+
+// 终端不上线时间统计
+void COLT_CumulateOfflineTimeInWork(void);     // 正常工作时不上线时间
+void COLT_CumulateOfflineTimeInSleep(void); // 休眠不上线时间
 
 void CTL_Do1sTasks(void);
 void CTL_SetPwroffDelayTime(uint8_t time);

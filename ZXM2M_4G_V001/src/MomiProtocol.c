@@ -4,6 +4,16 @@
 * @version   V1.0
 * @Date:     2020-12-10
 * @brief     Modem模块和Micro通信协议实现
+* TLV说明:
+*  TAGF001--终端自身采集信息(yes)
+*  TAGF002--GPS定位信息(no)
+*  TAGF010--上车工况信息(yes)
+*  TAGF011--下车工况信息(yes)
+*  TAGF012--下车发动机信息(yes)
+*  TAGF020--故障信息(no)
+*  TAGF030--统计信息(yes)
+*  TAGF040--版本信息(yes)
+*  TAGF050--CAN帧信息(no)
 ******************************************************************************/
 //-----头文件调用------------------------------------------------------------
 #include "config.h"
@@ -71,7 +81,7 @@ obd_info_t obd_info = {
   .diag_valid_flag = 1,
   .diag_supported_status = 0xFFFF, // 诊断支持状态
   .diag_readiness_status = 0xFFFF, // 诊断就绪状态
-  .vin_valid_flag = 1,  // VIN码有效
+  .vin_valid_flag = 0,  // VIN码有效
   .vin = "LXGBPA123test0088",  // VIN码(HJ)
   //.vin = "LXGBPA123test0036",  // VIN码(GB)
   .calid_valid_flag = 1,
@@ -320,7 +330,10 @@ void Momi_FillEpData(void)
   
   ep_data_buffer[EP_POS19_ADDRESS] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS5]; // 尿素箱温度(1B)
   
-  ep_data_buffer[EP_POS20_ADDRESS] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS6]; // 实际尿素喷射量(4B)
+  ep_data_buffer[EP_POS20_ADDRESS] = 0x00; // 实际尿素喷射量(4B)
+  ep_data_buffer[EP_POS20_ADDRESS+1] = 0x00;
+  ep_data_buffer[EP_POS20_ADDRESS+2] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS6+1];
+  ep_data_buffer[EP_POS20_ADDRESS+3] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS6];
   
   ep_data_buffer[EP_POS21_ADDRESS] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS12+3]; // 总尿素消耗(4B)
   ep_data_buffer[EP_POS21_ADDRESS+1] = zxengine_buffer_a5f1[ZXENGINE_A5F1_POS12+2];
@@ -401,16 +414,18 @@ static uint8_t iMomi_AnalyzeTlvMsg_F001(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXINFO_BUFFER+2))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F001\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F001\n");
+#endif
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志
     tlv_flag <<= 8;
     tlv_flag += pValue[pos++];
     zxinfo_tlv_flag.word = tlv_flag;
-
     memcpy(zxinfo_buffer, &pValue[pos], SIZE_OF_ZXINFO_BUFFER);
+    ZxM2m_UpdatePidInfo(); // 更新车辆配置信息
+    zxtcw_context.lvc_binded_flag = zxinfo_buffer_a5ff[ZXINFO_A5FF_POS11_ADDR];  // 绑定状态
+    zxtcw_context.tbox_state = zxinfo_buffer_a5ff[ZXINFO_A5FF_POS12_ADDR];  // ST工作状态
   }
 
   return retVal;
@@ -425,9 +440,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F002(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXENGINE_BUFFER))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F002\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F002\n");
+#endif
     retVal = 1;
     //memcpy(zxengine_buffer, &pValue[pos], SIZE_OF_ZXENGINE_BUFFER);
   }
@@ -444,9 +459,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F010(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXUP_BUFFER+6))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F010\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F010\n");
+#endif
 
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志1
@@ -479,9 +494,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F011(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXDOWN_BUFFER+4))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F011\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F011\n");
+#endif
 
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志1
@@ -509,9 +524,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F012(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXENGINE_BUFFER+2))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F012\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F012\n");
+#endif
 
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志
@@ -533,9 +548,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F020(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXENGINE_BUFFER))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F020\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F020\n");
+#endif
 
     retVal = 1;
     memcpy(zxengine_buffer, &pValue[pos], SIZE_OF_ZXENGINE_BUFFER);
@@ -553,9 +568,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F030(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXSTATISTICS_BUFFER+2))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F030\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F030\n");
+#endif
 
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志
@@ -578,9 +593,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F040(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXVERSION_BUFFER+2))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F040\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F040\n");
+#endif
 
     retVal = 1;
     tlv_flag = pValue[pos++]; // 有效标志
@@ -603,9 +618,9 @@ static uint8_t iMomi_AnalyzeTlvMsg_F050(uint8_t* pValue, uint16_t len)
 
   if (len==(SIZE_OF_ZXENGINE_BUFFER))
   {
-//#if MOMI_DEBUG
-//    PcDebug_Printf("Momi:F050\n");
-//#endif
+#if MOMI_DEBUG
+    PcDebug_Printf("Momi:F050\n");
+#endif
 
     retVal = 1;
     //can_num = pValue[pos++]; // 有效标志
@@ -653,7 +668,12 @@ static uint16_t iMomi_BuildTlvMsg_E001(uint8_t *pbuf)
   {pbuf[len++] = 0x01;}
   else
   {pbuf[len++] = 0x00;}
-  
+
+  if(Cellura_GetSimCardState()==1)  // SIM卡识别状态: 1=故障; 0,正常
+  {pbuf[len++] = 0x00;}
+  else
+  {pbuf[len++] = 0x01;}
+
   pbuf[len++] = GPS_GetPositioningStatus();  // GPS定位状态
 
   pbuf[len++] = 0x00;  // WIFI工作状态
@@ -798,13 +818,13 @@ uint8_t Momi_CheckMsg(uint8_t *pdata, uint16_t size)
 uint16_t iMomi_AnalyzeTlvData(uint16_t tag, uint16_t len, uint8_t *pValue)
 {
   uint16_t retVal = 0;
-  
+
   switch(tag)
   {
     case 0xF001: // 终端自身采集信息
       retVal = iMomi_AnalyzeTlvMsg_F001(pValue, len);
       break;
-      
+
     case 0xF002: // GPS采集信息
       retVal = iMomi_AnalyzeTlvMsg_F002(pValue, len);
       break;
@@ -812,27 +832,27 @@ uint16_t iMomi_AnalyzeTlvData(uint16_t tag, uint16_t len, uint8_t *pValue)
     case 0xF010: // 起重机上车信息
       retVal = iMomi_AnalyzeTlvMsg_F010(pValue, len);
       break;
-      
+
     case 0xF011: // 起重机底盘信息
       retVal = iMomi_AnalyzeTlvMsg_F011(pValue, len);
       break;
-      
+
     case 0xF012: // 起重机下车发动机信息
       retVal = iMomi_AnalyzeTlvMsg_F012(pValue, len);
       break;
-     
-    case 0xF020: //故障类消息信息
+
+    case 0xF020: // 故障类消息信息
       retVal = iMomi_AnalyzeTlvMsg_F020(pValue, len);
       break;
-      
+
     case 0xF030: // 统计类消息信息
       retVal = iMomi_AnalyzeTlvMsg_F030(pValue, len);
       break;
-      
+
     case 0xF040: // 车身ECU版本信息
       retVal = iMomi_AnalyzeTlvMsg_F040(pValue, len);
       break;
-      
+
     case 0xF050: // CAN帧信息
       retVal = iMomi_AnalyzeTlvMsg_F050(pValue, len);
       break;

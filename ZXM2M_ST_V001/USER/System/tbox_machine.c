@@ -3,9 +3,9 @@
 * @FileName: tbox_machine.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-16
-* @brief
+* @brief:
 ******************************************************************************/
 
 /******************************************************************************
@@ -45,6 +45,7 @@ static uint8_t acc_off_event_flag = 0; // ACC由ON变为OFF标志位
 static uint32_t acc_off_cumulated_timer = 0;
 static uint32_t acc_off_reset_cumulated_timer = 0;
 static uint8_t save_statistics_flag = 0;
+
 /******************************************************************************
  * 主电供电情况下,终端断电重启函数(1S执行一次)
  * 当ACC关闭持续时间达到休眠唤醒间隔时长时，通知AM1805对整机进行断电10秒钟
@@ -242,7 +243,7 @@ void tbox_working(void)
         enter_sleep_timer = enter_sleep_timer_sp; // 重置休眠时间
       }
 
-      if((CAN_GetRecvState(CAN_CHANNEL1)==CAN_OK)||(CAN_GetRecvState(CAN_CHANNEL2)==CAN_OK)) // CAN工作
+      if((CAN1_GetRecvState()==CAN_OK)||(CAN2_GetRecvState()==CAN_OK)) // CAN工作
       {
         enter_sleep_timer = enter_sleep_timer_sp; // 重置休眠时间
       }
@@ -301,6 +302,13 @@ void tbox_sleep(void)
       //=关闭硬件====================================
       CAN_POWER_OFF();
       //GPS_SetModuleState(GPS_MODULE_STATE_SLEPT); // 关闭GPS模块
+      if(can_context.pid_save_flag)
+      {
+        can_context.pid_save_flag = 0;
+        Parm_SavePidInfo();  // 保存车辆信息
+        PcDebug_SendString("Pid:Save!\n");
+      }
+      
       tbox_10msec_timer = 100;
     }
     else
@@ -414,6 +422,7 @@ void tbox_sleep(void)
       ZxSts_SaveDataToFdb(); 
       ZxStsEngine_SaveDataToFdb();
       TboxSts_SaveDataToFdb();
+      Parm_SaveTboxOfflineTime(); // 保存离线时间
       
       Modem_SetState(MODEM_STATE_POWER_OFF); // 关闭4G模块
       for (it=0; it<60; it++) // 保证模块正常关机
@@ -463,6 +472,8 @@ void tbox_sleep(void)
           PcDebug_SendString("ToxSts:Add!\n");
         }
       }
+
+      COLT_CumulateOfflineTimeInSleep(); // 累计休眠时不上线时间
       tbox_10msec_timer = 10;
     }
     else
@@ -676,4 +687,8 @@ void Tbox_SetMachineState(tbox_state_t state)
   tbox_state = state;
 }
 
+uint8_t Tbox_GetMachineState(void)
+{
+  return tbox_state;
+}
 

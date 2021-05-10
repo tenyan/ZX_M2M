@@ -65,15 +65,15 @@
 
 //== OBD数据信息地址 ==============================================================
 #define HJEP_OBD_POS1_ADDRESS   (0)     // OBD诊断协议
-#define HJEP_OBD_POS2_ADDRESS   (HJEP_OBD_POS1_ADDRESS+1)   // MIL状态
-#define HJEP_OBD_POS3_ADDRESS   (HJEP_OBD_POS2_ADDRESS+1)   // 诊断支持状态
-#define HJEP_OBD_POS4_ADDRESS   (HJEP_OBD_POS3_ADDRESS+2)   // 诊断就绪状态
-#define HJEP_OBD_POS5_ADDRESS   (HJEP_OBD_POS4_ADDRESS+2)   // 车辆识别码(VIN)
+#define HJEP_OBD_POS2_ADDRESS   (HJEP_OBD_POS1_ADDRESS+1)  // MIL状态
+#define HJEP_OBD_POS3_ADDRESS   (HJEP_OBD_POS2_ADDRESS+1)  // 诊断支持状态
+#define HJEP_OBD_POS4_ADDRESS   (HJEP_OBD_POS3_ADDRESS+2)  // 诊断就绪状态
+#define HJEP_OBD_POS5_ADDRESS   (HJEP_OBD_POS4_ADDRESS+2)  // 车辆识别码(VIN)
 #define HJEP_OBD_POS6_ADDRESS   (HJEP_OBD_POS5_ADDRESS+17) // 软件标定识别号
 #define HJEP_OBD_POS7_ADDRESS   (HJEP_OBD_POS6_ADDRESS+18) // 标定验证码（CVN）
 #define HJEP_OBD_POS8_ADDRESS   (HJEP_OBD_POS7_ADDRESS+18) // IUPR值
 #define HJEP_OBD_POS9_ADDRESS   (HJEP_OBD_POS8_ADDRESS+36) // 故障码总数
-#define HJEP_OBD_POS10_ADDRESS  (HJEP_OBD_POS9_ADDRESS+1)   // 故障码信息列表(N*4B)
+#define HJEP_OBD_POS10_ADDRESS  (HJEP_OBD_POS9_ADDRESS+1)  // 故障码信息列表(N*4B)
 #define SIZE_OF_HJEP_OBD        (HJEP_OBD_POS10_ADDRESS-HJEP_OBD_POS1_ADDRESS)
 
 //== 数据信息定义 ==============================================================

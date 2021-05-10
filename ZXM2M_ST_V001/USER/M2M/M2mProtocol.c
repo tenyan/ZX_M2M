@@ -3,9 +3,9 @@
 * @FileName: M2mProtocol.c
 * @Engineer: TenYan
 * @Company:  徐工信息智能硬件部
-* @version   V1.0
+* @version:  V1.0
 * @Date:     2020-10-20
-* @brief     M2M 协议实现
+* @brief:    M2M 协议实现
 ******************************************************************************/
 
 /******************************************************************************
@@ -126,12 +126,6 @@ m2m_asset_data_t m2m_asset_data = {
   .work_data_report_time_sp = 30, // 工作参数(工况)传输参数。时间，单位：1秒
   .position_report_mode_sp = 0,   // 位置信息单条上传模式
   .position_report_time_sp = 60,  // 位置信息上传间隔
-
-  .vin_valid_flag = 0,            // VIN码无效
-  .vin = "LXGBPA123test0088",     // VIN码
-  //.vin_valid_flag = 0,            // VIN码无效
-  .ecu_type = ENGINE_TYPE_WEICHAI,// 发动机类型
-  .ep_type = EP_TYPE_HJ,          // 环保类型
 };
 
 /******************************************************************************
@@ -185,11 +179,11 @@ uint32_t im2m_BuildDeviceStatus(void)
     uiTemp |= BIT(27);
   }
 
-  if (CAN_NOK==CAN_GetRecvState(CAN_CHANNEL1)) // 关联设备工作状态(0:工作中, 1:未工作)
+  if (CAN_NOK==CAN1_GetRecvState()) // 关联设备工作状态(0:工作中, 1:未工作)
   {
     uiTemp |= BIT(26);
   }
-  if (CAN_NOK==CAN_GetCommState(CAN_CHANNEL1)) // 关联设备健康状态(0:正常, 1:存在故障异常)
+  if (CAN_NOK==CAN1_GetCommState()) // 关联设备健康状态(0:正常, 1:存在故障异常)
   {
     uiTemp |= BIT(25);
   }
@@ -230,7 +224,7 @@ uint32_t im2m_BuildDeviceStatus(void)
 //    uiTemp |= BIT(17);
 //  }
   
-  if (CAN_NOK==CAN_GetCommState(CAN_CHANNEL1)) // CAN总线通信中断标志(0:未中断 1:中断)
+  if (CAN_NOK==CAN1_GetCommState()) // CAN总线通信中断标志(0:未中断 1:中断)
   {
     uiTemp |= BIT(16);
   }
@@ -1584,6 +1578,8 @@ static uint16_t im2m_AnalyzeTlvMsg_4001(uint8_t* pValue, uint16_t len)
 static uint16_t im2m_AnalyzeTlvMsg_4004(uint8_t* pValue, uint16_t len)
 {
   uint16_t retVal = 1;
+  
+#if 0
   uint8_t cmd;
   bittype lock_cmd_flag;
 
@@ -1620,11 +1616,12 @@ static uint16_t im2m_AnalyzeTlvMsg_4004(uint8_t* pValue, uint16_t len)
     retVal = 0;
   }
 
-  if (CAN_NOK==CAN_GetRecvState(CAN_CHANNEL1)) // 解析锁车执行结果
+  if (CAN_NOK==CAN1_GetRecvState()) // 解析锁车执行结果
   {
     retVal = 0;
     m2m_context.ss_req.send_timer = 8;
   }
+#endif
 
   return retVal;
 }
@@ -1714,7 +1711,7 @@ static uint16_t im2m_BuildTlvMsg_A1FE(uint8_t *pbuf)
   pbuf[len++] = 0xFE;
   pbuf[len++] = 0x00; // LENGTH
   pbuf[len++] = 0x01;
-  pbuf[len++] = m2m_asset_data.ecu_type; // VALUE
+  pbuf[len++] = can_context.ecu_type; // VALUE
 
   return len;
 }
@@ -1740,7 +1737,7 @@ static uint16_t im2m_AnalyzeTlvMsg_A1FF(uint8_t* pValue, uint16_t len)
     {
       retVal = 0;
     }
-    else if (CAN_NOK==CAN_GetRecvState(CAN_CHANNEL1))
+    else if (CAN_NOK==CAN1_GetRecvState())
     {
       retVal = 0;
     }
@@ -1760,6 +1757,80 @@ static uint16_t im2m_AnalyzeTlvMsg_A1FF(uint8_t* pValue, uint16_t len)
     }
   }
 #endif
+  return retVal;
+}
+
+//==重型专用:绑定与解绑======================================================
+uint16_t iM2m_AnalyzeTlvMsg_A510(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  static uint8_t acc_status = 0;
+  static uint8_t can1_status = 0;
+  static uint8_t can2_status = 0;
+  //static uint8_t can_status = 0;
+  static uint8_t power_status = 0;
+
+  // 绑定解绑操作必须在ACC开且有CAN数据才可进行操作
+  acc_status = COLT_GetAccStatus();  // 获取ACC状态
+  can1_status = CAN1_GetRecvState();  // CAN1接收状态
+  can2_status = CAN2_GetRecvState();  // CAN2接收状态
+  power_status = COLT_GetMainPowerFullStatus();  // 主电满电状态
+  if (((acc_status==1) || (power_status==1)) && ((can1_status==1) || (can2_status==1)))  // 注意中小吨位(CAN1)和大吨位(CAN2)
+  {
+    if (1==len) // 1=解绑/绑定
+    {
+      if (pValue[0]==0) // 0=解绑命令
+      {
+        retVal = LVC_ProcessDscCommand(&lvc_context, LVC_USER_CMD_UNBIND);
+      }
+      else if (pValue[0]==1) // 1=绑定命令
+      {
+        retVal = LVC_ProcessDscCommand(&lvc_context, LVC_USER_CMD_BIND);
+      }
+    }
+    else if (5==len) // 5=强制解绑
+    {
+      if (pValue[0]==2) // 2=强制解绑
+      {
+        retVal = LVC_ProcessDscCommand(&lvc_context, LVC_USER_CMD_RMBIND);
+        memcpy(lvc_context.remove_bind_pwd, &pValue[1], 4);  // 强制解绑密码
+      }
+    }
+  }
+
+  return retVal;
+}
+
+//==重型专用:锁车与解锁======================================================
+uint16_t iM2m_AnalyzeTlvMsg_A511(uint8_t* pValue, uint16_t len)
+{
+  uint16_t retVal = 0;
+  static uint8_t acc_status = 0;
+  static uint8_t can1_status = 0;
+  static uint8_t can2_status = 0;
+  //static uint8_t can_status = 0;
+  static uint8_t power_status = 0;
+
+  // 锁车与解锁操作必须在ACC开且有CAN数据才可进行操作
+  acc_status = COLT_GetAccStatus();  // 获取ACC状态
+  can1_status = CAN1_GetRecvState();  // CAN1接收状态
+  can2_status = CAN2_GetRecvState();  // CAN2接收状态
+  power_status = COLT_GetMainPowerFullStatus();  // 主电满电状态
+  if (((acc_status==1) || (power_status==1)) && ((can1_status==1) || (can2_status==1)))  // 注意中小吨位(CAN1)和大吨位(CAN2)
+  {
+    if (1==len)
+    {
+      if (pValue[0]==0) // 0=解锁命令
+      {
+        retVal = LVC_ProcessDscCommand(&lvc_context, LVC_USER_CMD_UNLOCK);
+      }
+      else if (pValue[0]==1) // 1=锁车命令
+      {
+        retVal = LVC_ProcessDscCommand(&lvc_context, LVC_USER_CMD_LOCK);
+      }
+    }
+  }
+
   return retVal;
 }
 
@@ -1825,8 +1896,11 @@ im2m_CmdTlv_t m2m_CmdDealTbl[]=
   {0x4008,                  NULL, im2m_AnalyzeTlvMsg_4008},//终端立即关机
   {0x4FFF,                  NULL, im2m_AnalyzeTlvMsg_4FFF},//调试模式设置
 
-  {0xA1FE, im2m_BuildTlvMsg_A1FE, im2m_AnalyzeTlvMsg_A1FE},//发送机类型
-  {0xA1FF,                   NULL, im2m_AnalyzeTlvMsg_A1FF},//更换终端
+  {0xA510,                  NULL, iM2m_AnalyzeTlvMsg_A510},//==重型专用:绑定与解绑
+  {0xA511,                  NULL, iM2m_AnalyzeTlvMsg_A511},//==重型专用:锁车与解锁
+
+  {0xA1FE, im2m_BuildTlvMsg_A1FE, im2m_AnalyzeTlvMsg_A1FE},//发动机类型
+  {0xA1FF,                  NULL, im2m_AnalyzeTlvMsg_A1FF},//更换终端
 };
 #define NUM_OF_M2M_CMD_DEAL   (sizeof(m2m_CmdDealTbl)/sizeof(im2m_CmdTlv_t))
 
@@ -2236,16 +2310,17 @@ uint16_t im2m_AnalyzeCmdReqRcMsg(m2m_context_t* pThis)
   return pThis->tx_size;
 }
 
-
 //==处理命令请求(AT指令透传)===================================================
 uint16_t im2m_AnalyzeCmdReqAtMsg(m2m_context_t* pThis)
 {
-#if 0
-  uint8 *p = pCmdBody;
-  uint8 *pBuf = &aMsgSendData[MSG_HEAD_LEN];
+
+  uint8_t *pData = pThis->pCmdBody;
+  uint8_t *pBuf = pThis->tx_data;
+  uint16_t pos = 0;
 
   if (pThis->cmdBodyLen > 0)
   {
+#if 0
     if (0==memcmp("t6", p, 2))	//盲区
     {
       EnableBlindSimulator();
@@ -2274,17 +2349,34 @@ uint16_t im2m_AnalyzeCmdReqAtMsg(m2m_context_t* pThis)
       EncryptInfor.secretable=0;
       Save_EncryptToEEPROM();
     }
-    else if (0==memcmp("AT+", p, 3))	//不需要加密
-    {
-      memcpy(pBuf,p,usCmdBodyLen);
-      pBuf[usCmdBodyLen]='\r';
-      pBuf[usCmdBodyLen+1]='\n';
-      WriteGsmUartData(pBuf, usCmdBodyLen+2);
-    }
-  }
 #endif
+    if (0==memcmp("AT+", pData, 3)) // AT调试指令
+    {
+      memcpy(pBuf, pData, pThis->cmdBodyLen);
+      pos = pThis->cmdBodyLen;
+      pBuf[pos++]='\r';
+      pBuf[pos++]='\n';
+      //Cellura_TransmitData((uint8_t*)pBuf,pos); // 通过串口DMA发送AT指令到模块
+    }
+    else if(0==memcmp("OFF0", pData, 4))
+    {
+      colt_info.total_offline_time = 0x00;
+    }
+    else if(0==memcmp("OFF1", pData, 4))
+    {
+      colt_info.total_offline_time = (24*3600-10);
+    }
+    else if(0==memcmp("OFF2", pData, 4))
+    {
+      colt_info.total_offline_time =(72*3600-10);
+    }
+    
+    return 1;
+  }
+
   return 0;
 }
+
 
 /*******************************************************************************
  * 处理平台发来的命令请求消息

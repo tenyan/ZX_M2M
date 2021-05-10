@@ -23,6 +23,7 @@ volatile bittype timer_flag0;
 colt_info_t colt_info = {
   .total_work_time = 0x00,  // 累计工作时间,单位:s
   .total_offline_time = 0x00, // 累计不上线时间
+  .restart_timer = 0x00, // 终端重启
 };
 
 /******************************************************************************
@@ -327,11 +328,36 @@ uint8_t CAN_GetRecvState(uint8_t channel)
   return CAN_NOK;
 }
 
-//==获取环保数据有效性=============================================================
+//==获取VIN码有效性=============================================================
 uint8_t CAN_GetVinState(void)
 {
-  //if ((m2m_asset_data.vin_valid_flag == 0x01) || (obd_info.vin_valid_flag==0x01))
-  if (m2m_asset_data.vin_valid_flag == 0x01)
+  if ((zxtcw_context.vin_valid_flag == 0x01) || (obd_info.vin_valid_flag==0x01))
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+//==获取环保数据有效性=============================================================
+uint8_t CAN_GetObdVinState(void)
+{
+  if (obd_info.vin_valid_flag==0x01)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+//==获取环保数据有效性=============================================================
+uint8_t CAN_GetUserVinState(void)
+{
+  if (zxtcw_context.vin_valid_flag == 0x01)
   {
     return 1;
   }
@@ -344,36 +370,48 @@ uint8_t CAN_GetVinState(void)
 //==获取环保数据有效性=============================================================
 uint8_t CAN_GetEpDataState(void)
 {
-  return colt_info.ep_valid_flag;
+  return zxtcw_context.ep_valid_flag;
 }
 
 //==获取环保类型=================================================================
 uint8_t CAN_GetEpType(void)
 {
-  return m2m_asset_data.ep_type;
+  return zxtcw_context.ep_type;
 }
 
 //==获取发动机类型=================================================================
 uint8_t CAN_GetEngineType(void)
 {
-  return m2m_asset_data.ecu_type;
+  return zxtcw_context.ecu_type;
 }
 
 //==获取发动机转速=================================================================
 uint16_t CAN_GetEngineSpeed(void)
 {
-  return colt_info.engine_speed;
+  return zxtcw_context.engine_speed;
 }
 
 //==获取MIL灯状态=================================================================
-uint16_t CAN_GetMilLampState(void)
+uint8_t CAN_GetMilLampState(void)
 {
-  return colt_info.mil_lamp;
+  return zxtcw_context.mil_lamp;
+}
+
+//==获取ECU绑定状态=================================================================
+uint8_t CAN_GetEcuBindState(void)
+{
+  return zxtcw_context.lvc_binded_flag;
 }
 
 /**********************************************************************************
  *
 *********************************************************************************/
+//==获取ST工作状态状态==============================================================
+uint8_t COLT_GetTboxState(void)
+{
+  return zxtcw_context.tbox_state;
+}
+
 //==获取开盖状态==============================================================
 uint8_t COLT_GetBoxOpenStatus(void)
 {
@@ -560,6 +598,7 @@ void CTL_Do1sTasks(void)
     {
       PcDebug_SendString("CTL:Reset!\n");
       COLT_DELAY(10); // 延时10MS,保证调试信息完整输出
+      Modem_SetState(MODEM_STATE_RESET); // 重新开机
       //NVIC_SystemReset(); // 复位
     }
   }

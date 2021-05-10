@@ -131,13 +131,6 @@ m2m_asset_data_t m2m_asset_data = {
   .work_data_report_time_sp = 30, // 工作参数(工况)传输参数。时间，单位：1秒
   .position_report_mode_sp = 0,   // 位置信息单条上传模式
   .position_report_time_sp = 60,  // 位置信息上传间隔
-
-  .vin_valid_flag = 1,            // VIN码无效
-  .vin = "LXGBPA123test0088",     // VIN码(HJ)
-  //.vin = "LXGBPA123test0036",     // VIN码(GB)
-  //.vin_valid_flag = 0,            // VIN码无效
-  .ecu_type = ENGINE_TYPE_WEICHAI,// 发动机类型
-  .ep_type = EP_TYPE_HJ,          // 环保类型
 };
 
 /******************************************************************************
@@ -2100,7 +2093,7 @@ static uint16_t im2m_BuildTlvMsg_A1FE(uint8_t *pbuf)
   pbuf[len++] = 0xFE;
   pbuf[len++] = 0x00; // LENGTH
   pbuf[len++] = 0x01;
-  pbuf[len++] = m2m_asset_data.ecu_type; // VALUE
+  pbuf[len++] = zxtcw_context.ecu_type; // VALUE
 
   return len;
 }
@@ -2219,6 +2212,7 @@ im2m_CmdTlv_t m2m_CmdDealTbl[]=
   {0xA511,                   NULL, iZxM2m_AnalyzeTlvMsg_A511}, //重型专用:锁车与解锁
   {0xA512,                   NULL, iZxM2m_AnalyzeTlvMsg_A512}, //重型专用:环保协议类型
   {0xA513,                   NULL, iZxM2m_AnalyzeTlvMsg_A513}, //重型专用:VIN码设置
+  {0xA514,                   NULL, iZxM2m_AnalyzeTlvMsg_A514}, //重型专用:强制、故障救援指令
 };
 #define NUM_OF_M2M_CMD_DEAL   (sizeof(m2m_CmdDealTbl)/sizeof(im2m_CmdTlv_t))
 
@@ -2991,6 +2985,11 @@ uint16_t im2m_AnalyzeAckMsg(m2m_context_t* pThis)
         pThis->ss_req.retry_cnt = 0;
         pThis->ss_req.sent_flag = 0;
       }
+      else if (rsp_sn==pThis->tc_req.sn)
+      {
+        pThis->tc_req.retry_cnt = 0;
+        pThis->tc_req.sent_flag = 0;
+      }
       else if (rsp_sn==pThis->bz_req.sn)
       {
         pThis->bz_req.retry_cnt = 0;
@@ -3469,9 +3468,9 @@ uint16_t im2m_BuildCmdRspRcMsg(m2m_context_t* pThis, uint8_t result)
   pbuf[len++] = 'C';
 
   //==命令响应内容====
-  pbuf[len++] = result; // 执行结果
   pbuf[len++] = 0x00;
   pbuf[len++] = 0x05;
+  pbuf[len++] = result; // 执行结果
   temp_val = im2m_BuildDeviceStatus();
   pbuf[len++] = (temp_val>>24) & 0xFF; // 终端状态字
   pbuf[len++] = (temp_val>>16) & 0xFF;
@@ -3523,6 +3522,10 @@ uint16_t im2m_AnalyzeCmdReqRcMsg(m2m_context_t* pThis)
   else
   {
     im2m_SendNetData(pThis->tx_data, pThis->tx_size); // 平台
+    if(pThis->ss_req.sent_flag==M2M_FALSE)
+    {
+      pThis->ss_req.send_timer = 0x05;
+    }
   }
 
   return pThis->tx_size;
@@ -3982,6 +3985,11 @@ uint16_t im2m_AnalyzeUpdateMsg(m2m_context_t* pThis)
 
 #endif
 
+// 05 A0C11009000007 00 0163 000C 000252430005A5130001004B
+// 05 A0C11009000007 00 0164 0010 000252430009A5100005023132333421
+// 05 A0C11009000007 00 0165 0010 000252430009A510000502313131311C
+// 05 A0C11009000007 00 0166 0010 000252430009A5100005023132333423
+// 05 A0C11009000007 00 0167 0010 000252430009A5100005023132333424
 /******************************************************************************
  * im2m_CheckFrame() verifies that the received Modbus frame is addressed to us &
  * that the CRC is correct. This function returns MB_OK if the frame verifies
@@ -3996,7 +4004,7 @@ uint8_t im2m_CheckRecvMsg(m2m_context_t* pThis)
   //==最小长度判断===================================
   if (pThis->rx_size < 14)
   {
-    PcDebug_SendData((uint8_t *)("ERR:011"), 7, DBG_MSG_TYPE_ANYDATA);
+    PcDebug_SendData((uint8_t *)("ERR:011\n"), 7, DBG_MSG_TYPE_ANYDATA);
     PcDebug_SendData(pThis->rx_data, pThis->rx_size, DBG_MSG_TYPE_ANYDATA);
     return M2M_NOK;
   }
@@ -4007,7 +4015,9 @@ uint8_t im2m_CheckRecvMsg(m2m_context_t* pThis)
   msg_body_len += pThis->rx_data[M2M_BODY_LEN_FIELD+1];
   if (pThis->rx_size != (msg_body_len+M2M_MSG_HEAD_LEN))
   {
-    PcDebug_SendData((uint8_t *)("ERR:014"), 7, DBG_MSG_TYPE_ANYDATA);
+    PcDebug_SendData((uint8_t *)("ERR:014\n"), 7, DBG_MSG_TYPE_ANYDATA);
+    PcDebug_Printf("rx_size=%d,body_len=%d\n", pThis->rx_size, msg_body_len);
+    PcDebug_SendData(pThis->rx_data, pThis->rx_size, DBG_MSG_TYPE_ANYDATA);
     return M2M_NOK;
   }
 
@@ -4018,7 +4028,7 @@ uint8_t im2m_CheckRecvMsg(m2m_context_t* pThis)
     return M2M_OK;
   else
   {
-    PcDebug_SendData((uint8_t *)("ERR:013"), 7, DBG_MSG_TYPE_ANYDATA);
+    PcDebug_SendData((uint8_t *)("ERR:013\n"), 7, DBG_MSG_TYPE_ANYDATA);
     return M2M_NOK;
   }
 }
@@ -4094,15 +4104,34 @@ uint16_t M2M_ProcessRecvMsg(m2m_context_t* pThis)
 }
 
 /******************************************************************************
- * 
+ * 10ms周期调用
 *******************************************************************************/
 void M2M_ProduceSendMsg(m2m_context_t* pThis)
 {
   //int32_t retVal;
   //static uint8_t report_blind_zone_timer = 50;
   uint8_t acc_state;
+  static uint32_t acc_on_timer_10ms = 0x00;
+  static uint32_t acc_off_timer_10ms = 0x00;
+  static uint8_t send_tcb_flag = 1; // 发送版本信息标志
+  static uint8_t send_tct_flag = 0; // 发送统计信息标志
 
   acc_state = COLT_GetAccStatus();
+  //==ACC状态计时=============================================================
+  if (acc_state) // ACC开
+  {
+    acc_on_timer_10ms++;
+    acc_off_timer_10ms = 0x00;
+    send_tct_flag = 1;  // 需要发送统计信息
+  }
+  else
+  {
+    acc_off_timer_10ms++;
+    acc_on_timer_10ms = 0x00;
+    send_tcb_flag = 1;  // 需要发送版本信息
+  }
+
+  //==平台未连接======
   if (im2m_GetLinkState() == SOCKET_LINK_STATE_CLOSED)
   {
     pThis->conn_success_flag = M2M_FALSE;
@@ -4114,7 +4143,7 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
   // ACC开
   if (acc_state==1)
   {
-    ZxM2mBlindZone_Service();  // 记录盲区数据
+    //ZxM2mBlindZone_Service();  // 记录盲区数据
   }
 
   if (im2m_GetLinkState() != SOCKET_LINK_STATE_READY)
@@ -4142,8 +4171,9 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
         pThis->conn_req.retry_cnt++;
         //im2m_SendConnenctMsg(pThis);
         iZxM2m_SendConnenctMsg(pThis);  // 发送重型连接指令
-        //pThis->ss_req.retry_cnt = 0;
-        //pThis->ss_req.sent_flag = M2M_FALSE;
+        
+        pThis->ss_req.retry_cnt = 0;
+        pThis->ss_req.sent_flag = M2M_FALSE;
       }
     }
     return; // 未发送连接请求前,不可发送其他类型请求
@@ -4155,38 +4185,69 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
     pThis->ss_req.retry_cnt++;
     pThis->ss_req.sent_flag = M2M_TRUE;
     pThis->ss_req.rsp_timeout_timer = pThis->ss_req.rsp_timeout_sp;
-
-    // 位置追踪上报
-    if ((0==pThis->lt_report.mode) && (pThis->lt_report.total_time_sp>0)) // 时间间隔追踪
-    {
-      if (pThis->lt_report.total_time_sp>=pThis->lt_report.timer_sp)
-        pThis->lt_report.total_time_sp -= pThis->lt_report.timer_sp;
-      else
-        pThis->lt_report.total_time_sp = 0;
-    }
-    if ((0x00==pThis->lt_report.mode) && (0!=pThis->lt_report.total_time_sp))
-    {
-      pThis->ss_req.send_timer = pThis->lt_report.timer_sp;
-    }
-    else if (m2m_asset_data.ss_report_time_sp>0)
-    {
-      pThis->ss_req.send_timer = m2m_asset_data.ss_report_time_sp;
-    }
-    else
-    {
-      pThis->ss_req.send_timer = 30;
-    }
-
+    pThis->ss_req.send_timer = m2m_asset_data.ss_report_time_sp;
     //im2m_SendStatusSyncMsg(pThis);
     iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCS);  // 发送重型终端数据
     return;
   }
 
-  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCW);  // 发送重型工况数据(AccOn 每30s发一次)
-  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCS);  // 发送重型终端数据
-  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCB);  // 发送重型版本数据(AccOn 30s后发一次)
-  //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCT);  // 发送重型统计数据(AccOff 30s后发一次)
+  //==工况数据================================================================
+  if ((pThis->tc_req.send_timer==0x00) && (pThis->tc_req.sent_flag==M2M_FALSE))
+  {
+    pThis->tc_req.retry_cnt++;
+    pThis->tc_req.sent_flag = M2M_TRUE;
+    pThis->tc_req.rsp_timeout_timer = pThis->tc_req.rsp_timeout_sp;
+    pThis->tc_req.send_timer = m2m_asset_data.hb_timer_sp; // 使用心跳设置值做为发送时间
+    pThis->ping_req.send_timer = pThis->ping_req.send_timer_sp; // 重置心跳发送时间
+
+    if((send_tcb_flag==1) && (acc_on_timer_10ms>18000))  // 发送重型版本数据(AccOn,40s后发一次)
+    {
+      send_tcb_flag = 0;
+      iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCB);
+    }
+    else if((send_tct_flag==1) && (acc_off_timer_10ms>4000))  // 发送重型统计数据(AccOff,30s后发一次)
+    {
+      send_tct_flag = 0;
+      iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCT);
+    }
+    else  // 发送重型工况数据(AccOn 每10s发一次)
+    {
+      iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCW);
+    }
+    return;
+  }
+
   //iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCD);  // 发送重型故障数据(有故障立即发送)
+
+  //==心跳指令================================================================
+  if (pThis->ping_req.send_timer_sp > 0)
+  {
+    if ((pThis->ping_req.send_timer==0x00) && (pThis->ping_req.sent_flag==M2M_FALSE))
+    {
+      pThis->ping_req.send_timer = pThis->ping_req.send_timer_sp;
+      pThis->ping_req.sent_flag = M2M_TRUE;
+      pThis->ping_req.retry_cnt++;
+      pThis->ping_req.rsp_timeout_timer = pThis->ping_req.rsp_timeout_sp;
+      im2m_SendPingMsg(pThis);
+      return;
+    }
+  }
+
+#if 0
+  //==盲区补偿==============================================================
+  if ((pThis->bz_req.send_timer==0x00) && (pThis->bz_req.sent_flag==M2M_FALSE))
+  {
+    if(BlindZone_GetStackSize(&zxm2m_blind_zone)>0)
+    {
+      pThis->bz_req.retry_cnt++;
+      pThis->bz_req.sent_flag = M2M_TRUE;
+      pThis->bz_req.rsp_timeout_timer = pThis->bz_req.rsp_timeout_sp;
+      pThis->bz_req.send_timer = pThis->bz_req.send_timer_sp;
+      iZxM2m_SendBzData(pThis);
+      return;
+    }
+  }
+#endif
 
 #if 0
   //向平台发送报警数据
@@ -4198,7 +4259,7 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
     AlarmRep.ucRespondTimer = ALARM_RESPOND_TIMEOUT;
     return;
   }
-
+  
   if ((1==IsNewMcuFaultCode()) && (0==DTCRep.ucRepFlag))
   {
     SYS_SendDTCData();
@@ -4209,35 +4270,6 @@ void M2M_ProduceSendMsg(m2m_context_t* pThis)
   }
 #endif
 
-  //==心跳指令================================================================
-  if (pThis->ping_req.send_timer_sp > 0)
-  {
-    if (pThis->ping_req.send_timer==0x00)
-    {
-      pThis->ping_req.send_timer = pThis->ping_req.send_timer_sp;
-      pThis->ping_req.sent_flag = M2M_TRUE;
-      pThis->ping_req.retry_cnt++;
-      pThis->ping_req.rsp_timeout_timer = pThis->ping_req.rsp_timeout_sp;
-      iZxM2m_SendTcMsg(pThis, ZXTC_MSG_TYPE_TCW);  // 发送重型工况数据(AccOn 每30s发一次)
-      //im2m_SendPingMsg(pThis);
-      return;
-    }
-  }
-
-  //==盲区补偿==============================================================
-  if ((pThis->bz_req.send_timer==0x00) && (pThis->bz_req.sent_flag==M2M_FALSE))
-  {
-    if(BlindZone_GetStackSize(&zxm2m_blind_zone)>0)
-    {
-      pThis->bz_req.retry_cnt++;
-      pThis->bz_req.sent_flag = M2M_TRUE;
-      pThis->bz_req.rsp_timeout_timer = pThis->conn_req.rsp_timeout_sp;
-      pThis->ss_req.send_timer = m2m_context.bz_req.send_timer_sp;
-
-      iZxM2m_SendBzData(pThis);
-      return;
-    }
-  }
 }
 
 /******************************************************************************
@@ -4260,6 +4292,14 @@ void M2M_Do1sTasks(void)
   if (timeout_flag==M2M_TRUE)
   {
     PcDebug_SendString("M2M SS REQ:Fail!\n");
+    im2m_ReconnectLink();
+  }
+
+  //==工况数据管理================================
+  timeout_flag = im2m_ReqTimeOutManage(&m2m_context.tc_req);
+  if (timeout_flag==M2M_TRUE)
+  {
+    PcDebug_SendString("M2M TC REQ:Fail!\n");
     im2m_ReconnectLink();
   }
 
@@ -4300,13 +4340,6 @@ void M2M_Do1sTasks(void)
 
   //==重连新服务器管理==========================
   im2m_ConnectNewSrvManage();
-
-  //==盲区补偿管理================================
-  //if ((Blind.usNbfPacket>0) && (1==g_stuSystem.ucOnline[0]))
-  //{
-  //  if (Blind.usTimer>0)
-  //    Blind.usTimer--;
-  //}
 }
 
 /******************************************************************************
@@ -4359,6 +4392,12 @@ void M2M_Initialize(void)
   m2m_context.ss_req.rsp_timeout_sp = DEFAULT_SS_DATA_RSP_TIMEOUT_SP;
   m2m_context.ss_req.retry_sp = DEFAULT_SS_DATA_RETRY_SP;
 
+  // 工况数据请求
+  m2m_context.tc_req.sent_flag = M2M_FALSE;
+  m2m_context.tc_req.send_timer_sp = DEFAULT_TC_DATA_SEND_PERIOD_SP;
+  m2m_context.tc_req.rsp_timeout_sp = DEFAULT_TC_DATA_RSP_TIMEOUT_SP;
+  m2m_context.tc_req.retry_sp = DEFAULT_TC_DATA_RETRY_SP;
+
   // 盲区补偿请求
   m2m_context.bz_req.sent_flag = M2M_FALSE;
   m2m_context.bz_req.send_timer_sp = DEFAULT_BZ_DATA_SEND_PERIOD_SP;
@@ -4367,7 +4406,8 @@ void M2M_Initialize(void)
 
   // 心跳请求
   m2m_context.ping_req.sent_flag = M2M_FALSE;
-  m2m_context.ping_req.send_timer_sp = DEFAULT_PING_DATA_SEND_PERIOD_SP;
+  //m2m_context.ping_req.send_timer_sp = DEFAULT_PING_DATA_SEND_PERIOD_SP;
+  m2m_context.ping_req.send_timer_sp = m2m_asset_data.hb_timer_sp;
   m2m_context.ping_req.rsp_timeout_sp = DEFAULT_PING_DATA_RSP_TIMEOUT_SP;
   m2m_context.ping_req.retry_sp = DEFAULT_PING_DATA_RETRY_SP;
 

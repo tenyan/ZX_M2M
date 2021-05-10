@@ -143,9 +143,43 @@ void RTC_ConvertSecondsToDateTime(uint32_t seconds, date_time_t* p_date_time)
 }
 
 /******************************************************************************
+ * Return the number of day since January, 1 1970
+ * days is stored as an unsigned 16 bit number so it won't roll over until
+ * 输入：n时区的具体日期时间
+ * 输出：0时区的标准天数
+******************************************************************************/
+void RTC_ConvertDataTimeToDays(rtc_date_t* time, uint16_t* day)
+{
+  uint16_t temp;
+
+  // Days per month: 31,28,31,30,31,30,31,31,30,31,30,31
+  uint16_t days_tbl[] = { 0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+
+  temp = time->year + 2000; // Get the current year
+
+  // Start with the number of days since 1970 assuming 365 days per year */
+  (*day) = (temp - 1970) * 365;
+
+  // Add leap year days
+  (*day) += ((temp / 4) - (1970 / 4));
+
+  // Add number of days till given month
+  (*day) += days_tbl[time->month];
+
+  // Add days in given month
+  (*day) += time->day-1;
+
+  // For leap year if month less than or equal to Febraury, decrement day counter
+  if ((!(temp & 0x03)) && (time->month <= 0x02))
+  {
+    (*day)--;
+  }
+}
+
+/******************************************************************************
  * 将UTC时间转换为北京时间
- * 1.年份是可以被 400整除
- * 2.年份可以被4整除，并且是并且不能被100整除。
+ * 1.年份是可以被400整除
+ * 2.年份可以被4整除,并且是并且不能被100整除。
  ******************************************************************************/
 uint8_t RTC_CovertUtcToBjt(rtc_date_t *utc, rtc_date_t *bj)
 {

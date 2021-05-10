@@ -3,7 +3,7 @@
 * @Engineer: TenYan
 * @version   V1.0
 * @Date:     2020-1-6
-* @brief
+* @brief   查看环保信息公开:https://info.vecc.org.cn/ve/vin/index
 ******************************************************************************/
 #ifndef _ICLOUD_H_
 #define _ICLOUD_H_
@@ -65,16 +65,19 @@ extern skt_context_t skt_context[NUMBER_OF_SOCKET_ID];
 #define BJEP_HEART_BEAT_TIMEOUT_SP   (3*BJEP_HEART_BEAT_TIME*100)  // for 10ms time base
 
 // 重型M2M测试环境: 120.195.166.245:20036
-#define M2M_CLOUD_SERVER_IP     "58.218.196.200" // ZXM2M平台
-#define M2M_CLOUD_SERVER_PORT   10004
+//#define M2M_CLOUD_SERVER_IP     "58.218.196.200" // ZXM2M平台
+//#define M2M_CLOUD_SERVER_PORT   10004
+#define M2M_CLOUD_SERVER_DNS    "hoistm2m.xreaplat.com"  // ZXM2M平台
+#define M2M_CLOUD_SERVER_PORT   10044
 #define M2M_CLOUD_SERVER_PROTOCOL   CS_TCP_PROTOCOL
 
+// 测试用120.195.166.245:10013
 #define HJEP_CLOUD_SERVER_IP    "120.195.166.245"  // HJ环保平台
-#define HJEP_CLOUD_SERVER_PORT  10012
+#define HJEP_CLOUD_SERVER_PORT  10012  // 正式端口
 #define HJEP_CLOUD_SERVER_PROTOCOL  CS_TCP_PROTOCOL
 
 #define GBEP_CLOUD_SERVER_IP    "120.195.166.245"  // GB内部平台
-#define GBEP_CLOUD_SERVER_PORT  10012
+#define GBEP_CLOUD_SERVER_PORT  10012  // 正式端口
 #define GBEP_CLOUD_SERVER_PROTOCOL  CS_TCP_PROTOCOL
 
 #define BJEP_CLOUD_SERVER_DNS   "jc.bjmemc.com.cn"  // 北京环保平台
@@ -89,7 +92,7 @@ typedef enum
   ICLOUD_FALSE = 0,
   ICLOUD_TRUE  = 1
 } icloud_bool_t;
-  
+
 typedef enum
 {
   ALARM_FALSE = 0, // 消失(NORMAL)
